@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct FriendsView: View {
+    @State private var showAddFriend = false
+
     var body: some View {
         ZStack {
             // Background
@@ -35,7 +37,7 @@ struct FriendsView: View {
                         .foregroundColor(.gray)
                 }
                 
-                Spacer()
+                Spacer().frame(height: 20)
                 
                 // Empty State Illustration
                 ZStack {
@@ -55,7 +57,7 @@ struct FriendsView: View {
                         .offset(x: -80, y: 80)
                 }
                 
-                Spacer()
+                Spacer().frame(height: 30)
                 
                 // Content Text
                 VStack(spacing: 15) {
@@ -73,7 +75,7 @@ struct FriendsView: View {
                 
                 // CTA Button
                 Button(action: {
-                    // Add friend action
+                    showAddFriend = true
                 }) {
                     HStack {
                         Image(systemName: "plus")
@@ -88,6 +90,9 @@ struct FriendsView: View {
                 }
                 .padding(.horizontal, 40)
                 .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                .fullScreenCover(isPresented: $showAddFriend) {
+                    AddFriendView()
+                }
                 
                 Spacer().frame(height: 100) // Space for TabBar
             }

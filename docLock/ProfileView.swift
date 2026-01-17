@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ProfileView: View {
     @Binding var isAuthenticated: Bool
-    @State private var showLogoutModal = false
-    @State private var showDeleteModal = false
+    @Binding var showLogoutModal: Bool
+    @Binding var showDeleteModal: Bool
     @State private var showAboutSheet = false
 
     var body: some View {
@@ -21,17 +21,20 @@ struct ProfileView: View {
             
             VStack(spacing: 0) {
                 // Header
-                HStack {
-                    Spacer()
+                ZStack {
                     Text("My Profile")
                         .font(.headline)
                         .fontWeight(.bold)
-                    Spacer()
-                    Image(systemName: "square.and.arrow.up")
-                        .padding(10)
-                        .background(Color(red: 0.2, green: 0.8, blue: 0.7))
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    HStack {
+                        Spacer()
+                        Image(systemName: "square.and.arrow.up")
+                            .padding(10)
+                            .background(Color(red: 0.2, green: 0.8, blue: 0.7))
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, 20)
@@ -119,46 +122,6 @@ struct ProfileView: View {
                         Spacer().frame(height: 100)
                     }
                 }
-            }
-            
-            // Modals
-            if showLogoutModal {
-                CustomActionModal(
-                    icon: "rectangle.portrait.and.arrow.right",
-                    iconBgColor: .red,
-                    title: "Logout?",
-                    subtitle: nil,
-                    message: "Are you sure you want to sign out of DocLock?",
-                    primaryButtonText: "Logout",
-                    primaryButtonColor: .red,
-                    onPrimaryAction: {
-                        withAnimation {
-                            showLogoutModal = false
-                            isAuthenticated = false // Log out
-                        }
-                    },
-                    onCancel: { withAnimation { showLogoutModal = false } }
-                )
-            }
-            
-            if showDeleteModal {
-                CustomActionModal(
-                    icon: "trash.fill",
-                    iconBgColor: .red,
-                    title: "The Final Countdown",
-                    subtitle: "Whoa there, partner! 🤠",
-                    message: "You are about to permanently delete your account.\n\nAll your documents, friends, and data will be wiped from the face of the earth.\n\nThis action is irreversible - like a bad haircut, but permanent.",
-                    primaryButtonText: "Yes, Delete Everything",
-                    primaryButtonColor: .red,
-                    onPrimaryAction: {
-                       // Perform delete
-                       withAnimation {
-                           showDeleteModal = false
-                           isAuthenticated = false
-                       }
-                    },
-                    onCancel: { withAnimation { showDeleteModal = false } }
-                )
             }
         }
         .sheet(isPresented: $showAboutSheet) {

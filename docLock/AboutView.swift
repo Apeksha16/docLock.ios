@@ -101,23 +101,24 @@ struct AboutView: View {
                                     PremiumCard(
                                         title: "Folder Organization",
                                         description: "Efficient categorization for your files. Store IDs, Meds, and more.",
-                                        color: .blue,
-                                        icon: "folder"
+                                        gradient: LinearGradient(colors: [Color.blue, Color(red: 0.3, green: 0.5, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                        icon: "folder.fill"
                                     )
                                     PremiumCard(
                                         title: "Secure Sharing",
                                         description: "Share documents with time-limited links. Control exactly who sees what.",
-                                        color: Color(red: 0.0, green: 0.6, blue: 0.5), // Teal
-                                        icon: "square.and.arrow.up"
+                                        gradient: LinearGradient(colors: [Color(red: 0.0, green: 0.7, blue: 0.6), Color(red: 0.0, green: 0.5, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                        icon: "link"
                                     )
                                     PremiumCard(
                                         title: "Wallet Cards",
                                         description: "Save your Debit & Credit cards securely. Copy details with a single tap.",
-                                        color: Color(red: 0.4, green: 0.3, blue: 1.0), // Purple
-                                        icon: "creditcard"
+                                        gradient: LinearGradient(colors: [Color(red: 0.5, green: 0.3, blue: 1.0), Color(red: 0.3, green: 0.2, blue: 0.9)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                        icon: "creditcard.fill"
                                     )
                                 }
                                 .padding(.horizontal)
+                                .padding(.vertical, 30) // Add ample vertical padding for shadows and size
                             }
                         }
                         
@@ -143,13 +144,6 @@ struct AboutView: View {
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(.gray)
-                                .overlay(
-                                    // Make "Apeksha Verma" pink? A simple color overlay trick or attributed string if needed.
-                                    // For now simple text.
-                                    GeometryReader { g in
-                                       // keeping it simple
-                                    }
-                                )
                             
                             Text("Developed & Architected by Pranav Katiyar")
                                 .font(.caption)
@@ -214,55 +208,136 @@ struct FeatureGridItem: View {
 struct PremiumCard: View {
     let title: String
     let description: String
-    let color: Color
+    let gradient: LinearGradient
     let icon: String
     
     var body: some View {
         ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(color)
+            // Background with Gradient
+            RoundedRectangle(cornerRadius: 25)
+                .fill(gradient)
+                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 8)
             
-            VStack(alignment: .leading, spacing: 10) {
-                Text(title)
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+            // Decorative background circles
+            GeometryReader { geometry in
+                Circle()
+                    .fill(Color.white.opacity(0.1))
+                    .frame(width: 200, height: 200)
+                    .offset(x: geometry.size.width - 100, y: -50)
                 
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
+                Circle()
+                    .fill(Color.white.opacity(0.05))
+                    .frame(width: 150, height: 150)
+                    .offset(x: geometry.size.width - 50, y: 80)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 25))
+            
+            VStack(alignment: .leading, spacing: 15) {
+                // Header Icon
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: icon)
+                            .foregroundColor(.white)
+                            .font(.headline)
+                    }
+                    Spacer()
+                }
+                
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text(description)
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(3)
+                }
                 
                 Spacer()
                 
-                // Placeholder visual for card content (e.g. progress bar or card shape)
+                // Detailed Visual at the bottom
                 HStack {
-                    if title == "Folder Organization" || title == "Secure Sharing" {
-                        // Creating a fake progress bar look
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.white.opacity(0.2))
-                            .frame(height: 40)
-                            .overlay(
-                                HStack {
-                                    Image(systemName: icon == "folder" ? "heart.fill" : "link.circle.fill")
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                }
-                                .padding(.horizontal)
-                            )
+                    Spacer()
+                    if title == "Folder Organization" {
+                        // Stacked folders
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.3))
+                                .frame(width: 60, height: 40)
+                                .rotationEffect(.degrees(-10))
+                                .offset(x: -10, y: -5)
+                            
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.5))
+                                .frame(width: 65, height: 45)
+                                .rotationEffect(.degrees(-5))
+                                .offset(x: -5, y: -2)
+                            
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white)
+                                .frame(width: 70, height: 50)
+                                .overlay(
+                                    Image(systemName: "folder.fill")
+                                        .foregroundColor(Color.blue.opacity(0.8))
+                                )
+                        }
+                        .offset(x: 10, y: 10)
+                        
+                    } else if title == "Secure Sharing" {
+                        // Connected dots
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "link")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                                .rotationEffect(.degrees(45))
+                        }
+                        .offset(x: 10, y: 10)
+                        
                     } else {
-                        // Wallet Card look
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                            .frame(width: 100, height: 60)
-                            .rotationEffect(.degrees(-10))
-                            .offset(x: 100, y: 0)
+                        // Credit Card
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 80, height: 50)
+                                .rotationEffect(.degrees(-15))
+                                .offset(x: -15, y: -5)
+                            
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(LinearGradient(colors: [.white, .white.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(width: 80, height: 50)
+                                .rotationEffect(.degrees(-5))
+                                .shadow(radius: 5)
+                                .overlay(
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.black.opacity(0.1))
+                                            .frame(width: 15, height: 10)
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.black.opacity(0.05))
+                                            .frame(width: 40, height: 4)
+                                        Spacer()
+                                    }
+                                    .padding(6)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                )
+                        }
+                        .offset(x: 15, y: 10)
                     }
                 }
             }
             .padding(25)
         }
-        .frame(width: 300, height: 200)
+        .frame(width: 280, height: 200) // Slightly wider and taller feel
     }
 }
 

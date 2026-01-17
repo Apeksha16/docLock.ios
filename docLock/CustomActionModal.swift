@@ -80,8 +80,13 @@ struct CustomActionModal: View {
                     .padding(.bottom, 20)
                 }
             }
-            .background(Color.white)
-            .cornerRadius(30, corners: [.topLeft, .topRight])
+            .padding(.bottom, 10) // Add padding so text isn't flush with bottom
+            .frame(maxWidth: .infinity)
+            .background(
+                Color.white
+                    .edgesIgnoringSafeArea(.bottom) // Extend background to very bottom
+            )
+            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight])) // Clip top corners only
             .frame(maxHeight: .infinity, alignment: .bottom)
             .transition(.move(edge: .bottom))
         }

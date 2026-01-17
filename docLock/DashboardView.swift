@@ -3,6 +3,8 @@ import SwiftUI
 struct DashboardView: View {
     @Binding var isAuthenticated: Bool
     @State private var selectedTab = "Home"
+    @State private var showLogoutModal = false
+    @State private var showDeleteModal = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -15,7 +17,11 @@ struct DashboardView: View {
                 case "Friends":
                     FriendsView()
                 case "Profile":
-                    ProfileView(isAuthenticated: $isAuthenticated)
+                    ProfileView(
+                        isAuthenticated: $isAuthenticated,
+                        showLogoutModal: $showLogoutModal,
+                        showDeleteModal: $showDeleteModal
+                    )
                 default:
                     HomeView()
                 }
@@ -25,6 +31,46 @@ struct DashboardView: View {
             // Floating Tab Bar
             CustomTabBar(selectedTab: $selectedTab)
                 .padding(.bottom, 10)
+            
+            // Modals (Rendered LAST to be ON TOP of TabBar)
+            if showLogoutModal {
+                CustomActionModal(
+                    icon: "rectangle.portrait.and.arrow.right",
+                    iconBgColor: .red,
+                    title: "Logout?",
+                    subtitle: nil,
+                    message: "Are you sure you want to sign out of DocLock?",
+                    primaryButtonText: "Logout",
+                    primaryButtonColor: .red,
+                    onPrimaryAction: {
+                        withAnimation {
+                            showLogoutModal = false
+                            isAuthenticated = false // Log out
+                        }
+                    },
+                    onCancel: { withAnimation { showLogoutModal = false } }
+                )
+            }
+            
+            if showDeleteModal {
+                CustomActionModal(
+                    icon: "trash.fill",
+                    iconBgColor: .red,
+                    title: "The Final Countdown",
+                    subtitle: "Whoa there, partner! 🤠",
+                    message: "You are about to permanently delete your account.\n\nAll your documents, friends, and data will be wiped from the face of the earth.\n\nThis action is irreversible - like a bad haircut, but permanent.",
+                    primaryButtonText: "Yes, Delete Everything",
+                    primaryButtonColor: .red,
+                    onPrimaryAction: {
+                       // Perform delete
+                       withAnimation {
+                           showDeleteModal = false
+                           isAuthenticated = false
+                       }
+                    },
+                    onCancel: { withAnimation { showDeleteModal = false } }
+                )
+            }
         }
         .navigationBarHidden(true)
     }
@@ -32,6 +78,10 @@ struct DashboardView: View {
 
 struct HomeView: View {
     @State private var selectedCategory = "Storage"
+    @State private var showNotifications = false
+    @State private var showDocuments = false
+    @State private var showCards = false
+    @State private var showQRs = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -52,22 +102,27 @@ struct HomeView: View {
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     }
                     Spacer()
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(Color(red: 0.4, green: 0.4, blue: 1.0))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 10, height: 10)
-                            .offset(x: -5, y: -5)
+                    Button(action: { showNotifications = true }) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white)
+                                .padding(10)
+                                .background(Color(red: 0.4, green: 0.4, blue: 1.0))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 10, height: 10)
+                                .offset(x: -5, y: -5)
+                        }
                     }
                 }
                 .padding(.horizontal)
                 .padding(.top, 20)
+                .fullScreenCover(isPresented: $showNotifications) {
+                    NotificationView()
+                }
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 25) {
@@ -172,9 +227,26 @@ struct HomeView: View {
                         
                         // Feature Cards Grid
                         HStack(spacing: 15) {
-                            FeatureCard(icon: "doc.text.fill", title: "Documents", subtitle: "0 Files", iconColor: .blue, iconBgColor: Color.blue.opacity(0.1))
-                            FeatureCard(icon: "creditcard.fill", title: "Cards", subtitle: "0 Active", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
-                            FeatureCard(icon: "qrcode", title: "QRs", subtitle: "Synced", iconColor: .orange, iconBgColor: Color.orange.opacity(0.1))
+                            Button(action: { showDocuments = true }) {
+                                FeatureCard(icon: "doc.text.fill", title: "Documents", subtitle: "0 Files", iconColor: .blue, iconBgColor: Color.blue.opacity(0.1))
+                            }
+                            .fullScreenCover(isPresented: $showDocuments) {
+                                DocumentsView()
+                            }
+                            
+                            Button(action: { showCards = true }) {
+                                FeatureCard(icon: "creditcard.fill", title: "Cards", subtitle: "0 Active", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
+                            }
+                            .fullScreenCover(isPresented: $showCards) {
+                                CardsView()
+                            }
+                            
+                            Button(action: { showQRs = true }) {
+                                FeatureCard(icon: "qrcode", title: "QRs", subtitle: "Synced", iconColor: .orange, iconBgColor: Color.orange.opacity(0.1))
+                            }
+                            .fullScreenCover(isPresented: $showQRs) {
+                                SecureQRView()
+                            }
                         }
                         .padding(.horizontal)
                         
