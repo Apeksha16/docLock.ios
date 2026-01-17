@@ -4,75 +4,110 @@ struct MPINView: View {
     @Binding var isAuthenticated: Bool
     @State private var mpin = ""
     @FocusState private var isFocused: Bool
+    @State private var isLoading = false
 
     var body: some View {
         VStack(spacing: 25) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 50))
-                .foregroundColor(.blue)
+            
+            if isLoading {
+                Spacer()
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.blue)
+                Text("Verifying...")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                Spacer()
+            } else {
+                // Header Icon
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 0.9, green: 0.9, blue: 1.0)) // Light lavender bg
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "lock.fill") // Simple lock icon
+                        .font(.system(size: 35))
+                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 0.9)) // Deep purple/blue
+                }
                 .padding(.top, 20)
-            
-            Text("Enter MPIN")
-                .font(.title)
-                .fontWeight(.bold)
-            
-            Text("Please enter your 4-digit security PIN")
-                .foregroundColor(.gray)
-
-            ZStack {
-                // Visual representation
-                HStack(spacing: 20) {
-                    ForEach(0..<4, id: \.self) { index in
-                        Circle()
-                            .stroke(Color.blue, lineWidth: 2)
-                            .background(Circle().fill(index < mpin.count ? Color.blue : Color.clear))
-                            .frame(width: 20, height: 20)
-                    }
-                }
                 
-                // Hidden text field to capture input - Placed ON TOP of visuals
-                TextField("", text: $mpin)
-                    .keyboardType(.numberPad)
-                    .focused($isFocused)
-                    .accentColor(.clear)
-                    .foregroundColor(.clear)
-                    .frame(width: 200, height: 50) // Ensure it has size
-                    .contentShape(Rectangle()) // Make the whole area tappable
-                    .onChange(of: mpin) { newValue in
-                        if newValue.count > 4 {
-                            mpin = String(newValue.prefix(4))
-                        }
-                        if mpin.count == 4 {
-                             // Auto submit logic if desired
-                        }
-                    }
-            }
-            .padding(.vertical, 20)
-            // Removed onAppear auto-focus
-
-            Button(action: {
-                if mpin.count == 4 {
-                    withAnimation {
-                        isAuthenticated = true
-                    }
-                }
-            }) {
-                Text("Unlock")
+                Text("Verify it's you")
+                    .font(.title2)
                     .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(red: 0.7, green: 0.75, blue: 1.0))
-                    .foregroundColor(.white)
-                    .cornerRadius(15)
-            }
+                    .foregroundColor(.black)
+                
+                Text("Enter the 4-digit code sent to \n******9998") // Hardcoded for demo
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.gray)
 
-            Spacer().frame(height: 20)
+                ZStack {
+                    // Visual representation - Rounded Squares
+                    HStack(spacing: 15) {
+                        ForEach(0..<4, id: \.self) { index in
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(red: 0.96, green: 0.96, blue: 0.98)) // Very light gray
+                                .frame(width: 50, height: 50)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(index < mpin.count ? Color.blue : Color.clear, lineWidth: 1.5)
+                                )
+                                .overlay(
+                                    Text(index < mpin.count ? "•" : "")
+                                        .font(.largeTitle)
+                                        .bold()
+                                        .foregroundColor(.black)
+                                )
+                        }
+                    }
+                    
+                    // Hidden text field to capture input
+                    TextField("", text: $mpin)
+                        .keyboardType(.numberPad)
+                        .focused($isFocused)
+                        .accentColor(.clear)
+                        .foregroundColor(.clear)
+                        .frame(width: 250, height: 50)
+                        .contentShape(Rectangle())
+                        .onChange(of: mpin) { newValue in
+                            if newValue.count > 4 {
+                                mpin = String(newValue.prefix(4))
+                            }
+                            if mpin.count == 4 {
+                                // Auto submit
+                                performLogin()
+                            }
+                        }
+                }
+                .padding(.vertical, 20)
+                
+                // Resend Code Link
+                Button("Resend code in 30s") {
+                    // Action
+                }
+                .font(.footnote)
+                .foregroundColor(Color(red: 0.4, green: 0.3, blue: 0.9))
+                
+                Spacer().frame(height: 20)
+            }
         }
         .padding(.horizontal)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
             isFocused = false
+        }
+    }
+    
+    func performLogin() {
+        withAnimation {
+            isLoading = true
+        }
+        
+        // Simulate network call
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation {
+                isAuthenticated = true
+            }
         }
     }
 }

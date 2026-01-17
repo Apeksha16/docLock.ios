@@ -9,7 +9,7 @@ struct ContentView: View {
 
     var body: some View {
         if isAuthenticated {
-            DashboardView()
+            DashboardView(isAuthenticated: $isAuthenticated)
         } else {
             ZStack {
                 // Background - Dark Navy
@@ -28,6 +28,17 @@ struct ContentView: View {
                         if showMPIN {
                             MPINView(isAuthenticated: $isAuthenticated)
                                 .transition(.move(edge: .trailing))
+                                .gesture(
+                                    DragGesture()
+                                        .onEnded { value in
+                                            // Swipe right to go back
+                                            if value.translation.width > 50 {
+                                                withAnimation {
+                                                    showMPIN = false
+                                                }
+                                            }
+                                        }
+                                )
                         } else {
                             LoginView(showMPIN: $showMPIN)
                                 .transition(.move(edge: .leading))

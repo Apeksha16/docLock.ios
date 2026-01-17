@@ -3,12 +3,16 @@ import SwiftUI
 struct LoginView: View {
     @Binding var showMPIN: Bool
     @State private var phoneNumber = ""
+    
+    var isValidNumber: Bool {
+        return phoneNumber.count == 10
+    }
 
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "lock.shield.fill")
                 .font(.system(size: 50))
-                .foregroundColor(.blue) // Using system blue for now, can refine
+                .foregroundColor(.blue)
                 .padding(.top, 20)
             
             Text("STAY SECURE.")
@@ -25,12 +29,15 @@ struct LoginView: View {
                     .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
                 
                 CustomTextField(placeholder: "Enter 10-digit number", text: $phoneNumber, keyboardType: .numberPad)
+                    .onChange(of: phoneNumber) { newValue in
+                        if newValue.count > 10 {
+                            phoneNumber = String(newValue.prefix(10))
+                        }
+                    }
             }
             .padding(.top, 20)
 
             Button(action: {
-                // In a real app, send OTP here
-                // For now, proceed to MPIN
                 withAnimation {
                     showMPIN = true
                 }
@@ -39,10 +46,11 @@ struct LoginView: View {
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(red: 0.7, green: 0.75, blue: 1.0)) // Periwinkle
+                    .background(isValidNumber ? Color(red: 0.7, green: 0.75, blue: 1.0) : Color.gray.opacity(0.3))
                     .foregroundColor(.white)
                     .cornerRadius(15)
             }
+            .disabled(!isValidNumber)
             .padding(.top, 10)
 
             HStack {
