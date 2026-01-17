@@ -1,88 +1,106 @@
 import SwiftUI
 
 struct LoginView: View {
-    @StateObject private var authService = AuthService()
-    @State private var mobile: String = ""
-    @State private var mpin: String = ""
-
-    // Computed property for mobile validation
-    var isMobileValid: Bool {
-        guard mobile.count <= 10 else { return false }
-        // Check if only digits
-        guard CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: mobile)) else { return false }
-        
-        if mobile.count > 0 {
-             let firstDigit = Int(String(mobile.prefix(1))) ?? 0
-             if firstDigit <= 5 { return false }
-        }
-        
-        return mobile.count == 10
+    @Binding var showSignup: Bool
+    @Binding var showMPIN: Bool
+    
+    @State private var phoneNumber = ""
+    
+    var isValidNumber: Bool {
+        return phoneNumber.count == 10
     }
+    
+    // Theme Color: #8b5cf6 -> RGB(139, 92, 246)
+    let themeColor = Color(red: 0.55, green: 0.36, blue: 0.96)
+    // Disabled Color: #b2aadf -> RGB(178, 170, 223)
+    let disabledThemeColor = Color(red: 0.70, green: 0.67, blue: 0.87)
+
+    @State private var typewriterIndex = 0
+    let typewriterPhrases = ["GO PAPERLESS", "ONE SCAN ACCESS", "STAY SECURE"]
+    @State private var currentPhrase = "GO PAPERLESS"
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("DocLock Login")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding(.bottom, 40)
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 50))
+                .foregroundColor(themeColor) // Updated Logo Color
+                .padding(.top, 20)
+            
+            TypewriterText(text: currentPhrase)
+                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2)) // Dark Navy Text
+                .frame(height: 40) // Fixed height to prevent jumping
+                .onAppear {
+                    startTypewriterCycle()
+                }
+            
+            Text("Sign in to your secure vault")
+                .foregroundColor(.gray)
 
             VStack(alignment: .leading, spacing: 5) {
-                TextField("Mobile Number", text: $mobile)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.numberPad)
-                    .onChange(of: mobile) { newValue in
-                        // Enforce max length 10
+                Text("Mobile Number")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
+                
+                CustomTextField(placeholder: "Enter 10-digit number", text: $phoneNumber, keyboardType: .numberPad)
+                    .onChange(of: phoneNumber) { newValue in
                         if newValue.count > 10 {
-                            mobile = String(newValue.prefix(10))
+                            phoneNumber = String(newValue.prefix(10))
                         }
                     }
 
-                if !mobile.isEmpty && !isMobileValid {
-                    Text("Enter a valid 10-digit mobile number starting with 6-9")
-                        .foregroundColor(.red)
-                        .font(.caption)
-                }
             }
-            .padding(.horizontal)
-
-            SecureField("MPIN", text: $mpin)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.numberPad)
-                .padding(.horizontal)
-
-            if let errorMessage = authService.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
+            .padding(.top, 20)
 
             Button(action: {
-                print("Login Button Tapped")
-                authService.login(mobile: mobile, mpin: mpin)
+                withAnimation {
+                    showMPIN = true
+                }
             }) {
-                ZStack {
-                    if authService.isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    } else {
-                        Text("Login")
-                            .fontWeight(.bold)
+                Text("Get OTP") 
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(isValidNumber ? themeColor : disabledThemeColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(15)
+            }
+            .disabled(!isValidNumber)
+            .padding(.top, 10)
+
+            HStack {
+                Text("New to DocLock?")
+                    .foregroundColor(.gray)
+                Button("Create Account") {
+                    withAnimation {
+                        showSignup = true
                     }
                 }
+                .fontWeight(.bold)
+                .foregroundColor(themeColor)
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background((isMobileValid && !mpin.isEmpty && !authService.isLoading) ? Color.blue : Color.gray)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-            .padding(.horizontal)
-            .disabled(!isMobileValid || mpin.isEmpty || authService.isLoading)
-
-            Spacer()
+            .font(.footnote)
+            
+            Spacer().frame(height: 20)
+            
+            HStack {
+                Image(systemName: "lock.fill")
+                Text("Secured with 256-bit encryption")
+            }
+            .font(.caption)
+            .foregroundColor(.gray)
+            .padding(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+            )
         }
-        .padding()
-        .alert(isPresented: $authService.isAuthenticated) {
-            Alert(title: Text("Success"), message: Text("Welcome, \(authService.user?.name ?? "User")!"), dismissButton: .default(Text("OK")))
+        .padding(.horizontal)
+    }
+    func startTypewriterCycle() {
+        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            typewriterIndex = (typewriterIndex + 1) % typewriterPhrases.count
+            currentPhrase = typewriterPhrases[typewriterIndex]
         }
     }
 }
