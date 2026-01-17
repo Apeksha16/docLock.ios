@@ -7,7 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		65535CC32F1B8DCD00563E19 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 65535CC22F1B8DCD00563E19 /* GoogleService-Info.plist */; };
+		604D1E962F1B6B4100089094 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 604D1E952F1B6B4100089094 /* FirebaseAuth */; };
+		604D1E982F1B6B4100089094 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 604D1E972F1B6B4100089094 /* FirebaseFirestore */; };
+		604D1E9A2F1B6B4100089094 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 604D1E992F1B6B4100089094 /* FirebaseFunctions */; };
+		604D1E9C2F1B6B4100089094 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 604D1E9B2F1B6B4100089094 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +31,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				604D1E9A2F1B6B4100089094 /* FirebaseFunctions in Frameworks */,
+				604D1E9C2F1B6B4100089094 /* FirebaseStorage in Frameworks */,
+				604D1E962F1B6B4100089094 /* FirebaseAuth in Frameworks */,
+				604D1E982F1B6B4100089094 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +78,10 @@
 			);
 			name = docLock;
 			packageProductDependencies = (
+				604D1E952F1B6B4100089094 /* FirebaseAuth */,
+				604D1E972F1B6B4100089094 /* FirebaseFirestore */,
+				604D1E992F1B6B4100089094 /* FirebaseFunctions */,
+				604D1E9B2F1B6B4100089094 /* FirebaseStorage */,
 			);
 			productName = docLock;
 			productReference = 604D1E862F1B61B700089094 /* docLock.app */;
@@ -100,6 +111,9 @@
 			);
 			mainGroup = 604D1E7D2F1B61B700089094;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				604D1E942F1B6B4100089094 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 604D1E872F1B61B700089094 /* Products */;
 			projectDirPath = "";
@@ -261,6 +275,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -276,18 +292,19 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.techvriksha.docLock.apeksha;
+				PRODUCT_BUNDLE_IDENTIFIER = com.techvriksha.doclock.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Debug;
@@ -305,6 +322,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -320,18 +339,19 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.techvriksha.docLock.apeksha;
+				PRODUCT_BUNDLE_IDENTIFIER = com.techvriksha.doclock.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
@@ -358,6 +378,40 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		604D1E942F1B6B4100089094 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		604D1E952F1B6B4100089094 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 604D1E942F1B6B4100089094 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		604D1E972F1B6B4100089094 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 604D1E942F1B6B4100089094 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		604D1E992F1B6B4100089094 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 604D1E942F1B6B4100089094 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		604D1E9B2F1B6B4100089094 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 604D1E942F1B6B4100089094 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 604D1E7E2F1B61B700089094 /* Project object */;
 }
