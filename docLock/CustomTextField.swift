@@ -11,11 +11,11 @@ struct CustomTextField: View {
             .padding()
             .focused($isFocused)
             .background(Color.white)
+            .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: isFocused ? 2 : 1)
+                    .stroke((isFocused || !text.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
             )
-            .cornerRadius(12)
             .keyboardType(keyboardType)
     }
 }

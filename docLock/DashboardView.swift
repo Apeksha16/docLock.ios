@@ -96,9 +96,9 @@ struct HomeView: View {
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.gray)
-                        Text("Pranav")
-                            .font(.largeTitle)
-                            .fontWeight(.heavy)
+                        Text("Apeksha Verma")
+                            .font(.title2)
+                            .fontWeight(.bold)
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     }
                     Spacer()

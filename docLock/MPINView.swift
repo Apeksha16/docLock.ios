@@ -13,7 +13,7 @@ struct MPINView: View {
                 Spacer()
                 ProgressView()
                     .scaleEffect(1.5)
-                    .tint(.blue)
+                    .tint(Color(red: 0.55, green: 0.36, blue: 0.96))
                 Text("Verifying...")
                     .font(.caption)
                     .foregroundColor(.gray)
@@ -26,7 +26,7 @@ struct MPINView: View {
                         .frame(width: 80, height: 80)
                     Image(systemName: "lock.fill") // Simple lock icon
                         .font(.system(size: 35))
-                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 0.9)) // Deep purple/blue
+                        .foregroundColor(Color(red: 0.55, green: 0.36, blue: 0.96)) // Theme color
                 }
                 .padding(.top, 20)
                 
@@ -49,7 +49,7 @@ struct MPINView: View {
                                 .frame(width: 50, height: 50)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(index < mpin.count ? Color.blue : Color.clear, lineWidth: 1.5)
+                                        .stroke(index < mpin.count ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.clear, lineWidth: 2)
                                 )
                                 .overlay(
                                     Text(index < mpin.count ? "•" : "")

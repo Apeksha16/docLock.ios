@@ -4,6 +4,7 @@ struct ProfileView: View {
     @Binding var isAuthenticated: Bool
     @Binding var showLogoutModal: Bool
     @Binding var showDeleteModal: Bool
+    @State private var showSecuritySheet = false
     @State private var showAboutSheet = false
 
     var body: some View {
@@ -11,7 +12,7 @@ struct ProfileView: View {
             Color(red: 0.98, green: 0.98, blue: 0.98)
                 .edgesIgnoringSafeArea(.all)
             
-            // ... (Background Decorations - keeping same)
+            // Decorative background
             GeometryReader { geometry in
                 Circle()
                     .fill(Color(red: 0.2, green: 0.8, blue: 0.7).opacity(0.1))
@@ -42,7 +43,7 @@ struct ProfileView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 25) {
                         
-                        // Profile Card (Keeping same)
+                        // Profile Card
                         ZStack(alignment: .top) {
                             RoundedRectangle(cornerRadius: 20)
                                 .fill(LinearGradient(
@@ -103,8 +104,10 @@ struct ProfileView: View {
                         .padding(.horizontal, 25)
                         
                         VStack(spacing: 15) {
-                            SettingRow(icon: "lock", iconColor: .blue, title: "Security", subtitle: "Change MPIN & Biometrics")
-                            // Using a sheet for AboutView since we are in a ZStack based nav, or we can use fullScreenCover
+                            Button(action: { showSecuritySheet = true }) {
+                                SettingRow(icon: "lock", iconColor: .blue, title: "Security", subtitle: "Change MPIN & Biometrics")
+                            }
+                            
                             Button(action: { showAboutSheet = true }) {
                                 SettingRow(icon: "info.circle", iconColor: .orange, title: "About DocLock", subtitle: "Why we are safe & secure")
                             }
@@ -126,6 +129,9 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showAboutSheet) {
             AboutView()
+        }
+        .sheet(isPresented: $showSecuritySheet) {
+            CreatePINView(isPresented: $showSecuritySheet)
         }
     }
 }
