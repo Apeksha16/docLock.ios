@@ -1,0 +1,47 @@
+# Personal GoogleService-Info files (DO NOT COMMIT)
+# Each developer should have their own Firebase project
+GoogleService-Info.plist
+GoogleService-Info-*.plist
+!GoogleService-Info.plist.template
+
+# Xcode user-specific files
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+# Build products
+build/
+DerivedData/
+*.app
+*.dSYM.zip
+*.dSYM
+
+# Personal schemes (developer-specific)
+*.xcscheme
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Swift Package Manager
+.swiftpm/
+
+# Xcode Patch
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+!*.xcworkspace/xcshareddata/
+
+# Swift Package Manager
+Package.resolved
+
+# Backup files
+*.backup
+*~
+*.swp
+*.swo

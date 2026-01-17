@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @Binding var isAuthenticated: Bool
+    @ObservedObject var authService: AuthService // Add this
     @State private var selectedTab = "Home"
     @State private var showLogoutModal = false
     @State private var showDeleteModal = false
@@ -13,9 +14,13 @@ struct DashboardView: View {
             Group {
                 switch selectedTab {
                 case "Home":
-                    HomeView()
+                    HomeView(authService: authService, 
+                             notificationService: authService.notificationService, 
+                             documentsService: authService.documentsService, 
+                             cardsService: authService.cardsService,
+                             appConfigService: authService.appConfigService)
                 case "Friends":
-                    FriendsView()
+                    FriendsView(friendsService: isAuthenticated ? (authService.friendsService) : FriendsService(), userId: authService.user?.id ?? authService.user?.mobile ?? "unknown") // Hacky access to authService
                 case "Profile":
                     ProfileView(
                         isAuthenticated: $isAuthenticated,
@@ -23,7 +28,11 @@ struct DashboardView: View {
                         showDeleteModal: $showDeleteModal
                     )
                 default:
-                    HomeView()
+                    HomeView(authService: authService,
+                             notificationService: authService.notificationService,
+                             documentsService: authService.documentsService,
+                             cardsService: authService.cardsService,
+                             appConfigService: authService.appConfigService)
                 }
             }
             .transition(.opacity) // Fade transition
@@ -77,6 +86,12 @@ struct DashboardView: View {
 }
 
 struct HomeView: View {
+    @ObservedObject var authService: AuthService
+    @ObservedObject var notificationService: NotificationService
+    @ObservedObject var documentsService: DocumentsService
+    @ObservedObject var cardsService: CardsService
+    @ObservedObject var appConfigService: AppConfigService
+    
     @State private var selectedCategory = "Storage"
     @State private var showNotifications = false
     @State private var showDocuments = false
@@ -96,7 +111,7 @@ struct HomeView: View {
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.gray)
-                        Text("Apeksha Verma")
+                        Text(authService.user?.name ?? "DocLock User")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
@@ -111,17 +126,20 @@ struct HomeView: View {
                                 .background(Color(red: 0.4, green: 0.4, blue: 1.0))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                             
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 10, height: 10)
-                                .offset(x: -5, y: -5)
+                            
+                            if !notificationService.notifications.isEmpty {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 10, height: 10)
+                                    .offset(x: -5, y: -5)
+                            }
                         }
                     }
                 }
                 .padding(.horizontal)
                 .padding(.top, 20)
                 .fullScreenCover(isPresented: $showNotifications) {
-                    NotificationView()
+                    NotificationView(notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
                 }
                 
                 ScrollView(showsIndicators: false) {
@@ -162,18 +180,19 @@ struct HomeView: View {
                                 }
                                 
                                 HStack(alignment: .bottom) {
-                                    Text("0")
+                                    Text("\(cardsService.cards.count)")
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.pink)
-                                    Text(" / 10")
+                                    Text(" / \(appConfigService.maxCreditCardsLimit)")
                                         .font(.title3)
                                         .fontWeight(.bold)
                                         .foregroundColor(.black)
                                     
                                     Spacer()
                                     
-                                    Text("0%")
+                                    let cardsPercent = appConfigService.maxCreditCardsLimit > 0 ? (Double(cardsService.cards.count) / Double(appConfigService.maxCreditCardsLimit)) * 100 : 0
+                                    Text("\(Int(cardsPercent))%")
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.pink)
@@ -199,21 +218,22 @@ struct HomeView: View {
                                 }
                                 
                                 HStack(alignment: .bottom) {
-                                    Text("0.00")
+                                    Text(String(format: "%.2f", documentsService.usedStorageMB))
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(Color(red: 0.3, green: 0.2, blue: 0.9))
                                     Text("MB")
                                         .font(.subheadline)
                                         .foregroundColor(.gray)
-                                    Text(" / 200 MB")
+                                    Text(" / \(appConfigService.maxStorageLimit) MB")
                                         .font(.title3)
                                         .fontWeight(.bold)
                                         .foregroundColor(.black)
                                     
                                     Spacer()
                                     
-                                    Text("0%")
+                                    let storagePercent = appConfigService.maxStorageLimit > 0 ? (documentsService.usedStorageMB / Double(appConfigService.maxStorageLimit)) * 100 : 0
+                                    Text("\(Int(storagePercent))%")
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(Color(red: 0.3, green: 0.2, blue: 0.9))
@@ -228,17 +248,17 @@ struct HomeView: View {
                         // Feature Cards Grid
                         HStack(spacing: 15) {
                             Button(action: { showDocuments = true }) {
-                                FeatureCard(icon: "doc.text.fill", title: "Documents", subtitle: "0 Files", iconColor: .blue, iconBgColor: Color.blue.opacity(0.1))
+                                FeatureCard(icon: "doc.text.fill", title: "Documents", subtitle: "\(documentsService.totalDocuments) Files", iconColor: .blue, iconBgColor: Color.blue.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showDocuments) {
-                                DocumentsView()
+                                DocumentsView(documentsService: documentsService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
                             }
                             
                             Button(action: { showCards = true }) {
-                                FeatureCard(icon: "creditcard.fill", title: "Cards", subtitle: "0 Active", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
+                                FeatureCard(icon: "creditcard.fill", title: "Cards", subtitle: "\(cardsService.cards.count) Active", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showCards) {
-                                CardsView()
+                                CardsView(cardsService: cardsService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
                             }
                             
                             Button(action: { showQRs = true }) {

@@ -3,23 +3,23 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>620656800474-10r71lsqgskafrpa7cf2f1kesi8d0v91.apps.googleusercontent.com</string>
+	<string>YOUR_FIREBASE_CLIENT_ID</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.620656800474-10r71lsqgskafrpa7cf2f1kesi8d0v91</string>
+	<string>YOUR_FIREBASE_REVERSED_CLIENT_ID</string>
 	<key>ANDROID_CLIENT_ID</key>
-	<string>620656800474-be3kpvdth7s29dhomespm15bm2tphkj1.apps.googleusercontent.com</string>
+	<string>YOUR_ANDROID_CLIENT_ID</string>
 	<key>API_KEY</key>
-	<string>AIzaSyAW_KQn1yMFQJjkNbCwNPtj3N66UoqNKEY</string>
+	<string>YOUR_FIREBASE_API_KEY</string>
 	<key>GCM_SENDER_ID</key>
-	<string>620656800474</string>
+	<string>YOUR_FIREBASE_PROJECT_NUMBER</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.techvriksha.doclock.dev</string>
+	<string>com.techvriksha.doclock.dev.YOUR_NAME</string>
 	<key>PROJECT_ID</key>
-	<string>doclock-96a20</string>
+	<string>YOUR_FIREBASE_PROJECT_ID</string>
 	<key>STORAGE_BUCKET</key>
-	<string>doclock-96a20.firebasestorage.app</string>
+	<string>YOUR_FIREBASE_STORAGE_BUCKET</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:620656800474:ios:36de0d6a0e5eac52e9ebe3</string>
+	<string>YOUR_FIREBASE_GOOGLE_APP_ID</string>
 </dict>
 </plist>

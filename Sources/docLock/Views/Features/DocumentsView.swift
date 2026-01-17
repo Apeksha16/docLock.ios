@@ -9,15 +9,11 @@ struct DocFolder: Identifiable {
 
 struct DocumentsView: View {
     @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var documentsService: DocumentsService
+    let userId: String
+    
     @State private var searchText: String = ""
     @State private var showFabMenu = false
-    
-    // Sample Data
-    @State private var folders: [DocFolder] = [
-        DocFolder(name: "Health", itemCount: 0, icon: "folder"),
-        DocFolder(name: "Medical", itemCount: 1, icon: "folder"),
-        DocFolder(name: "Government ID", itemCount: 0, icon: "folder")
-    ]
     
     // Breadcrumb state
     @State private var currentPath: [String] = ["HOME"]
@@ -103,7 +99,7 @@ struct DocumentsView: View {
                         if currentPath.last == "Health" { // Example Empty State
                              EmptyStateView()
                         } else {
-                            ForEach(folders) { folder in
+                            ForEach(documentsService.folders) { folder in
                                 Button(action: {
                                     withAnimation {
                                         currentPath.append(folder.name)
@@ -192,6 +188,9 @@ struct DocumentsView: View {
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
+        .onAppear {
+            documentsService.retry(userId: userId)
+        }
     }
 }
 

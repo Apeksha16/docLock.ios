@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct FriendsView: View {
+    @ObservedObject var friendsService: FriendsService
+    let userId: String
     @State private var showAddFriend = false
 
     var body: some View {
@@ -32,7 +34,7 @@ struct FriendsView: View {
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     
-                    Text("0 secure connections")
+                    Text("\(friendsService.friendsCount) secure connections")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
@@ -96,6 +98,9 @@ struct FriendsView: View {
                 
                 Spacer().frame(height: 100) // Space for TabBar
             }
+        }
+        .onAppear {
+            friendsService.retry(userId: userId)
         }
     }
 }

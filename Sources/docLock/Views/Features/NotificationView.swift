@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct NotificationItem: Identifiable {
-    let id = UUID()
+    let id: UUID
     let type: NotificationType
     let title: String
     let message: String
@@ -23,15 +23,11 @@ enum NotificationType {
 
 struct NotificationView: View {
     @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var notificationService: NotificationService
+    let userId: String
     
-    @State private var notifications: [NotificationItem] = [
-        NotificationItem(type: .security, title: "Profile Update", message: "Your profile picture has been updated successfully.", date: "5d ago"),
-        NotificationItem(type: .security, title: "Profile Update", message: "Your profile picture has been updated successfully.", date: "5d ago"),
-        NotificationItem(type: .alert, title: "Item Shared", message: "You successfully shared 'Pranav Katiyar' with Apeksha Verma.", date: "1/8/2026"),
-        NotificationItem(type: .alert, title: "Connection Severed", message: "You have removed Pranavkwdwdw from your secure circle.", date: "1/8/2026"),
-        NotificationItem(type: .alert, title: "Friend Added", message: "You have successfully added Pranavkwdwdw to your secure circle.", date: "1/8/2026"),
-        NotificationItem(type: .alert, title: "Request Sent", message: "You requested 'jhkhhkj' (card) from Apeksha Verma.", date: "1/8/2026")
-    ]
+    // Using service.notifications instead of local state
+    // Removed local state
     
     var body: some View {
         ZStack {
@@ -71,17 +67,16 @@ struct NotificationView: View {
                 
                 // Notification List
                 List {
-                    ForEach(notifications) { notification in
+                    ForEach(notificationService.notifications) { notification in
                         NotificationCell(notification: notification)
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
                             .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
-                                    if let index = notifications.firstIndex(where: { $0.id == notification.id }) {
-                                        withAnimation {
-                                            notifications.remove(at: index)
-                                        }
+                                    if let index = notificationService.notifications.firstIndex(where: { $0.id == notification.id }) {
+                                        // TODO: Implement delete in service
+                                        // notificationService.delete(id: notification.id)
                                     }
                                 } label: {
                                     Label("Delete", systemImage: "trash")
@@ -90,10 +85,8 @@ struct NotificationView: View {
                             }
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 Button {
-                                    if let index = notifications.firstIndex(where: { $0.id == notification.id }) {
-                                        withAnimation {
-                                            notifications[index].isRead.toggle()
-                                        }
+                                    if let index = notificationService.notifications.firstIndex(where: { $0.id == notification.id }) {
+                                         // TODO: Implement mark as read in service
                                     }
                                 } label: {
                                     Image(systemName: "checkmark") // Icon from screenshot
@@ -108,6 +101,9 @@ struct NotificationView: View {
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
+        .onAppear {
+            notificationService.retry(userId: userId)
+        }
     }
 }
 

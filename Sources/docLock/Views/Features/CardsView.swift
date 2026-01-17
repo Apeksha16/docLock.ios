@@ -21,10 +21,8 @@ struct CardModel: Identifiable {
 // MARK: - Main Cards View
 struct CardsView: View {
     @Environment(\.presentationMode) var presentationMode
-    @State private var cards: [CardModel] = [
-        CardModel(type: .debit, cardName: "Travel Card", cardNumber: "4315 •••• •••• 7018", cardHolder: "NEW USER", expiry: "11/26", cvv: "123", colorStart: Color(red: 0.95, green: 0.85, blue: 0.4), colorEnd: Color(red: 0.9, green: 0.7, blue: 0.2)),
-        CardModel(type: .credit, cardName: "Shopping Card", cardNumber: "4315 •••• •••• 7018", cardHolder: "APEKSHA VERMA", expiry: "11/26", cvv: "123", colorStart: Color(red: 0.7, green: 0.5, blue: 0.5), colorEnd: Color(red: 0.5, green: 0.3, blue: 0.3))
-    ]
+    @ObservedObject var cardsService: CardsService
+    let userId: String
     
     @State private var showingAddCard = false
     @State private var selectedCardToEdit: CardModel?
@@ -79,9 +77,9 @@ struct CardsView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         
                         // Debit Cards Section
-                        if !cards.filter({ $0.type == .debit }).isEmpty {
-                            SectionHeader(title: "Debit Cards", count: cards.filter({ $0.type == .debit }).count)
-                            ForEach(cards.filter({ $0.type == .debit })) { card in
+                        if !cardsService.cards.filter({ $0.type == .debit }).isEmpty {
+                            SectionHeader(title: "Debit Cards", count: cardsService.cards.filter({ $0.type == .debit }).count)
+                            ForEach(cardsService.cards.filter({ $0.type == .debit })) { card in
                                 CardView(card: card, onEdit: {
                                     selectedCardToEdit = card
                                 }, onDelete: {
@@ -92,9 +90,9 @@ struct CardsView: View {
                         }
                         
                         // Credit Cards Section
-                        if !cards.filter({ $0.type == .credit }).isEmpty {
-                            SectionHeader(title: "Credit Cards", count: cards.filter({ $0.type == .credit }).count)
-                            ForEach(cards.filter({ $0.type == .credit })) { card in
+                        if !cardsService.cards.filter({ $0.type == .credit }).isEmpty {
+                            SectionHeader(title: "Credit Cards", count: cardsService.cards.filter({ $0.type == .credit }).count)
+                            ForEach(cardsService.cards.filter({ $0.type == .credit })) { card in
                                 CardView(card: card, onEdit: {
                                     selectedCardToEdit = card
                                 }, onDelete: {
@@ -149,7 +147,9 @@ struct CardsView: View {
                     
                     Button(action: {
                         if let id = cardToDeleteId {
-                            cards.removeAll(where: { $0.id == id })
+                           // TODO: Call delete on service
+                           // cardsService.deleteCard(id: id)
+                           print("Deleting card: \(id)")
                         }
                         showingDeleteAlert = false
                     }) {
@@ -175,9 +175,12 @@ struct CardsView: View {
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
+        .onAppear {
+            cardsService.retry(userId: userId)
+        }
         .sheet(isPresented: $showingAddCard) {
             AddEditCardView(isPresented: $showingAddCard, card: nil) { newCard in
-                cards.append(newCard)
+                // Call add card service
             }
         }
         .sheet(item: $selectedCardToEdit) { card in
@@ -185,9 +188,7 @@ struct CardsView: View {
                 get: { selectedCardToEdit != nil },
                 set: { if !$0 { selectedCardToEdit = nil } }
             ), card: card) { updatedCard in
-                if let index = cards.firstIndex(where: { $0.id == updatedCard.id }) {
-                    cards[index] = updatedCard
-                }
+                // Call update card service
             }
         }
     }

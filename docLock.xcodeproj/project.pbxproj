@@ -7,65 +7,85 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		888888888888888888888888 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/docLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999999 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/docLockApp.swift */; };
-		AAAAAAAAAAAAAAAAAAAAAA /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBBBB /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ContentView.swift */; };
-		333333333333333333333333 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444444444444444444444444 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/LoginView.swift */; };
-		555555555555555555555555 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 666666666666666666666666 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AuthService.swift */; };
-		777777777777777777777778 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777777777777777777777777 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/Components.swift */; };
-		A1A1A1A1A1A1A1A1A1A1A1A1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AboutView.swift */; };
-		A2A2A2A2A2A2A2A2A2A2A2A2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AddFriendView.swift */; };
-		A3A3A3A3A3A3A3A3A3A3A3A3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/BottomSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B3B3B3B3B3B3B3B3B3B3B3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/BottomSheetView.swift */; };
-		A4A4A4A4A4A4A4A4A4A4A4A4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CardsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B4B4B4B4B4B4B4B4B4B4B4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CardsView.swift */; };
-		A5A5A5A5A5A5A5A5A5A5A5A5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CreatePINView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B5B5B5B5B5B5B5B5B5B5B5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CreatePINView.swift */; };
-		A6A6A6A6A6A6A6A6A6A6A6A6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomActionModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B6B6B6B6B6B6B6B6B6B6B6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomActionModal.swift */; };
-		A7A7A7A7A7A7A7A7A7A7A7A7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B7B7B7B7B7B7B7B7B7B7B7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTabBar.swift */; };
-		A8A8A8A8A8A8A8A8A8A8A8A8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B8B8B8B8B8B8B8B8B8B8B8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTextField.swift */; };
-		A9A9A9A9A9A9A9A9A9A9A9A9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B9B9B9B9B9B9B9B9B9B9B9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DashboardView.swift */; };
-		C1C1C1C1C1C1C1C1C1C1C1C1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DocumentsView.swift */; };
-		C2C2C2C2C2C2C2C2C2C2C2C2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FeatureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D2D2D2D2D2D2D2D2D2D2D2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FeatureCard.swift */; };
-		C3C3C3C3C3C3C3C3C3C3C3C3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D3D3D3D3D3D3D3D3D3D3D3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FriendsView.swift */; };
-		C4C4C4C4C4C4C4C4C4C4C4C4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/MPINView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4D4D4D4D4D4D4D4D4D4D4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/MPINView.swift */; };
-		C5C5C5C5C5C5C5C5C5C5C5C5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D5D5D5D5D5D5D5D5D5D5D5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/NotificationView.swift */; };
-		C6C6C6C6C6C6C6C6C6C6C6C6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D6D6D6D6D6D6D6D6D6D6D6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ProfileView.swift */; };
-		C7C7C7C7C7C7C7C7C7C7C7C7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SecureQRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D7D7D7D7D7D7D7D7D7D7D7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SecureQRView.swift */; };
-		C8C8C8C8C8C8C8C8C8C8C8C8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SignupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D8D8D8D8D8D8D8D8D8D8D8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SignupView.swift */; };
-		C9C9C9C9C9C9C9C9C9C9C9C9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D9D9D9D9D9D9D9D9D9D9D9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SplashScreenView.swift */; };
-		E1E1E1E1E1E1E1E1E1E1E1E1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/StorageCircleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F1F1F1F1F1F1F1F1F1F1F1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/StorageCircleView.swift */; };
-		E2E2E2E2E2E2E2E2E2E2E2E2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SwipeToDismissModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2F2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SwipeToDismissModifier.swift */; };
-		E3E3E3E3E3E3E3E3E3E3E3E3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/TypewriterText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F3F3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/TypewriterText.swift */; };
+		333333333333333333333333 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444444444444444444444444 /* LoginView.swift */; };
+		555555555555555555555555 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 666666666666666666666666 /* AuthService.swift */; };
 		60E674392F1BCE1900EAC547 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674382F1BCE1900EAC547 /* FirebaseFirestore */; };
 		60E6743B2F1BCE1900EAC547 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 60E6743A2F1BCE1900EAC547 /* FirebaseStorage */; };
+		60E674462F1C286900EAC547 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674452F1C286900EAC547 /* FirebaseAuth */; };
+		65535CC22F1B8DCD00563E20 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 65535CC22F1B8DCD00563E19 /* GoogleService-Info.plist */; };
+		777777777777777777777778 /* Sources/docLock/Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777777777777777777777777 /* Sources/docLock/Components.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1A1 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */; };
+		A2A2A2A2A2A2A2A2A2A2A2A2 /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */; };
+		A3A3A3A3A3A3A3A3A3A3A3A3 /* BottomSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B3B3B3B3B3B3B3B3B3B3B3 /* BottomSheetView.swift */; };
+		A4A4A4A4A4A4A4A4A4A4A4A4 /* CardsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B4B4B4B4B4B4B4B4B4B4B4 /* CardsView.swift */; };
+		A5A5A5A5A5A5A5A5A5A5A5A5 /* CreatePINView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B5B5B5B5B5B5B5B5B5B5B5 /* CreatePINView.swift */; };
+		A6A6A6A6A6A6A6A6A6A6A6A6 /* CustomActionModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B6B6B6B6B6B6B6B6B6B6B6 /* CustomActionModal.swift */; };
+		A7A7A7A7A7A7A7A7A7A7A7A7 /* CustomTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B7B7B7B7B7B7B7B7B7B7B7 /* CustomTabBar.swift */; };
+		A8A8A8A8A8A8A8A8A8A8A8A8 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */; };
+		A9A9A9A9A9A9A9A9A9A9A9A9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B9B9B9B9B9B9B9B9B9B9B9 /* DashboardView.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */; };
+		BCC2A6089BBA43A8AAE01E40 /* docLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ABA508666E4CF898F1FC88 /* docLockApp.swift */; };
+		C1C1C1C1C1C1C1C1C1C1C1C1 /* DocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */; };
+		C2C2C2C2C2C2C2C2C2C2C2C2 /* FeatureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */; };
+		C3C3C3C3C3C3C3C3C3C3C3C3 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */; };
+		C4C4C4C4C4C4C4C4C4C4C4C4 /* MPINView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */; };
+		C5C5C5C5C5C5C5C5C5C5C5C5 /* NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */; };
+		C6C6C6C6C6C6C6C6C6C6C6C6 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */; };
+		C7C7C7C7C7C7C7C7C7C7C7C7 /* SecureQRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */; };
+		C8C8C8C8C8C8C8C8C8C8C8C8 /* SignupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */; };
+		C9C9C9C9C9C9C9C9C9C9C9C9 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D9D9D9D9D9D9D9D9D9D9D9 /* SplashScreenView.swift */; };
+		E1E1E1E1E1E1E1E1E1E1E1E1 /* StorageCircleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */; };
+		E2E2E2E2E2E2E2E2E2E2E2E2 /* SwipeToDismissModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */; };
+		E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */; };
+		E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */; };
+		M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */; };
+		M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */; };
+		M5M5M5M5M5M5M5M5M5M5M5M5 /* LoginResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6M6M6M6M6M6M6M6M6M6M6M6 /* LoginResponse.swift */; };
+		M7M7M7M7M7M7M7M7M7M7M7M7 /* SignupRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = M8M8M8M8M8M8M8M8M8M8M8M8 /* SignupRequest.swift */; };
+		M9M9M9M9M9M9M9M9M9M9M9M9 /* SignupResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = MAMAMAMAMAMAMAMAMAMA /* SignupResponse.swift */; };
+		MBMBMBMBMBMBMBMBMBMB /* VerifyMobileRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = MCMCMCMCMCMCMCMCMCMC /* VerifyMobileRequest.swift */; };
+		MDMDMDMDMDMDMDMDMDMD /* VerifyMobileResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = MEMEMEMEMEMEMEMEMEME /* VerifyMobileResponse.swift */; };
+		MFMFMFMFMFMFMFMFMFMF /* ErrorResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = MGMGMGMGMGMGMGMGMGMG /* ErrorResponse.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		999999999999999999999999 /* docLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/docLockApp.swift"; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/ContentView.swift"; sourceTree = "<group>"; };
-		444444444444444444444444 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/LoginView.swift"; sourceTree = "<group>"; };
+		31ABA508666E4CF898F1FC88 /* docLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = docLockApp.swift; sourceTree = "<group>"; };
+		444444444444444444444444 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		604D1E862F1B61B700089094 /* docLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = docLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		65535CC22F1B8DCD00563E19 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		666666666666666666666666 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/AuthService.swift"; sourceTree = "<group>"; };
-		777777777777777777777777 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/Components.swift"; sourceTree = "<group>"; };
-		B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/AboutView.swift"; sourceTree = "<group>"; };
-		B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/AddFriendView.swift"; sourceTree = "<group>"; };
-		B3B3B3B3B3B3B3B3B3B3B3B3 /* BottomSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/BottomSheetView.swift"; sourceTree = "<group>"; };
-		B4B4B4B4B4B4B4B4B4B4B4B4 /* CardsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/CardsView.swift"; sourceTree = "<group>"; };
-		B5B5B5B5B5B5B5B5B5B5B5B5 /* CreatePINView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/CreatePINView.swift"; sourceTree = "<group>"; };
-		B6B6B6B6B6B6B6B6B6B6B6B6 /* CustomActionModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/CustomActionModal.swift"; sourceTree = "<group>"; };
-		B7B7B7B7B7B7B7B7B7B7B7B7 /* CustomTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/CustomTabBar.swift"; sourceTree = "<group>"; };
-		B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/CustomTextField.swift"; sourceTree = "<group>"; };
-		B9B9B9B9B9B9B9B9B9B9B9B9 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/DashboardView.swift"; sourceTree = "<group>"; };
-		D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/DocumentsView.swift"; sourceTree = "<group>"; };
-		D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/FeatureCard.swift"; sourceTree = "<group>"; };
-		D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/FriendsView.swift"; sourceTree = "<group>"; };
-		D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/MPINView.swift"; sourceTree = "<group>"; };
-		D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/NotificationView.swift"; sourceTree = "<group>"; };
-		D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/ProfileView.swift"; sourceTree = "<group>"; };
-		D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/SecureQRView.swift"; sourceTree = "<group>"; };
-		D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/SignupView.swift"; sourceTree = "<group>"; };
-		D9D9D9D9D9D9D9D9D9D9D9D9 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/SplashScreenView.swift"; sourceTree = "<group>"; };
-		F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/StorageCircleView.swift"; sourceTree = "<group>"; };
-		F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/SwipeToDismissModifier.swift"; sourceTree = "<group>"; };
-		F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/docLock/TypewriterText.swift"; sourceTree = "<group>"; };
+		666666666666666666666666 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		777777777777777777777777 /* Sources/docLock/Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/docLock/Components.swift; sourceTree = "<group>"; };
+		B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendView.swift; sourceTree = "<group>"; };
+		B3B3B3B3B3B3B3B3B3B3B3B3 /* BottomSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomSheetView.swift; sourceTree = "<group>"; };
+		B4B4B4B4B4B4B4B4B4B4B4B4 /* CardsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardsView.swift; sourceTree = "<group>"; };
+		B5B5B5B5B5B5B5B5B5B5B5B5 /* CreatePINView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePINView.swift; sourceTree = "<group>"; };
+		B6B6B6B6B6B6B6B6B6B6B6B6 /* CustomActionModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomActionModal.swift; sourceTree = "<group>"; };
+		B7B7B7B7B7B7B7B7B7B7B7B7 /* CustomTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTabBar.swift; sourceTree = "<group>"; };
+		B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
+		B9B9B9B9B9B9B9B9B9B9B9B9 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsView.swift; sourceTree = "<group>"; };
+		D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureCard.swift; sourceTree = "<group>"; };
+		D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
+		D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MPINView.swift; sourceTree = "<group>"; };
+		D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
+		D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureQRView.swift; sourceTree = "<group>"; };
+		D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
+		D9D9D9D9D9D9D9D9D9D9D9D9 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
+		F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCircleView.swift; sourceTree = "<group>"; };
+		F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeToDismissModifier.swift; sourceTree = "<group>"; };
+		F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriterText.swift; sourceTree = "<group>"; };
+		F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginRequest.swift; sourceTree = "<group>"; };
+		M6M6M6M6M6M6M6M6M6M6M6M6 /* LoginResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginResponse.swift; sourceTree = "<group>"; };
+		M8M8M8M8M8M8M8M8M8M8M8M8 /* SignupRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupRequest.swift; sourceTree = "<group>"; };
+		MAMAMAMAMAMAMAMAMAMA /* SignupResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupResponse.swift; sourceTree = "<group>"; };
+		MCMCMCMCMCMCMCMCMCMC /* VerifyMobileRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyMobileRequest.swift; sourceTree = "<group>"; };
+		MEMEMEMEMEMEMEMEMEME /* VerifyMobileResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyMobileResponse.swift; sourceTree = "<group>"; };
+		MGMGMGMGMGMGMGMGMGMG /* ErrorResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorResponse.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +94,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				60E674392F1BCE1900EAC547 /* FirebaseFirestore in Frameworks */,
+				60E674462F1C286900EAC547 /* FirebaseAuth in Frameworks */,
 				60E6743B2F1BCE1900EAC547 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -81,37 +102,26 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5960A092107042A9A652059B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				31ABA508666E4CF898F1FC88 /* docLockApp.swift */,
+			);
+			name = App;
+			path = Sources/docLock/App;
+			sourceTree = "<group>";
+		};
 		604D1E7D2F1B61B700089094 = {
 			isa = PBXGroup;
 			children = (
 				604D1E872F1B61B700089094 /* Products */,
 				65535CC22F1B8DCD00563E19 /* GoogleService-Info.plist */,
-				999999999999999999999999 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/docLockApp.swift */,
-				BBBBBBBBBBBBBBBBBBBBBBBB /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ContentView.swift */,
-				444444444444444444444444 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/LoginView.swift */,
-				666666666666666666666666 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AuthService.swift */,
-				777777777777777777777777 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/Components.swift */,
-				B1B1B1B1B1B1B1B1B1B1B1B1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AboutView.swift */,
-				B2B2B2B2B2B2B2B2B2B2B2B2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AddFriendView.swift */,
-				B3B3B3B3B3B3B3B3B3B3B3B3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/BottomSheetView.swift */,
-				B4B4B4B4B4B4B4B4B4B4B4B4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CardsView.swift */,
-				B5B5B5B5B5B5B5B5B5B5B5B5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CreatePINView.swift */,
-				B6B6B6B6B6B6B6B6B6B6B6B6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomActionModal.swift */,
-				B7B7B7B7B7B7B7B7B7B7B7B7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTabBar.swift */,
-				B8B8B8B8B8B8B8B8B8B8B8B8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTextField.swift */,
-				B9B9B9B9B9B9B9B9B9B9B9B9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DashboardView.swift */,
-				D1D1D1D1D1D1D1D1D1D1D1D1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DocumentsView.swift */,
-				D2D2D2D2D2D2D2D2D2D2D2D2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FeatureCard.swift */,
-				D3D3D3D3D3D3D3D3D3D3D3D3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FriendsView.swift */,
-				D4D4D4D4D4D4D4D4D4D4D4D4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/MPINView.swift */,
-				D5D5D5D5D5D5D5D5D5D5D5D5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/NotificationView.swift */,
-				D6D6D6D6D6D6D6D6D6D6D6D6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ProfileView.swift */,
-				D7D7D7D7D7D7D7D7D7D7D7D7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SecureQRView.swift */,
-				D8D8D8D8D8D8D8D8D8D8D8D8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SignupView.swift */,
-				D9D9D9D9D9D9D9D9D9D9D9D9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SplashScreenView.swift */,
-				F1F1F1F1F1F1F1F1F1F1F1F1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/StorageCircleView.swift */,
-				F2F2F2F2F2F2F2F2F2F2F2F2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SwipeToDismissModifier.swift */,
-				F3F3F3F3F3F3F3F3F3F3F3F3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/TypewriterText.swift */,
+				5960A092107042A9A652059B /* App */,
+				MHMHMHMHMHMHMHMHMHMH /* Models */,
+				MSMSMSMSMSMSMSMSMSMS /* Services */,
+				MIMIMIMIMIMIMIMIMIMI /* Views */,
+				777777777777777777777777 /* Sources/docLock/Components.swift */,
+				60E674442F1C286900EAC547 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -121,6 +131,105 @@
 				604D1E862F1B61B700089094 /* docLock.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		60E674442F1C286900EAC547 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		MHMHMHMHMHMHMHMHMHMH /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */,
+				M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */,
+				M6M6M6M6M6M6M6M6M6M6M6M6 /* LoginResponse.swift */,
+				M8M8M8M8M8M8M8M8M8M8M8M8 /* SignupRequest.swift */,
+				MAMAMAMAMAMAMAMAMAMA /* SignupResponse.swift */,
+				MCMCMCMCMCMCMCMCMCMC /* VerifyMobileRequest.swift */,
+				MEMEMEMEMEMEMEMEMEME /* VerifyMobileResponse.swift */,
+				MGMGMGMGMGMGMGMGMGMG /* ErrorResponse.swift */,
+			);
+			name = Models;
+			path = Sources/docLock/Models;
+			sourceTree = "<group>";
+		};
+		MIMIMIMIMIMIMIMIMIMI /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				VAVAVAVAVAVAVAVAVAVA /* Auth */,
+				VMVMVMVMVMVMVMVMVMVM /* Main */,
+				VFVFVFVFVFVFVFVFVFVF /* Features */,
+				VCVCVCVCVCVCVCVCVCVC /* Components */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
+		MSMSMSMSMSMSMSMSMSMS /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				666666666666666666666666 /* AuthService.swift */,
+			);
+			name = Services;
+			path = Sources/docLock/Services;
+			sourceTree = "<group>";
+		};
+		VAVAVAVAVAVAVAVAVAVA /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				444444444444444444444444 /* LoginView.swift */,
+				D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */,
+				D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */,
+			);
+			name = Auth;
+			path = Sources/docLock/Views/Auth;
+			sourceTree = "<group>";
+		};
+		VCVCVCVCVCVCVCVCVCVC /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				B3B3B3B3B3B3B3B3B3B3B3B3 /* BottomSheetView.swift */,
+				B5B5B5B5B5B5B5B5B5B5B5B5 /* CreatePINView.swift */,
+				B6B6B6B6B6B6B6B6B6B6B6B6 /* CustomActionModal.swift */,
+				B7B7B7B7B7B7B7B7B7B7B7B7 /* CustomTabBar.swift */,
+				B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */,
+				D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */,
+				F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */,
+				F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */,
+				F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */,
+				F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */,
+			);
+			name = Components;
+			path = Sources/docLock/Views/Components;
+			sourceTree = "<group>";
+		};
+		VFVFVFVFVFVFVFVFVFVF /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */,
+				B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */,
+				B4B4B4B4B4B4B4B4B4B4B4B4 /* CardsView.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */,
+				D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */,
+				D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */,
+				D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */,
+				D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */,
+			);
+			name = Features;
+			path = Sources/docLock/Views/Features;
+			sourceTree = "<group>";
+		};
+		VMVMVMVMVMVMVMVMVMVM /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */,
+				B9B9B9B9B9B9B9B9B9B9B9B9 /* DashboardView.swift */,
+				D9D9D9D9D9D9D9D9D9D9D9D9 /* SplashScreenView.swift */,
+			);
+			name = Main;
+			path = Sources/docLock/Views/Main;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,6 +251,7 @@
 			packageProductDependencies = (
 				60E674382F1BCE1900EAC547 /* FirebaseFirestore */,
 				60E6743A2F1BCE1900EAC547 /* FirebaseStorage */,
+				60E674452F1C286900EAC547 /* FirebaseAuth */,
 			);
 			productName = docLock;
 			productReference = 604D1E862F1B61B700089094 /* docLock.app */;
@@ -189,6 +299,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				65535CC22F1B8DCD00563E20 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -199,32 +310,41 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				888888888888888888888888 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/docLockApp.swift in Sources */,
-				AAAAAAAAAAAAAAAAAAAAAA /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ContentView.swift in Sources */,
-				333333333333333333333333 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/LoginView.swift in Sources */,
-				555555555555555555555555 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AuthService.swift in Sources */,
-				777777777777777777777778 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/Components.swift in Sources */,
-				A1A1A1A1A1A1A1A1A1A1A1A1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AboutView.swift in Sources */,
-				A2A2A2A2A2A2A2A2A2A2A2A2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/AddFriendView.swift in Sources */,
-				A3A3A3A3A3A3A3A3A3A3A3A3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/BottomSheetView.swift in Sources */,
-				A4A4A4A4A4A4A4A4A4A4A4A4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CardsView.swift in Sources */,
-				A5A5A5A5A5A5A5A5A5A5A5A5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CreatePINView.swift in Sources */,
-				A6A6A6A6A6A6A6A6A6A6A6A6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomActionModal.swift in Sources */,
-				A7A7A7A7A7A7A7A7A7A7A7A7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTabBar.swift in Sources */,
-				A8A8A8A8A8A8A8A8A8A8A8A8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/CustomTextField.swift in Sources */,
-				A9A9A9A9A9A9A9A9A9A9A9A9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DashboardView.swift in Sources */,
-				C1C1C1C1C1C1C1C1C1C1C1C1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/DocumentsView.swift in Sources */,
-				C2C2C2C2C2C2C2C2C2C2C2C2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FeatureCard.swift in Sources */,
-				C3C3C3C3C3C3C3C3C3C3C3C3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/FriendsView.swift in Sources */,
-				C4C4C4C4C4C4C4C4C4C4C4C4 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/MPINView.swift in Sources */,
-				C5C5C5C5C5C5C5C5C5C5C5C5 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/NotificationView.swift in Sources */,
-				C6C6C6C6C6C6C6C6C6C6C6C6 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/ProfileView.swift in Sources */,
-				C7C7C7C7C7C7C7C7C7C7C7C7 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SecureQRView.swift in Sources */,
-				C8C8C8C8C8C8C8C8C8C8C8C8 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SignupView.swift in Sources */,
-				C9C9C9C9C9C9C9C9C9C9C9C9 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SplashScreenView.swift in Sources */,
-				E1E1E1E1E1E1E1E1E1E1E1E1 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/StorageCircleView.swift in Sources */,
-				E2E2E2E2E2E2E2E2E2E2E2E2 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/SwipeToDismissModifier.swift in Sources */,
-				E3E3E3E3E3E3E3E3E3E3E3E3 /* /Users/pranavkatiyar/Documents/SWIFT/docLock/Sources/docLock/TypewriterText.swift in Sources */,
+				BCC2A6089BBA43A8AAE01E40 /* docLockApp.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA /* ContentView.swift in Sources */,
+				333333333333333333333333 /* LoginView.swift in Sources */,
+				555555555555555555555555 /* AuthService.swift in Sources */,
+				777777777777777777777778 /* Sources/docLock/Components.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1A1 /* AboutView.swift in Sources */,
+				A2A2A2A2A2A2A2A2A2A2A2A2 /* AddFriendView.swift in Sources */,
+				A3A3A3A3A3A3A3A3A3A3A3A3 /* BottomSheetView.swift in Sources */,
+				A4A4A4A4A4A4A4A4A4A4A4A4 /* CardsView.swift in Sources */,
+				A5A5A5A5A5A5A5A5A5A5A5A5 /* CreatePINView.swift in Sources */,
+				A6A6A6A6A6A6A6A6A6A6A6A6 /* CustomActionModal.swift in Sources */,
+				A7A7A7A7A7A7A7A7A7A7A7A7 /* CustomTabBar.swift in Sources */,
+				A8A8A8A8A8A8A8A8A8A8A8A8 /* CustomTextField.swift in Sources */,
+				A9A9A9A9A9A9A9A9A9A9A9A9 /* DashboardView.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C1C1 /* DocumentsView.swift in Sources */,
+				C2C2C2C2C2C2C2C2C2C2C2C2 /* FeatureCard.swift in Sources */,
+				C3C3C3C3C3C3C3C3C3C3C3C3 /* FriendsView.swift in Sources */,
+				C4C4C4C4C4C4C4C4C4C4C4C4 /* MPINView.swift in Sources */,
+				C5C5C5C5C5C5C5C5C5C5C5C5 /* NotificationView.swift in Sources */,
+				C6C6C6C6C6C6C6C6C6C6C6C6 /* ProfileView.swift in Sources */,
+				C7C7C7C7C7C7C7C7C7C7C7C7 /* SecureQRView.swift in Sources */,
+				C8C8C8C8C8C8C8C8C8C8C8C8 /* SignupView.swift in Sources */,
+				C9C9C9C9C9C9C9C9C9C9C9C9 /* SplashScreenView.swift in Sources */,
+				E1E1E1E1E1E1E1E1E1E1E1E1 /* StorageCircleView.swift in Sources */,
+				E2E2E2E2E2E2E2E2E2E2E2E2 /* SwipeToDismissModifier.swift in Sources */,
+				E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */,
+				E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */,
+				M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */,
+				M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */,
+				M5M5M5M5M5M5M5M5M5M5M5M5 /* LoginResponse.swift in Sources */,
+				M7M7M7M7M7M7M7M7M7M7M7M7 /* SignupRequest.swift in Sources */,
+				M9M9M9M9M9M9M9M9M9M9M9M9 /* SignupResponse.swift in Sources */,
+				MBMBMBMBMBMBMBMBMBMB /* VerifyMobileRequest.swift in Sources */,
+				MDMDMDMDMDMDMDMDMDMD /* VerifyMobileResponse.swift in Sources */,
+				MFMFMFMFMFMFMFMFMFMF /* ErrorResponse.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -441,6 +561,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 60E674372F1BCE1900EAC547 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		60E674452F1C286900EAC547 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60E674372F1BCE1900EAC547 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
