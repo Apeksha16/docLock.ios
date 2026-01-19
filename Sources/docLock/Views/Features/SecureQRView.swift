@@ -10,6 +10,7 @@ struct DocumentItem: Identifiable {
 struct SecureQRView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var showNewQRSheet = false
+    @State private var hasAppeared = false
     
     var body: some View {
         ZStack {
@@ -50,71 +51,156 @@ struct SecureQRView: View {
                 
                 Spacer()
                 
-                // Empty State
-                VStack(spacing: 20) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 30)
-                            .fill(Color.orange.opacity(0.1))
-                            .frame(width: 100, height: 100)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 30)
-                                    .stroke(Color.orange, lineWidth: 1)
-                            )
-                        
-                        Image(systemName: "plus")
-                            .font(.system(size: 40))
-                            .foregroundColor(.orange)
-                    }
+                // Animated Empty State
+                VStack {
+                    Spacer().frame(height: 50)
                     
-                    VStack(spacing: 10) {
+                    ZStack {
+                        // Animated Background Glow
+                        RoundedRectangle(cornerRadius: 50)
+                            .fill(
+                                RadialGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.orange.opacity(hasAppeared ? 0.2 : 0.1),
+                                        Color.orange.opacity(hasAppeared ? 0.1 : 0.05)
+                                    ]),
+                                    center: .center,
+                                    startRadius: 20,
+                                    endRadius: 100
+                                )
+                            )
+                            .frame(width: 200, height: 200)
+                            .scaleEffect(hasAppeared ? 1 : 0.8)
+                            .rotationEffect(.degrees(hasAppeared ? 0 : 10))
+                        
+                        // Main Icon
+                        Image(systemName: "qrcode")
+                            .font(.system(size: 90, weight: .medium))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.orange,
+                                        Color.yellow
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .scaleEffect(hasAppeared ? 1 : 0.6)
+                        
+                        // Animated Decorative Elements
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.orange.opacity(0.4),
+                                        Color.yellow.opacity(0.2)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 50, height: 50)
+                            .offset(x: -90, y: -80)
+                            .scaleEffect(hasAppeared ? 1 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
+                        
+                        Circle()
+                            .fill(Color.orange.opacity(0.2))
+                            .frame(width: 30, height: 30)
+                            .offset(x: .random(in: 60...100), y: .random(in: 60...80))
+                            .scaleEffect(hasAppeared ? 1 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.5), value: hasAppeared)
+                    }
+                    .animation(.spring(response: 0.8, dampingFraction: 0.7), value: hasAppeared)
+                    
+                    Spacer().frame(height: 40)
+                    
+                    // Content Text
+                    VStack(spacing: 18) {
                         Text("No QR Codes")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.05, green: 0.07, blue: 0.2),
+                                        Color(red: 0.1, green: 0.12, blue: 0.25)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
                         
                         Text("Create a secure access point\nfor your documents.")
-                            .font(.body)
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.gray)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.gray.opacity(0.9),
+                                        Color.gray.opacity(0.7)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .padding(.horizontal, 40)
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
                     }
-                }
-                
-                Spacer()
-                
-                // Floating Action Button
-                Button(action: {
-                    withAnimation {
-                        showNewQRSheet = true
-                    }
-                }) {
-                    Image(systemName: "plus")
-                        .font(.title)
+                    .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
+                    
+                    Spacer()
+                    
+                    // Action Button
+                    Button(action: {
+                        withAnimation {
+                            showNewQRSheet = true
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
+                            Text("Generate Secure QR")
+                                .fontWeight(.bold)
+                        }
                         .foregroundColor(.white)
-                        .frame(width: 60, height: 60)
-                        .background(Color.orange)
-                        .clipShape(Circle())
-                        .shadow(color: Color.orange.opacity(0.4), radius: 10, x: 0, y: 5)
+                        .frame(width: 240, height: 56)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.orange,
+                                    Color.yellow.opacity(0.8)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(20)
+                        .shadow(color: Color.orange.opacity(0.4), radius: 10, y: 5)
+                    }
+                    .padding(.bottom, 50)
+                    .opacity(hasAppeared ? 1 : 0)
+                    .offset(y: hasAppeared ? 0 : 30)
+                    .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.4), value: hasAppeared)
                 }
-                .padding(.bottom, 30)
+                .onAppear {
+                    withAnimation {
+                        hasAppeared = true
+                    }
+                }
             }
             
             // New QR Sheet Overlay
-            if showNewQRSheet {
-                Color.black.opacity(0.4)
-                    .edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        withAnimation {
-                            showNewQRSheet = false
-                        }
-                    }
-                
-                NewQRSheet(isPresented: $showNewQRSheet)
-                    .transition(.move(edge: .bottom))
-                    .zIndex(1)
-            }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
+        .sheet(isPresented: $showNewQRSheet) {
+            NewQRSheet(isPresented: $showNewQRSheet)
+                .presentationDetents([.fraction(0.85)]) // Optional: Custom height if iOS 16+
+        }
     }
 }
 
@@ -128,114 +214,129 @@ struct NewQRSheet: View {
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             // Drag Handle
             Capsule()
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 40, height: 4)
-                .padding(.top, 10)
+                .padding(.top, 12)
             
-            // Icon
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.1))
-                    .frame(width: 60, height: 60)
-                Image(systemName: "qrcode")
-                    .font(.title2)
-                    .foregroundColor(.orange)
-            }
-            
+            // Premium Header
             Text("New Secure QR")
-                .font(.title3)
-                .fontWeight(.bold)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                .padding(.bottom, 10)
             
-            // Form Content
-            VStack(alignment: .leading, spacing: 20) {
-                // Label Input
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("LABEL")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.gray)
+            // Scrollable Form Content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Label Input
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Label")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(.gray)
+                        
+                        TextField("e.g. Travel Docs, Medical Records", text: $label)
+                            .padding()
+                            .background(Color(red: 0.98, green: 0.98, blue: 0.99))
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                            )
+                    }
                     
-                    TextField("e.g. Travel, Health", text: $label)
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.orange, lineWidth: 1)
-                        )
-                }
-                
-                // Select Documents
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("SELECT DOCUMENTS")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.gray)
-                    
-                    ScrollView {
-                        VStack(spacing: 10) {
+                    // Select Documents
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Select Documents")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text("\(documents.filter { $0.isSelected }.count) selected")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        
+                        VStack(spacing: 12) {
                             ForEach($documents) { $doc in
                                 Toggle(isOn: $doc.isSelected) {
-                                    HStack(spacing: 15) {
-                                        // File Icon
+                                    HStack(spacing: 16) {
+                                        // Premium File Icon
                                         ZStack {
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color.pink)
-                                                .frame(width: 40, height: 40)
-                                            Text(doc.type.prefix(1).uppercased())
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .fill(
+                                                    doc.type == "pdf" ?
+                                                    Color.red.opacity(0.1) :
+                                                    Color.blue.opacity(0.1)
+                                                )
+                                                .frame(width: 48, height: 48)
+                                            
+                                            Image(systemName: doc.type == "pdf" ? "doc.fill" : "photo.fill")
+                                                .font(.system(size: 20))
+                                                .foregroundColor(
+                                                    doc.type == "pdf" ? .red : .blue
+                                                )
                                         }
                                         
                                         Text(doc.name)
-                                            .fontWeight(.medium)
+                                            .font(.system(size: 16, weight: .medium, design: .rounded))
                                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                                        
+                                        Spacer()
                                     }
                                 }
                                 .toggleStyle(CheckboxToggleStyle())
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(doc.isSelected ? Color.orange : Color.gray.opacity(0.1), lineWidth: 1)
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .fill(doc.isSelected ? Color.orange.opacity(0.05) : Color.white)
                                 )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .stroke(
+                                            doc.isSelected ? Color.orange.opacity(0.3) : Color.gray.opacity(0.1),
+                                            lineWidth: 1
+                                        )
+                                )
+                                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: doc.isSelected)
                             }
                         }
                     }
-                    .frame(maxHeight: 200)
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal)
-            
-            Spacer()
             
             // Generate Button
             Button(action: {
-                // Generate Action
                 withAnimation {
                     isPresented = false
                 }
             }) {
                 Text("Generate Secure QR")
-                    .fontWeight(.bold)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.orange)
-                    .cornerRadius(30)
+                    .padding(.vertical, 18)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.orange,
+                                Color(red: 1.0, green: 0.6, blue: 0.2)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(24)
+                    .shadow(color: Color.orange.opacity(0.4), radius: 10, x: 0, y: 5)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 30)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 34)
         }
-        .background(Color(red: 0.98, green: 0.98, blue: 0.98))
-        .cornerRadius(30, corners: [.topLeft, .topRight])
-        .frame(maxHeight: .infinity, alignment: .bottom)
-        .padding(.top, 100) // Don't cover fully top
+        .background(Color.white)
+        // Native sheet handles corner radius and safe area
     }
 }
 

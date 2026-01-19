@@ -26,7 +26,7 @@ class AuthService: ObservableObject {
     }
     
     // Base URL from your Cloud Function
-    private let baseURL = "http://192.168.29.38:3000/api/auth"
+    private let baseURL = "https://api-to72oyfxda-uc.a.run.app/api/auth"
     
     // MARK: - Helper Methods
     private func parseErrorMessage(from data: Data?) -> String {
@@ -76,6 +76,7 @@ class AuthService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30.0 // 30s timeout
 
         do {
             request.httpBody = try JSONEncoder().encode(requestBody)
@@ -173,8 +174,9 @@ class AuthService: ObservableObject {
                         
                         // BLOCKING: Fetch App Config before proceeding
                         self?.appConfigService.fetchConfig { [weak self] success in
+                            self?.isLoading = false // Ensure loading is stopped
+                            
                             guard success else {
-                                self?.isLoading = false
                                 self?.errorMessage = "Failed to load application configuration."
                                 return
                             }
@@ -499,6 +501,7 @@ class AuthService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30.0 // 30s timeout
         
         do {
             request.httpBody = try JSONEncoder().encode(requestBody)
@@ -593,8 +596,9 @@ class AuthService: ObservableObject {
                         
                         // BLOCKING: Fetch App Config
                         self?.appConfigService.fetchConfig { [weak self] success in
+                            self?.isLoading = false // Ensure loading is stopped
+                            
                             guard success else {
-                                self?.isLoading = false
                                 self?.errorMessage = "Failed to load application configuration."
                                 return
                             }
@@ -885,8 +889,9 @@ class NotificationService: ObservableObject {
                     let type: NotificationType = (typeString == "security") ? .security : .alert
                     let date = data["date"] as? String ?? ""
                     let isRead = data["isRead"] as? Bool ?? false
+                    let requestType = data["requestType"] as? String
                     
-                    return NotificationItem(id: doc.documentID, type: type, title: title, message: message, date: date, isRead: isRead)
+                    return NotificationItem(id: doc.documentID, type: type, title: title, message: message, date: date, isRead: isRead, requestType: requestType)
                 }
                 self?.error = nil // Clear error on success
                 print("🟢 NotificationService: Synced \(self?.notifications.count ?? 0) items")
@@ -1183,7 +1188,7 @@ class DocumentsService: ObservableObject {
         print("📄 DocumentsService: Starting listener for user \(userId), parentFolderId: \(parentFolderId ?? "root")")
         
         // Listening to folders filtered by parentFolderId
-        var query = db.collection("users").document(userId).collection("folders")
+        var query: Query = db.collection("users").document(userId).collection("folders")
         
         if let parentId = parentFolderId {
             query = query.whereField("parentFolderId", isEqualTo: parentId)
@@ -1237,7 +1242,7 @@ class DocumentsService: ObservableObject {
         folderDocumentsListener?.remove()
         print("📂 DocumentsService: Fetching documents in folder \(folderId ?? "root")")
         
-        var query = db.collection("users").document(userId).collection("documents")
+        var query: Query = db.collection("users").document(userId).collection("documents")
         
         if let folderId = folderId {
             query = query.whereField("folderId", isEqualTo: folderId)
@@ -1286,7 +1291,7 @@ class DocumentsService: ObservableObject {
         folderFoldersListener?.remove()
         print("📁 DocumentsService: Fetching folders in parent \(parentFolderId ?? "root")")
         
-        var query = db.collection("users").document(userId).collection("folders")
+        var query: Query = db.collection("users").document(userId).collection("folders")
         
         if let parentId = parentFolderId {
             query = query.whereField("parentFolderId", isEqualTo: parentId)

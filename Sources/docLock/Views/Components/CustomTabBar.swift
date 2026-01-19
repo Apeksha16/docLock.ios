@@ -37,7 +37,7 @@ struct CustomTabBar: View {
                 icon: "person.crop.circle.fill",
                 text: "Profile",
                 isSelected: selectedTab == "Profile",
-                color: Color(red: 0.2, green: 0.8, blue: 0.7),
+                color: Color(red: 0.28, green: 0.65, blue: 0.66),
                 namespace: animation
             ) {
                 withAnimation(.spring()) {

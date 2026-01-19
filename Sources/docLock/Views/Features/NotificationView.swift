@@ -7,6 +7,7 @@ struct NotificationItem: Identifiable {
     let message: String
     let date: String
     var isRead: Bool = false
+    var requestType: String? = nil
 }
 
 enum NotificationType {
@@ -120,9 +121,19 @@ struct NotificationCell: View {
                     .fill(Color(red: 0.9, green: 0.9, blue: 0.98)) // Very light blue/purple
                     .frame(width: 50, height: 50)
                 
-                Image(systemName: notification.type.icon)
-                    .font(.system(size: 22))
-                    .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0)) // Purple icon
+                if let requestType = notification.requestType, requestType == "card" {
+                    Image(systemName: "creditcard.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0))
+                } else if let requestType = notification.requestType, requestType == "document" {
+                    Image(systemName: "doc.text.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0))
+                } else {
+                    Image(systemName: notification.type.icon)
+                        .font(.system(size: 22))
+                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0)) // Purple icon
+                }
             }
             
             VStack(alignment: .leading, spacing: 5) {

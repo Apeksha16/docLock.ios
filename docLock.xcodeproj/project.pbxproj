@@ -9,10 +9,10 @@
 /* Begin PBXBuildFile section */
 		333333333333333333333333 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444444444444444444444444 /* LoginView.swift */; };
 		555555555555555555555555 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 666666666666666666666666 /* AuthService.swift */; };
+		655C2FFA2F1E93F600627CD9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */; };
 		60E674392F1BCE1900EAC547 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674382F1BCE1900EAC547 /* FirebaseFirestore */; };
 		60E6743B2F1BCE1900EAC547 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 60E6743A2F1BCE1900EAC547 /* FirebaseStorage */; };
 		60E674462F1C286900EAC547 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674452F1C286900EAC547 /* FirebaseAuth */; };
-		65535CC22F1B8DCD00563E20 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 65535CC22F1B8DCD00563E19 /* GoogleService-Info.plist */; };
 		777777777777777777777778 /* Sources/docLock/Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777777777777777777777777 /* Sources/docLock/Components.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */; };
 		A2A2A2A2A2A2A2A2A2A2A2A2 /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */; };
@@ -52,7 +52,7 @@
 		31ABA508666E4CF898F1FC88 /* docLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = docLockApp.swift; sourceTree = "<group>"; };
 		444444444444444444444444 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		604D1E862F1B61B700089094 /* docLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = docLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		65535CC22F1B8DCD00563E19 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		666666666666666666666666 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		777777777777777777777777 /* Sources/docLock/Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/docLock/Components.swift; sourceTree = "<group>"; };
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
@@ -115,13 +115,13 @@
 			isa = PBXGroup;
 			children = (
 				604D1E872F1B61B700089094 /* Products */,
-				65535CC22F1B8DCD00563E19 /* GoogleService-Info.plist */,
 				5960A092107042A9A652059B /* App */,
 				MHMHMHMHMHMHMHMHMHMH /* Models */,
 				MSMSMSMSMSMSMSMSMSMS /* Services */,
 				MIMIMIMIMIMIMIMIMIMI /* Views */,
 				777777777777777777777777 /* Sources/docLock/Components.swift */,
 				60E674442F1C286900EAC547 /* Frameworks */,
+				655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -299,7 +299,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				65535CC22F1B8DCD00563E20 /* GoogleService-Info.plist in Resources */,
+				655C2FFA2F1E93F600627CD9 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

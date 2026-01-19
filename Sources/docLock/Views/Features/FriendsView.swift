@@ -171,6 +171,7 @@ struct FriendsView: View {
                 // Premium Animated Stats Section
                 HStack(spacing: 12) {
                     StatCard(
+                        icon: "doc.fill",
                         title: "Shared Doc",
                         count: 0,
                         color: .blue,
@@ -178,6 +179,7 @@ struct FriendsView: View {
                         hasAppeared: hasAppeared
                     )
                     StatCard(
+                        icon: "creditcard.fill",
                         title: "Shared Card",
                         count: 0,
                         color: .pink,
@@ -185,9 +187,10 @@ struct FriendsView: View {
                         hasAppeared: hasAppeared
                     )
                     StatCard(
+                        icon: "tray.fill",
                         title: "Requests",
                         count: notificationService.notifications.filter({ $0.title == "Request Sent" }).count,
-                        color: Color(red: 0.2, green: 0.8, blue: 0.7),
+                        color: Color(red: 0.28, green: 0.65, blue: 0.66),
                         index: 2,
                         hasAppeared: hasAppeared
                     )
@@ -312,6 +315,21 @@ struct FriendsView: View {
                     .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
                     Spacer()
                 } else {
+                    // Tip
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.blue)
+                        Text("Tip: Click on a friend to request a card or document.")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    .padding(.bottom, 5)
+                    
                     // Friends List with Swipe Actions
                     List {
                         ForEach(Array(friendsService.friends.enumerated()), id: \.element.id) { index, friend in
@@ -376,6 +394,7 @@ struct FriendsView: View {
 
 // Premium Animated Stat Card
 struct StatCard: View {
+    let icon: String // Added icon
     let title: String
     let count: Int
     let color: Color
@@ -385,72 +404,39 @@ struct StatCard: View {
     @State private var animatedCount: Int = 0
     
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
+            // Icon Circle
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            .padding(.bottom, 2)
+            
+            Text("\(animatedCount)")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+            
             Text(title)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.gray.opacity(0.9),
-                            Color.gray.opacity(0.7)
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-            
-            Text("\(animatedCount)")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            color,
-                            color.opacity(0.8)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
         }
-        .padding(.vertical, 18)
+        .padding(.vertical, 16)
         .padding(.horizontal, 8)
         .frame(maxWidth: .infinity)
-        .background(
-            ZStack {
-                // Glass morphism effect
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.99, green: 0.99, blue: 0.99)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                
-                // Subtle color accent
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(color.opacity(0.05))
-            }
-        )
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            color.opacity(0.3),
-                            color.opacity(0.1)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
-                )
+                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
         )
         .scaleEffect(hasAppeared ? 1 : 0.7)
         .opacity(hasAppeared ? 1 : 0)
@@ -646,111 +632,137 @@ struct RequestActionSheet: View {
                     .padding(.bottom, 8)
                 
                 VStack(spacing: 24) {
-                    // Premium Animated Header
-                    VStack(spacing: 18) {
-                        // Premium Icon with Glow
-                        ZStack {
-                    // Main Icon Background
-                    RoundedRectangle(cornerRadius: 35)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.orange,
-                                    Color.orange.opacity(0.8)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 90, height: 90)
-                            
-                            Image(systemName: "lock.doc.fill")
-                                .font(.system(size: 38, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                        .scaleEffect(iconScale)
-                        .rotationEffect(.degrees(iconRotation))
-                        .padding(.top, 8)
-
-                        VStack(spacing: 8) {
-                            Text("Secure Request")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.05, green: 0.07, blue: 0.2),
-                                            Color(red: 0.1, green: 0.12, blue: 0.25)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                            
-                            Text("Ask \(friend.name) to share safely.")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.gray.opacity(0.9),
-                                            Color.gray.opacity(0.7)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                        }
-                    }
-                    .padding(.bottom, 8)
-                    
-                    if sentSuccess {
-                        // Premium Success State
-                        VStack(spacing: 20) {
+                    if !sentSuccess {
+                        // Premium Animated Header
+                        VStack(spacing: 18) {
+                            // Premium Icon with Glow
                             ZStack {
-                                // Pulse Effect
-                                Circle()
-                                    .fill(Color.green.opacity(0.2))
-                                    .frame(width: 100, height: 100)
-                                    .scaleEffect(sentSuccess ? 1.3 : 1.0)
-                                    .opacity(sentSuccess ? 0 : 1)
-                                    .animation(.easeOut(duration: 1.0).repeatForever(autoreverses: false), value: sentSuccess)
-                                
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 70, weight: .medium))
-                                    .foregroundStyle(
+                                // Main Icon Background
+                                RoundedRectangle(cornerRadius: 35)
+                                    .fill(
                                         LinearGradient(
                                             gradient: Gradient(colors: [
-                                                Color.green,
-                                                Color.green.opacity(0.8)
+                                                Color.orange,
+                                                Color.orange.opacity(0.8)
                                             ]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
+                                    .frame(width: 90, height: 90)
+                                
+                                Image(systemName: "lock.doc.fill")
+                                    .font(.system(size: 38, weight: .semibold))
+                                    .foregroundColor(.white)
                             }
-                            .padding(.top, 20)
+                            .scaleEffect(iconScale)
+                            .rotationEffect(.degrees(iconRotation))
+                            .padding(.top, 8)
                             
-                            Text("Knock Knock! Request Sent.")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.green,
-                                            Color.green.opacity(0.8)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                            VStack(spacing: 8) {
+                                Text("Secure Request")
+                                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color(red: 0.05, green: 0.07, blue: 0.2),
+                                                Color(red: 0.1, green: 0.12, blue: 0.25)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                            
-                            Text("We've notified \(friend.name) securely.")
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                                .foregroundColor(.gray.opacity(0.8))
+                                
+                                Text("Ask \(friend.name) to share safely.")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.gray.opacity(0.9),
+                                                Color.gray.opacity(0.7)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            }
                         }
-                        .frame(minHeight: 220)
-                        .padding(.bottom, 50)
+                        .padding(.bottom, 8)
+                    }
+                    
+                    if sentSuccess {
+                        // Premium Success State
+                        VStack(spacing: 25) {
+                            ZStack {
+                                // Outer Glow
+                                Circle()
+                                    .fill(
+                                        RadialGradient(
+                                            gradient: Gradient(colors: [
+                                                Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.3),
+                                                Color.clear
+                                            ]),
+                                            center: .center,
+                                            startRadius: 20,
+                                            endRadius: 80
+                                        )
+                                    )
+                                    .frame(width: 160, height: 160)
+                                    .scaleEffect(sentSuccess ? 1.2 : 0.8)
+                                    .opacity(sentSuccess ? 1 : 0)
+                                    .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: true), value: sentSuccess)
+
+                                // Icon Background
+                                Circle()
+                                    .fill(Color(red: 0.9, green: 0.98, blue: 0.98))
+                                    .frame(width: 100, height: 100)
+                                    .shadow(color: Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.2), radius: 15, x: 0, y: 10)
+                                
+                                // Checkmark Icon
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 44, weight: .bold))
+                                    .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
+                                    .scaleEffect(sentSuccess ? 1.0 : 0.5)
+                                    .rotationEffect(.degrees(sentSuccess ? 0 : -90))
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.1), value: sentSuccess)
+                            }
+                            .padding(.top, 10)
+                            
+                            VStack(spacing: 8) {
+                                Text("Request Sent!")
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                                
+                                Text("We've notified \(friend.name) securely.\nYou'll be alerted when they respond.")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .multilineTextAlignment(.center)
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal, 40)
+                                    .lineSpacing(4)
+                            }
+                            .padding(.bottom, 20)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, 30) // Extra safe area padding
+                        .background(
+                            ZStack {
+                                Color.white
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.95, green: 1.0, blue: 0.98),
+                                        Color.white
+                                    ]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            }
+                        )
+                        .cornerRadius(30)
+                        .shadow(color: Color.black.opacity(0.05), radius: 20, x: 0, y: -5)
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
                         .onAppear {
-                            // Auto-close after showing success for 2 seconds
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            // Auto-close after 2.5 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                     isPresented = false
                                 }
@@ -850,23 +862,35 @@ struct RequestActionSheet: View {
                         .padding(.bottom, 30)
                     }
                 }
-                .padding(.top, 4)
-                .padding(.bottom, 30)
+                .padding(.top, sentSuccess ? 0 : 4)
+                .padding(.bottom, sentSuccess ? 0 : 30)
             }
             .background(
                 ZStack {
-                    // Glass morphism background
-                    RoundedRectangle(cornerRadius: 32)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white,
-                                    Color(red: 0.99, green: 0.99, blue: 0.99)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                    if sentSuccess {
+                        Color.white
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.95, green: 1.0, blue: 0.98),
+                                Color.white
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
+                    } else {
+                        // Glass morphism background
+                        RoundedRectangle(cornerRadius: 32)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white,
+                                        Color(red: 0.99, green: 0.99, blue: 0.99)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
                 }
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))

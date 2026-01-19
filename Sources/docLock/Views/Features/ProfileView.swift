@@ -21,6 +21,20 @@ struct ProfileView: View {
     @State private var copyButtonScale: CGFloat = 0.8
     @State private var settingsOpacity: Double = 0
     
+    // Computed properties for content
+    var storageUsedMB: Double {
+        let bytes = Double(authService.user?.storageUsed ?? 0)
+        return bytes / (1024 * 1024)
+    }
+    
+    var storageLimitMB: Double {
+        return Double(authService.appConfigService.maxStorageLimit)
+    }
+    
+    var storageProgress: Double {
+        return min(max(storageUsedMB / storageLimitMB, 0), 1)
+    }
+    
     var body: some View {
         ZStack {
             // Premium Animated Background Theme
@@ -43,8 +57,8 @@ struct ProfileView: View {
                         .fill(
                             RadialGradient(
                                 gradient: Gradient(colors: [
-                                    Color(red: 0.2, green: 0.8, blue: 0.7).opacity(hasAppeared ? 0.15 : 0.05),
-                                    Color(red: 0.2, green: 0.8, blue: 0.7).opacity(hasAppeared ? 0.08 : 0.03),
+                                    Color(red: 0.28, green: 0.65, blue: 0.66).opacity(hasAppeared ? 0.15 : 0.05),
+                                    Color(red: 0.28, green: 0.65, blue: 0.66).opacity(hasAppeared ? 0.08 : 0.03),
                                     Color.clear
                                 ]),
                                 center: .center,
@@ -112,12 +126,12 @@ struct ProfileView: View {
                                     .frame(width: 56, height: 56)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color(red: 0.2, green: 0.8, blue: 0.7).opacity(0.3), lineWidth: 1)
+                                            .stroke(Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.3), lineWidth: 1)
                                     )
                                 
                                 Image(systemName: "doc.on.doc.fill")
                                     .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(Color(red: 0.2, green: 0.8, blue: 0.7))
+                                    .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
                             }
                         }
                         .scaleEffect(copyButtonScale)
@@ -134,14 +148,51 @@ struct ProfileView: View {
                             RoundedRectangle(cornerRadius: 20)
                                 .fill(LinearGradient(
                                     gradient: Gradient(colors: [
-                                        Color(red: 0.2, green: 0.8, blue: 0.7),
-                                        Color(red: 0.1, green: 0.7, blue: 0.6)
+                                        Color(red: 0.28, green: 0.65, blue: 0.66),
+                                        Color(red: 0.21, green: 0.52, blue: 0.53)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ))
-                                .frame(height: 170) // Reduced height to save space
+                                .frame(height: 220) // Increased height for more content
                                 .padding(.top, 60)
+                                .overlay(
+                                    // Background Pattern
+                                    GeometryReader { geo in
+                                        ZStack {
+                                            Circle()
+                                                .stroke(Color.white.opacity(0.1), lineWidth: 2)
+                                                .frame(width: 150, height: 150)
+                                                .offset(x: -80, y: -80)
+                                            Circle()
+                                                .stroke(Color.white.opacity(0.05), lineWidth: 20)
+                                                .frame(width: 250, height: 250)
+                                                .offset(x: 100, y: 50)
+                                            
+                                            // Security Badge
+                                            VStack {
+                                                HStack {
+                                                    Spacer()
+                                                    HStack(spacing: 4) {
+                                                        Image(systemName: "checkmark.shield.fill")
+                                                            .font(.caption2)
+                                                        Text("SECURED")
+                                                            .font(.caption2)
+                                                            .fontWeight(.bold)
+                                                    }
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.white.opacity(0.15))
+                                                    .cornerRadius(10)
+                                                    .padding(15)
+                                                }
+                                                Spacer()
+                                            }
+                                        }
+                                    }
+                                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                                )
                             
                             VStack(spacing: 15) {
                                 // New Interesting Avatar
@@ -178,11 +229,11 @@ struct ProfileView: View {
                                                             VStack(spacing: 5) {
                                                                 Image(systemName: "camera.fill")
                                                                     .font(.system(size: 30))
-                                                                    .foregroundColor(Color(red: 0.1, green: 0.7, blue: 0.6))
+                                                                    .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
                                                                 Text("Upload")
                                                                     .font(.caption2)
                                                                     .fontWeight(.bold)
-                                                                    .foregroundColor(Color(red: 0.1, green: 0.7, blue: 0.6))
+                                                                    .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
                                                             }
                                                         } else {
                                                             ProgressView()
@@ -194,11 +245,11 @@ struct ProfileView: View {
                                                     VStack(spacing: 5) {
                                                         Image(systemName: "camera.fill")
                                                             .font(.system(size: 30))
-                                                            .foregroundColor(Color(red: 0.1, green: 0.7, blue: 0.6))
+                                                            .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
                                                         Text("Upload")
                                                             .font(.caption2)
                                                             .fontWeight(.bold)
-                                                            .foregroundColor(Color(red: 0.1, green: 0.7, blue: 0.6))
+                                                            .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
                                                     }
                                                 }
                                                 
@@ -231,7 +282,7 @@ struct ProfileView: View {
                                             
                                             Image(systemName: "wand.and.stars") // Interesting icon
                                                 .font(.system(size: 16, weight: .bold))
-                                                .foregroundColor(Color(red: 0.2, green: 0.8, blue: 0.7))
+                                                .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
                                         }
                                     }
                                     .offset(x: 5, y: -5)
@@ -248,6 +299,36 @@ struct ProfileView: View {
                                     Text(authService.user?.mobile ?? "No Mobile")
                                         .font(.subheadline)
                                         .foregroundColor(.white.opacity(0.9))
+                                    
+                                    // Storage stats
+                                    VStack(spacing: 4) {
+                                        HStack {
+                                            Text("\(Int(storageUsedMB)) MB used")
+                                                .font(.caption2)
+                                                .fontWeight(.medium)
+                                            Spacer()
+                                            Text("\(Int(storageLimitMB)) MB limit")
+                                                .font(.caption2)
+                                                .fontWeight(.medium)
+                                        }
+                                        .foregroundColor(.white.opacity(0.8))
+                                        
+                                        // Progress Bar
+                                        GeometryReader { barGeo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule()
+                                                    .fill(Color.black.opacity(0.2))
+                                                    .frame(height: 6)
+                                                
+                                                Capsule()
+                                                    .fill(Color.white)
+                                                    .frame(width: barGeo.size.width * storageProgress, height: 6)
+                                            }
+                                        }
+                                        .frame(height: 6)
+                                    }
+                                    .padding(.top, 10)
+                                    .padding(.horizontal, 20)
                                 }
                             }
                         }
@@ -483,12 +564,12 @@ struct EditNameView: View {
                 // Header Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 18)
-                        .fill(Color(red: 0.1, green: 0.7, blue: 0.6).opacity(0.1))
+                        .fill(Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.1))
                         .frame(width: 60, height: 60)
                     
                     Image(systemName: "pencil.line")
                         .font(.system(size: 28))
-                        .foregroundColor(Color(red: 0.1, green: 0.7, blue: 0.6))
+                        .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
                 }
                 .padding(.top, 5)
                 
@@ -543,7 +624,7 @@ struct EditNameView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(newName.isEmpty || isSaving ? Color.gray.opacity(0.5) : Color(red: 0.1, green: 0.7, blue: 0.6))
+                        .background(newName.isEmpty || isSaving ? Color.gray.opacity(0.5) : Color(red: 0.28, green: 0.65, blue: 0.66))
                         .cornerRadius(15)
                     }
                     .disabled(newName.isEmpty || isSaving)

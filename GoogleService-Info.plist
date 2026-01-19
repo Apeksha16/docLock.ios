@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>620656800474-10r71lsqgskafrpa7cf2f1kesi8d0v91.apps.googleusercontent.com</string>
+	<string>620656800474-2nb3get4c3tmes5g2frjai267333mm3k.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.620656800474-10r71lsqgskafrpa7cf2f1kesi8d0v91</string>
+	<string>com.googleusercontent.apps.620656800474-2nb3get4c3tmes5g2frjai267333mm3k</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>620656800474-be3kpvdth7s29dhomespm15bm2tphkj1.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.techvriksha.doclock.dev</string>
+	<string>com.techvriksha.docLock.apeksha</string>
 	<key>PROJECT_ID</key>
 	<string>doclock-96a20</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:620656800474:ios:36de0d6a0e5eac52e9ebe3</string>
+	<string>1:620656800474:ios:b5920d4d8ee7f1bfe9ebe3</string>
 </dict>
 </plist>
