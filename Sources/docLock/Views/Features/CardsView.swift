@@ -63,7 +63,25 @@ struct CardsView: View {
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
-                    Color.clear.frame(width: 44, height: 44)
+                    
+                    if !cardsService.cards.isEmpty {
+                        Button(action: {
+                            showingAddCard = true
+                        }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color(red: 1.0, green: 0.2, blue: 0.5))
+                                    .frame(width: 56, height: 56)
+                                    
+                                Image(systemName: "plus")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                            .shadow(color: Color.pink.opacity(0.3), radius: 5, x: 0, y: 2)
+                        }
+                    } else {
+                        Color.clear.frame(width: 56, height: 56)
+                    }
                 }
                 .padding()
                 
@@ -251,27 +269,12 @@ struct CardsView: View {
                             }
                         }
                         .padding()
-                        .padding(.bottom, 80) // Space for FAB
+                        .padding(.bottom, 20)
                     }
                 }
             }
             
-            // FAB
-            VStack {
-                Spacer()
-                Button(action: {
-                    showingAddCard = true
-                }) {
-                    Image(systemName: "plus")
-                        .font(.title)
-                        .foregroundColor(.white)
-                        .frame(width: 60, height: 60)
-                        .background(Color(red: 1.0, green: 0.2, blue: 0.5)) // Pink
-                        .clipShape(Circle())
-                        .shadow(color: Color.pink.opacity(0.4), radius: 10, x: 0, y: 5)
-                }
-                .padding(.bottom, 30)
-            }
+            // FAB Removed as per requirement
             
             // Delete Alert Modal Overlay
             if showingDeleteAlert {

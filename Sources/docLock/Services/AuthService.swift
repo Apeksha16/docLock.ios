@@ -21,6 +21,10 @@ class AuthService: ObservableObject {
     let cardsService = CardsService()
     let appConfigService = AppConfigService()
     
+    init() {
+        documentsService.appConfigService = appConfigService
+    }
+    
     // Base URL from your Cloud Function
     private let baseURL = "http://192.168.29.38:3000/api/auth"
     
@@ -1162,22 +1166,32 @@ class FriendsService: ObservableObject {
 class DocumentsService: ObservableObject {
     @Published var folders: [DocFolder] = []
     @Published var currentFolderDocuments: [DocumentFile] = []
+    @Published var currentFolderFolders: [DocFolder] = []
     @Published var totalDocuments: Int = 0
     @Published var usedStorageMB: Double = 0.0
     @Published var error: String?
     
+    var appConfigService: AppConfigService?
+    
     private var listener: ListenerRegistration?
     private var folderDocumentsListener: ListenerRegistration?
+    private var folderFoldersListener: ListenerRegistration?
     private let db = Firestore.firestore()
     
-    func startListening(userId: String) {
+    func startListening(userId: String, parentFolderId: String? = nil) {
         listener?.remove()
-        print("📄 DocumentsService: Starting listener for user \(userId)")
+        print("📄 DocumentsService: Starting listener for user \(userId), parentFolderId: \(parentFolderId ?? "root")")
         
-        // Listening to 'folders' or documents metadata collection
-        // Adjusting logic to match existing UI structure (folders)
-        listener = db.collection("users").document(userId).collection("folders")
-            .addSnapshotListener { [weak self] snapshot, error in
+        // Listening to folders filtered by parentFolderId
+        var query = db.collection("users").document(userId).collection("folders")
+        
+        if let parentId = parentFolderId {
+            query = query.whereField("parentFolderId", isEqualTo: parentId)
+        } else {
+            query = query.whereField("parentFolderId", isEqualTo: NSNull())
+        }
+        
+        listener = query.addSnapshotListener { [weak self] snapshot, error in
                 if let error = error {
                     print("🔴 DocumentsService Error: \(error.localizedDescription)")
                     self?.error = error.localizedDescription
@@ -1191,7 +1205,9 @@ class DocumentsService: ObservableObject {
                     let name = data["name"] as? String ?? "Unnamed"
                     let itemCount = data["itemCount"] as? Int ?? 0
                     let icon = data["icon"] as? String ?? "folder"
-                    return DocFolder(id: doc.documentID, name: name, itemCount: itemCount, icon: icon)
+                    let parentFolderId = data["parentFolderId"] as? String
+                    let depth = data["depth"] as? Int ?? 0
+                    return DocFolder(id: doc.documentID, name: name, itemCount: itemCount, icon: icon, parentFolderId: parentFolderId, depth: depth)
                 }
                 
                 // Calculate totals
@@ -1217,13 +1233,19 @@ class DocumentsService: ObservableObject {
     }
     
     // MARK: - Fetch Documents in Folder
-    func fetchDocumentsInFolder(userId: String, folderId: String) {
+    func fetchDocumentsInFolder(userId: String, folderId: String?) {
         folderDocumentsListener?.remove()
-        print("📂 DocumentsService: Fetching documents in folder \(folderId)")
+        print("📂 DocumentsService: Fetching documents in folder \(folderId ?? "root")")
         
-        folderDocumentsListener = db.collection("users").document(userId).collection("documents")
-            .whereField("folderId", isEqualTo: folderId)
-            .order(by: "createdAt", descending: true)
+        var query = db.collection("users").document(userId).collection("documents")
+        
+        if let folderId = folderId {
+            query = query.whereField("folderId", isEqualTo: folderId)
+        } else {
+            query = query.whereField("folderId", isEqualTo: NSNull())
+        }
+        
+        folderDocumentsListener = query.order(by: "createdAt", descending: true)
             .addSnapshotListener { [weak self] snapshot, error in
                 if let error = error {
                     print("🔴 DocumentsService Folder Documents Error: \(error.localizedDescription)")
@@ -1259,22 +1281,77 @@ class DocumentsService: ObservableObject {
             }
     }
     
+    // MARK: - Fetch Folders in Folder
+    func fetchFoldersInFolder(userId: String, parentFolderId: String?) {
+        folderFoldersListener?.remove()
+        print("📁 DocumentsService: Fetching folders in parent \(parentFolderId ?? "root")")
+        
+        var query = db.collection("users").document(userId).collection("folders")
+        
+        if let parentId = parentFolderId {
+            query = query.whereField("parentFolderId", isEqualTo: parentId)
+        } else {
+            query = query.whereField("parentFolderId", isEqualTo: NSNull())
+        }
+        
+        folderFoldersListener = query.addSnapshotListener { [weak self] snapshot, error in
+            if let error = error {
+                print("🔴 DocumentsService Folder Folders Error: \(error.localizedDescription)")
+                self?.error = error.localizedDescription
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                self?.currentFolderFolders = []
+                return
+            }
+            
+            self?.currentFolderFolders = documents.compactMap { doc -> DocFolder? in
+                let data = doc.data()
+                let name = data["name"] as? String ?? "Unnamed"
+                let itemCount = data["itemCount"] as? Int ?? 0
+                let icon = data["icon"] as? String ?? "folder"
+                let parentFolderId = data["parentFolderId"] as? String
+                let depth = data["depth"] as? Int ?? 0
+                return DocFolder(id: doc.documentID, name: name, itemCount: itemCount, icon: icon, parentFolderId: parentFolderId, depth: depth)
+            }
+            
+            print("🟢 DocumentsService: Loaded \(self?.currentFolderFolders.count ?? 0) folders in parent")
+        }
+    }
+    
     func stopListeningToFolder() {
         folderDocumentsListener?.remove()
+        folderFoldersListener?.remove()
         folderDocumentsListener = nil
+        folderFoldersListener = nil
         currentFolderDocuments = []
+        currentFolderFolders = []
     }
     
     // MARK: - Create Folder
-    func createFolder(userId: String, folderName: String, completion: @escaping (Bool, String?) -> Void) {
-        print("📁 DocumentsService: Creating folder '\(folderName)' for user \(userId)")
+    func createFolder(userId: String, folderName: String, parentFolderId: String?, parentDepth: Int, maxDepth: Int, completion: @escaping (Bool, String?) -> Void) {
+        print("📁 DocumentsService: Creating folder '\(folderName)' for user \(userId), parent: \(parentFolderId ?? "root"), depth: \(parentDepth + 1)")
         
-        let data: [String: Any] = [
+        // Check depth limit
+        if parentDepth + 1 >= maxDepth {
+            completion(false, "Maximum folder nesting depth (\(maxDepth)) reached")
+            return
+        }
+        
+        var data: [String: Any] = [
             "name": folderName,
             "itemCount": 0,
             "icon": "folder",
+            "depth": parentDepth + 1,
             "createdAt": FieldValue.serverTimestamp()
         ]
+        
+        if let parentId = parentFolderId {
+            data["parentFolderId"] = parentId
+        } else {
+            data["parentFolderId"] = NSNull()
+        }
         
         db.collection("users").document(userId).collection("folders").addDocument(data: data) { [weak self] error in
             if let error = error {
@@ -1287,8 +1364,40 @@ class DocumentsService: ObservableObject {
         }
     }
     
+    // MARK: - Edit Folder
+    func updateFolder(userId: String, folderId: String, newName: String, completion: @escaping (Bool, String?) -> Void) {
+        print("✏️ DocumentsService: Updating folder \(folderId) to '\(newName)'")
+        
+        db.collection("users").document(userId).collection("folders").document(folderId).updateData([
+            "name": newName
+        ]) { error in
+            if let error = error {
+                print("🔴 DocumentsService Update Folder Error: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                print("🟢 DocumentsService: Folder updated successfully")
+                completion(true, nil)
+            }
+        }
+    }
+    
+    // MARK: - Delete Folder
+    func deleteFolder(userId: String, folderId: String, completion: @escaping (Bool, String?) -> Void) {
+        print("🗑️ DocumentsService: Deleting folder \(folderId)")
+        
+        db.collection("users").document(userId).collection("folders").document(folderId).delete { error in
+            if let error = error {
+                print("🔴 DocumentsService Delete Folder Error: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                print("🟢 DocumentsService: Folder deleted successfully")
+                completion(true, nil)
+            }
+        }
+    }
+    
     // MARK: - Upload Document
-    func uploadDocument(userId: String, fileURL: URL, fileName: String, completion: @escaping (Bool, String?) -> Void) {
+    func uploadDocument(userId: String, fileURL: URL, fileName: String, folderId: String?, completion: @escaping (Bool, String?) -> Void) {
         // Use Firebase Auth UID for storage path if available, otherwise use userId parameter
         let storageUserId = Auth.auth().currentUser?.uid ?? userId
         print("📄 DocumentsService: Uploading document '\(fileName)' for user \(storageUserId) (Auth UID: \(Auth.auth().currentUser?.uid ?? "none"))")
@@ -1320,13 +1429,19 @@ class DocumentsService: ObservableObject {
                     return
                 }
                 
-                let data: [String: Any] = [
+                var data: [String: Any] = [
                     "name": fileName,
                     "type": "document",
                     "url": downloadURL.absoluteString,
                     "size": metadata?.size ?? 0,
                     "createdAt": FieldValue.serverTimestamp()
                 ]
+                
+                if let folderId = folderId {
+                    data["folderId"] = folderId
+                } else {
+                    data["folderId"] = NSNull()
+                }
                 
                 self?.db.collection("users").document(userId).collection("documents").addDocument(data: data) { error in
                     if let error = error {
@@ -1342,7 +1457,7 @@ class DocumentsService: ObservableObject {
     }
     
     // MARK: - Upload Image
-    func uploadImage(userId: String, image: UIImage, fileName: String, completion: @escaping (Bool, String?) -> Void) {
+    func uploadImage(userId: String, image: UIImage, fileName: String, folderId: String?, completion: @escaping (Bool, String?) -> Void) {
         // Use Firebase Auth UID for storage path if available, otherwise use userId parameter
         let storageUserId = Auth.auth().currentUser?.uid ?? userId
         print("🖼️ DocumentsService: Uploading image '\(fileName)' for user \(storageUserId) (Auth UID: \(Auth.auth().currentUser?.uid ?? "none"))")
@@ -1382,13 +1497,19 @@ class DocumentsService: ObservableObject {
                     return
                 }
                 
-                let data: [String: Any] = [
+                var data: [String: Any] = [
                     "name": fileName,
                     "type": "image",
                     "url": downloadURL.absoluteString,
                     "size": imageData.count,
                     "createdAt": FieldValue.serverTimestamp()
                 ]
+                
+                if let folderId = folderId {
+                    data["folderId"] = folderId
+                } else {
+                    data["folderId"] = NSNull()
+                }
                 
                 self?.db.collection("users").document(userId).collection("documents").addDocument(data: data) { error in
                     if let error = error {
@@ -1473,6 +1594,7 @@ class CardsService: ObservableObject {
 class AppConfigService: ObservableObject {
     @Published var maxStorageLimit: Int = 200 // Default 200MB
     @Published var maxCreditCardsLimit: Int = 10 // Default 10
+    @Published var maxFolderDepth: Int = 5 // Default max nesting depth
     @Published var error: String?
     
     private let db = Firestore.firestore()
@@ -1498,6 +1620,7 @@ class AppConfigService: ObservableObject {
                 let storageBytes = data["maxStorageLimit"] as? Int ?? 209715200
                 self?.maxStorageLimit = storageBytes / (1024 * 1024) // Convert to MB
                 self?.maxCreditCardsLimit = data["maxCreditCardsLimit"] as? Int ?? 5
+                self?.maxFolderDepth = data["maxFolderDepth"] as? Int ?? 5
                 
                 print("🟢 AppConfigService: Loaded config (Storage: \(self?.maxStorageLimit ?? 0)MB, Cards: \(self?.maxCreditCardsLimit ?? 0))")
                 completion(true) // Success

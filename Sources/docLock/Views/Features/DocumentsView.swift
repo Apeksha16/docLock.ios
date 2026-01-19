@@ -6,6 +6,8 @@ struct DocFolder: Identifiable {
     let name: String
     let itemCount: Int
     let icon: String
+    let parentFolderId: String? // nil for root level folders
+    let depth: Int // nesting depth (0 for root)
 }
 
 struct DocumentFile: Identifiable {
@@ -32,6 +34,26 @@ struct DocumentsView: View {
     @State private var showCreateFolderSheet = false
     @State private var showUploadDocumentSheet = false
     @State private var showUploadImageSheet = false
+    @State private var showEditFolderSheet = false
+    @State private var folderToEdit: DocFolder?
+    @State private var showDeleteConfirmation = false
+    @State private var folderToDelete: DocFolder?
+    
+    // Current location for uploads/creates
+    var currentLocationFolderId: String? {
+        selectedFolderId
+    }
+    
+    var currentLocationDepth: Int {
+        if let folderId = selectedFolderId {
+            // Get depth from current folder folders or use folder depth
+            return documentsService.currentFolderFolders.first(where: { $0.id == folderId })?.depth ?? 0
+        }
+        return 0
+    }
+    
+    // Track folder hierarchy for navigation
+    @State private var folderHierarchy: [String] = [] // Array of folder IDs from root to current
     
     var body: some View {
         ZStack {
@@ -42,8 +64,39 @@ struct DocumentsView: View {
                 // Header
                 HStack {
                     Button(action: {
-                        if currentPath.count > 1 {
-                             currentPath.removeLast()
+                        if let folderId = selectedFolderId {
+                            // Navigate to parent folder
+                            if folderHierarchy.count > 1 {
+                                folderHierarchy.removeLast()
+                                let parentId = folderHierarchy.last
+                                
+                                if let parentId = parentId {
+                                    selectedFolderId = parentId
+                                    documentsService.fetchDocumentsInFolder(userId: userId, folderId: parentId)
+                                    documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentId)
+                                } else {
+                                    // Go back to root
+                                    selectedFolderId = nil
+                                    selectedFolderName = nil
+                                    folderHierarchy = []
+                                    documentsService.stopListeningToFolder()
+                                    documentsService.startListening(userId: userId, parentFolderId: nil)
+                                }
+                            } else {
+                                // Go back to root
+                                selectedFolderId = nil
+                                selectedFolderName = nil
+                                folderHierarchy = []
+                                documentsService.stopListeningToFolder()
+                                documentsService.startListening(userId: userId, parentFolderId: nil)
+                            }
+                            withAnimation {
+                                if currentPath.count > 1 {
+                                    currentPath.removeLast()
+                                }
+                            }
+                        } else if currentPath.count > 1 {
+                            currentPath.removeLast()
                         } else {
                             presentationMode.wrappedValue.dismiss()
                         }
@@ -69,7 +122,24 @@ struct DocumentsView: View {
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
-                    Color.clear.frame(width: 44, height: 44)
+                    if (!documentsService.folders.isEmpty || selectedFolderId != nil) {
+                        Button(action: {
+                            withAnimation { showFabMenu.toggle() }
+                        }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.blue)
+                                    .frame(width: 56, height: 56)
+                                Image(systemName: "plus")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .rotationEffect(.degrees(showFabMenu ? 45 : 0))
+                            }
+                            .shadow(color: Color.blue.opacity(0.3), radius: 5, x: 0, y: 2)
+                        }
+                    } else {
+                        Color.clear.frame(width: 56, height: 56)
+                    }
                 }
                 .padding()
                 
@@ -139,66 +209,106 @@ struct DocumentsView: View {
                         userId: userId,
                         folderId: folderId,
                         folderName: selectedFolderName ?? "Folder",
+                        appConfigService: documentsService.appConfigService!,
+                        onFolderTap: { folder in
+                            selectedFolderId = folder.id
+                            selectedFolderName = folder.name
+                            if folderHierarchy.isEmpty {
+                                folderHierarchy = [folder.id]
+                            } else {
+                                folderHierarchy.append(folder.id)
+                            }
+                            withAnimation {
+                                currentPath.append(folder.name)
+                            }
+                            documentsService.fetchDocumentsInFolder(userId: userId, folderId: folder.id)
+                            documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: folder.id)
+                        },
                         onBack: {
-                            selectedFolderId = nil
-                            selectedFolderName = nil
-                            documentsService.stopListeningToFolder()
+                            // Navigate to parent folder
+                            if folderHierarchy.count > 1 {
+                                // Go to parent folder
+                                folderHierarchy.removeLast()
+                                let parentId = folderHierarchy.last
+                                
+                                if let parentId = parentId {
+                                    selectedFolderId = parentId
+                                    documentsService.fetchDocumentsInFolder(userId: userId, folderId: parentId)
+                                    documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentId)
+                                } else {
+                                    // Go back to root
+                                    selectedFolderId = nil
+                                    selectedFolderName = nil
+                                    folderHierarchy = []
+                                    documentsService.stopListeningToFolder()
+                                    documentsService.startListening(userId: userId, parentFolderId: nil)
+                                }
+                            } else {
+                                // Go back to root
+                                selectedFolderId = nil
+                                selectedFolderName = nil
+                                folderHierarchy = []
+                                documentsService.stopListeningToFolder()
+                                documentsService.startListening(userId: userId, parentFolderId: nil)
+                            }
                             withAnimation {
                                 if currentPath.count > 1 {
                                     currentPath.removeLast()
                                 }
                             }
+                        },
+                        onCreateFolder: {
+                            showCreateFolderSheet = true
+                        },
+                        onUploadDocument: {
+                            showUploadDocumentSheet = true
+                        },
+                        onUploadImage: {
+                            showUploadImageSheet = true
                         }
                     )
                 } else {
-                    // Show folders in 2D grid
-                    ScrollView {
-                        let columns = [
-                            GridItem(.flexible(), spacing: 15),
-                            GridItem(.flexible(), spacing: 15)
-                        ]
-                        
-                        LazyVGrid(columns: columns, spacing: 15) {
-                            ForEach(documentsService.folders) { folder in
-                                Button(action: {
-                                    selectedFolderId = folder.id
-                                    selectedFolderName = folder.name
-                                    withAnimation {
-                                        currentPath.append(folder.name)
-                                    }
-                                    documentsService.fetchDocumentsInFolder(userId: userId, folderId: folder.id)
-                                }) {
-                                    VStack(spacing: 12) {
-                                        ZStack {
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .fill(Color.blue.opacity(0.1))
-                                                .frame(width: 70, height: 70)
-                                            Image(systemName: folder.icon)
-                                                .font(.system(size: 32, weight: .medium))
-                                                .foregroundColor(.blue)
-                                        }
-                                        
-                                        VStack(spacing: 4) {
-                                            Text(folder.name)
-                                                .font(.system(size: 14, weight: .semibold))
-                                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                                                .lineLimit(1)
-                                            
-                                            Text("\(folder.itemCount) items")
-                                                .font(.system(size: 11))
-                                                .foregroundColor(.gray)
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 20)
-                                    .background(Color.white)
-                                    .cornerRadius(18)
-                                    .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+                    // Show folders in list view with swipe actions
+                    List {
+                        ForEach(documentsService.folders) { folder in
+                            FolderListRow(folder: folder) {
+                                selectedFolderId = folder.id
+                                selectedFolderName = folder.name
+                                if folderHierarchy.isEmpty {
+                                    folderHierarchy = [folder.id]
+                                } else {
+                                    folderHierarchy.append(folder.id)
                                 }
+                                withAnimation {
+                                    currentPath.append(folder.name)
+                                }
+                                documentsService.fetchDocumentsInFolder(userId: userId, folderId: folder.id)
+                                documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: folder.id)
+                            }
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                // Delete action
+                                Button(role: .destructive) {
+                                    deleteFolder(folderId: folder.id, folderName: folder.name)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .tint(.red)
+                                
+                                // Edit action
+                                Button {
+                                    editFolder(folder: folder)
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
                             }
                         }
-                        .padding()
                     }
+                    .listStyle(.plain)
+                    .scrollIndicators(.hidden)
                 }
             }
             .blur(radius: (showFabMenu || showCreateFolderSheet || showUploadDocumentSheet || showUploadImageSheet) ? 2 : 0) // Blur background when modal is open
@@ -208,6 +318,8 @@ struct DocumentsView: View {
                 CreateFolderSheet(
                     documentsService: documentsService,
                     userId: userId,
+                    parentFolderId: currentLocationFolderId,
+                    parentDepth: currentLocationDepth,
                     isPresented: $showCreateFolderSheet
                 )
             }
@@ -217,6 +329,7 @@ struct DocumentsView: View {
                 UploadDocumentSheet(
                     documentsService: documentsService,
                     userId: userId,
+                    folderId: currentLocationFolderId,
                     isPresented: $showUploadDocumentSheet
                 )
             }
@@ -226,6 +339,7 @@ struct DocumentsView: View {
                 UploadImageSheet(
                     documentsService: documentsService,
                     userId: userId,
+                    folderId: currentLocationFolderId,
                     isPresented: $showUploadImageSheet
                 )
             }
@@ -275,35 +389,63 @@ struct DocumentsView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             
-            // FAB Button (Only show if documents exist)
-            if !documentsService.folders.isEmpty {
-                VStack {
-                    Spacer()
-                    Button(action: {
-                        withAnimation(.spring()) {
-                            showFabMenu.toggle()
-                        }
-                    }) {
-                        ZStack {
-                            Circle()
-                                .fill(showFabMenu ? Color.blue.opacity(0.8) : Color.blue) // Darker when open? Or keep same
-                                .frame(width: 60, height: 60)
-                                .shadow(color: Color.blue.opacity(0.4), radius: 10, x: 0, y: 5)
-                                
-                            Image(systemName: "plus")
-                                .font(.system(size: 30, weight: .medium))
-                                .foregroundColor(.white)
-                                .rotationEffect(.degrees(showFabMenu ? 135 : 0))
-                        }
-                    }
-                    .padding(.bottom, 30)
-                }
-            }
+            // FAB Removed - Moved to Header
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
         .onAppear {
-            documentsService.retry(userId: userId)
+            documentsService.startListening(userId: userId, parentFolderId: nil)
+        }
+        .sheet(isPresented: $showEditFolderSheet) {
+            if let folder = folderToEdit {
+                EditFolderSheet(
+                    documentsService: documentsService,
+                    userId: userId,
+                    folder: folder,
+                    isPresented: $showEditFolderSheet
+                )
+            }
+        }
+        .overlay(
+            Group {
+                if showDeleteConfirmation, let folder = folderToDelete {
+                    CustomActionModal(
+                        icon: "trash.fill",
+                        iconBgColor: .red,
+                        title: "Delete Folder?",
+                        subtitle: nil,
+                        message: "Are you sure you want to delete '\(folder.name)'? This action cannot be undone.",
+                        primaryButtonText: "Delete",
+                        primaryButtonColor: .red,
+                        onPrimaryAction: {
+                            documentsService.deleteFolder(userId: userId, folderId: folder.id) { success, error in
+                                DispatchQueue.main.async {
+                                    showDeleteConfirmation = false
+                                    folderToDelete = nil
+                                }
+                            }
+                        },
+                        onCancel: {
+                            showDeleteConfirmation = false
+                            folderToDelete = nil
+                        }
+                    )
+                    .zIndex(300)
+                }
+            }
+        )
+    }
+    
+    // MARK: - Helper Functions
+    func editFolder(folder: DocFolder) {
+        folderToEdit = folder
+        showEditFolderSheet = true
+    }
+    
+    func deleteFolder(folderId: String, folderName: String) {
+        if let folder = documentsService.folders.first(where: { $0.id == folderId }) {
+            folderToDelete = folder
+            showDeleteConfirmation = true
         }
     }
 }
@@ -519,6 +661,8 @@ struct FabMenuRow: View {
 struct CreateFolderSheet: View {
     @ObservedObject var documentsService: DocumentsService
     let userId: String
+    let parentFolderId: String?
+    let parentDepth: Int
     @Binding var isPresented: Bool
     @State private var folderName: String = ""
     @State private var sheetOffset: CGFloat = 800
@@ -601,7 +745,8 @@ struct CreateFolderSheet: View {
                 VStack(spacing: 15) {
                     Button(action: {
                         // Create folder in background (no loader)
-                        documentsService.createFolder(userId: userId, folderName: folderName) { success, error in
+                        let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
+                        documentsService.createFolder(userId: userId, folderName: folderName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
                             DispatchQueue.main.async {
                                 if success {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -673,6 +818,7 @@ struct CreateFolderSheet: View {
 struct UploadDocumentSheet: View {
     @ObservedObject var documentsService: DocumentsService
     let userId: String
+    let folderId: String?
     @Binding var isPresented: Bool
     @State private var isUploading = false
     @State private var errorMessage: String?
@@ -955,7 +1101,7 @@ struct UploadDocumentSheet: View {
         }
         
         // Upload document using DocumentsService
-        documentsService.uploadDocument(userId: userId, fileURL: url, fileName: fileName) { success, error in
+        documentsService.uploadDocument(userId: userId, fileURL: url, fileName: fileName, folderId: folderId) { success, error in
             url.stopAccessingSecurityScopedResource()
             
             DispatchQueue.main.async {
@@ -979,6 +1125,7 @@ struct UploadDocumentSheet: View {
 struct UploadImageSheet: View {
     @ObservedObject var documentsService: DocumentsService
     let userId: String
+    let folderId: String?
     @Binding var isPresented: Bool
     @State private var isUploading = false
     @State private var errorMessage: String?
@@ -1246,7 +1393,7 @@ struct UploadImageSheet: View {
         let fileName = "image_\(Int(Date().timeIntervalSince1970)).jpg"
         
         // Upload image using DocumentsService
-        documentsService.uploadImage(userId: userId, image: image, fileName: fileName) { success, error in
+        documentsService.uploadImage(userId: userId, image: image, fileName: fileName, folderId: folderId) { success, error in
             DispatchQueue.main.async {
                 isUploading = false
                 if success {
@@ -1270,11 +1417,16 @@ struct FolderContentsView: View {
     let userId: String
     let folderId: String
     let folderName: String
+    let appConfigService: AppConfigService
+    let onFolderTap: (DocFolder) -> Void
     let onBack: () -> Void
+    let onCreateFolder: () -> Void
+    let onUploadDocument: () -> Void
+    let onUploadImage: () -> Void
     
     var body: some View {
         Group {
-            if documentsService.currentFolderDocuments.isEmpty {
+            if documentsService.currentFolderFolders.isEmpty && documentsService.currentFolderDocuments.isEmpty {
                 // Empty folder state
                 VStack(spacing: 30) {
                     Spacer().frame(height: 100)
@@ -1296,22 +1448,131 @@ struct FolderContentsView: View {
                     Spacer()
                 }
             } else {
-                // Documents grid
-                ScrollView {
-                    let columns = [
-                        GridItem(.flexible(), spacing: 15),
-                        GridItem(.flexible(), spacing: 15)
-                    ]
-                    
-                    LazyVGrid(columns: columns, spacing: 15) {
-                        ForEach(documentsService.currentFolderDocuments) { document in
-                            DocumentGridItem(document: document)
+                // Show folders and documents together in list
+                List {
+                    // Folders section
+                    if !documentsService.currentFolderFolders.isEmpty {
+                        ForEach(documentsService.currentFolderFolders) { folder in
+                            FolderListRow(folder: folder) {
+                                onFolderTap(folder)
+                            }
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
                         }
                     }
-                    .padding()
+                    
+                    // Documents section
+                    if !documentsService.currentFolderDocuments.isEmpty {
+                        ForEach(documentsService.currentFolderDocuments) { document in
+                            DocumentListItem(document: document)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                        }
+                    }
                 }
+                .listStyle(.plain)
+                .scrollIndicators(.hidden)
             }
         }
+        .onAppear {
+            documentsService.fetchDocumentsInFolder(userId: userId, folderId: folderId)
+            documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: folderId)
+        }
+    }
+}
+
+// MARK: - Document List Item
+struct DocumentListItem: View {
+    let document: DocumentFile
+    
+    var body: some View {
+        HStack(spacing: 15) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(document.type == "image" ? Color.cyan.opacity(0.1) : Color.blue.opacity(0.1))
+                    .frame(width: 50, height: 50)
+                Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
+                    .font(.title2)
+                    .foregroundColor(document.type == "image" ? .cyan : .blue)
+            }
+            
+            VStack(alignment: .leading, spacing: 5) {
+                Text(document.name)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                
+                Text(formatFileSize(document.size))
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+        }
+        .padding(20)
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+        )
+    }
+    
+    func formatFileSize(_ bytes: Int) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytes))
+    }
+}
+
+// MARK: - Folder List Row
+struct FolderListRow: View {
+    let folder: DocFolder
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 15) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: folder.icon)
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+                
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(folder.name)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    
+                    Text("\(folder.itemCount) items")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.gray.opacity(0.4))
+            }
+            .padding(20)
+            .background(Color.white)
+            .cornerRadius(20)
+            .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -1343,5 +1604,155 @@ struct DocumentGridItem: View {
         .background(Color.white)
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+    }
+}
+
+// MARK: - Edit Folder Sheet
+struct EditFolderSheet: View {
+    @ObservedObject var documentsService: DocumentsService
+    let userId: String
+    let folder: DocFolder
+    @Binding var isPresented: Bool
+    @State private var folderName: String = ""
+    @State private var sheetOffset: CGFloat = 800
+    @State private var iconScale: CGFloat = 0.5
+    @State private var iconRotation: Double = -180
+    @FocusState private var isFocused: Bool
+    
+    var body: some View {
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.4)
+                .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        isPresented = false
+                    }
+                }
+            
+            // Modal Content
+            VStack(spacing: 20) {
+                // Drag Handle
+                Capsule()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 40, height: 4)
+                    .padding(.top, 10)
+                
+                // Premium Animated Header Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.blue.opacity(0.15),
+                                    Color.blue.opacity(0.08)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 60, height: 60)
+                    
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(.blue)
+                }
+                .scaleEffect(iconScale)
+                .rotationEffect(.degrees(iconRotation))
+                .padding(.top, 5)
+                
+                // Title & Subtitle
+                VStack(spacing: 8) {
+                    Text("Edit Folder")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    
+                    Text("Update your folder name.")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal)
+                }
+                
+                // Input Field
+                TextField("Folder Name", text: $folderName)
+                    .font(.headline)
+                    .padding()
+                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .focused($isFocused)
+                    .padding(.horizontal, 25)
+                    .submitLabel(.done)
+                
+                // Action Buttons
+                VStack(spacing: 15) {
+                    Button(action: {
+                        documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName) { success, error in
+                            if success {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    isPresented = false
+                                }
+                            }
+                        }
+                    }) {
+                        Text("Save Changes")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(folderName.isEmpty || folderName == folder.name ? Color.gray.opacity(0.5) : Color.blue)
+                            .cornerRadius(15)
+                    }
+                    .disabled(folderName.isEmpty || folderName == folder.name)
+                    
+                    Button(action: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            isPresented = false
+                        }
+                    }) {
+                        Text("Cancel")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    }
+                }
+                .padding(.horizontal, 25)
+                .padding(.bottom, 30)
+            }
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30)
+                        .fill(Color.white)
+                }
+            )
+            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
+            .offset(y: sheetOffset)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .edgesIgnoringSafeArea(.bottom)
+            .onAppear {
+                folderName = folder.name
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    sheetOffset = 0
+                }
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
+                    iconScale = 1.0
+                    iconRotation = 0
+                }
+                // Auto focus
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isFocused = true
+                }
+            }
+            .transition(.move(edge: .bottom))
+        }
+        .zIndex(200)
+        .edgesIgnoringSafeArea(.all)
     }
 }
