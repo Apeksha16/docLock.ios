@@ -11,13 +11,17 @@ struct CustomActionModal: View {
     let onPrimaryAction: () -> Void
     let onCancel: () -> Void
     
+    @State private var sheetOffset: CGFloat = 800
+    
     var body: some View {
         ZStack {
             // Dimmed background
             Color.black.opacity(0.4)
                 .edgesIgnoringSafeArea(.all)
                 .onTapGesture {
-                    onCancel()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        onCancel()
+                    }
                 }
             
             VStack(spacing: 20) {
@@ -61,7 +65,11 @@ struct CustomActionModal: View {
                 
                 // Buttons
                 VStack(spacing: 15) {
-                    Button(action: onPrimaryAction) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            onPrimaryAction()
+                        }
+                    }) {
                         Text(primaryButtonText)
                             .fontWeight(.bold)
                             .frame(maxWidth: .infinity)
@@ -72,25 +80,34 @@ struct CustomActionModal: View {
                     }
                     .padding(.horizontal, 30)
                     
-                    Button(action: onCancel) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            onCancel()
+                        }
+                    }) {
                         Text(primaryButtonColor == .red ? "Wait, I changed my mind" : "Cancel") // Dynamic text based on context or passed in
                             .fontWeight(.semibold)
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     }
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 50)
                 }
             }
-            .padding(.bottom, 10) // Add padding so text isn't flush with bottom
-            .frame(maxWidth: .infinity)
             .background(
                 Color.white
                     .edgesIgnoringSafeArea(.bottom) // Extend background to very bottom
             )
             .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight])) // Clip top corners only
+            .offset(y: sheetOffset)
             .frame(maxHeight: .infinity, alignment: .bottom)
             .transition(.move(edge: .bottom))
+            .onAppear {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    sheetOffset = 0
+                }
+            }
         }
         .zIndex(100)
+        .edgesIgnoringSafeArea(.all)
     }
 }
 

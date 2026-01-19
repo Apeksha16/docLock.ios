@@ -6,6 +6,12 @@ struct DashboardView: View {
     @State private var selectedTab = "Home"
     @State private var showLogoutModal = false
     @State private var showDeleteModal = false
+    @State private var showEditNameSheet = false
+    @State private var showAddFriend = false
+    @State private var showFriendDeleteModal = false
+    @State private var friendToDelete: User?
+    @State private var showRequestSheet = false
+    @State private var selectedFriendForRequest: User?
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -20,12 +26,22 @@ struct DashboardView: View {
                              cardsService: authService.cardsService,
                              appConfigService: authService.appConfigService)
                 case "Friends":
-                    FriendsView(friendsService: isAuthenticated ? (authService.friendsService) : FriendsService(), userId: authService.user?.id ?? authService.user?.mobile ?? "unknown") // Hacky access to authService
+                    FriendsView(authService: authService, 
+                                friendsService: isAuthenticated ? (authService.friendsService) : FriendsService(), 
+                                notificationService: authService.notificationService,
+                                userId: authService.user?.id ?? authService.user?.mobile ?? "unknown", 
+                                showAddFriend: $showAddFriend, 
+                                showDeleteConfirmation: $showFriendDeleteModal, 
+                                friendToDelete: $friendToDelete,
+                                showRequestSheet: $showRequestSheet,
+                                selectedFriendForRequest: $selectedFriendForRequest)
                 case "Profile":
                     ProfileView(
                         isAuthenticated: $isAuthenticated,
                         showLogoutModal: $showLogoutModal,
-                        showDeleteModal: $showDeleteModal
+                        showDeleteModal: $showDeleteModal,
+                        showEditNameSheet: $showEditNameSheet,
+                        authService: authService
                     )
                 default:
                     HomeView(authService: authService,
@@ -39,7 +55,7 @@ struct DashboardView: View {
             
             // Floating Tab Bar
             CustomTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 10)
+                .padding(.bottom, 0)
             
             // Modals (Rendered LAST to be ON TOP of TabBar)
             if showLogoutModal {
@@ -79,6 +95,138 @@ struct DashboardView: View {
                     },
                     onCancel: { withAnimation { showDeleteModal = false } }
                 )
+            }
+            
+            // Edit Name Bottom Sheet (Above TabBar)
+            if showEditNameSheet {
+                EditNameView(authService: authService, isPresented: $showEditNameSheet)
+                    .zIndex(200) // Ensure it's on top of TabBar
+            }
+            
+            // Add Friend Sheet (Above TabBar)
+            if showAddFriend {
+                ZStack {
+                    // Dimmed background - animate opacity along with sheet
+                    Color.black.opacity(0.4)
+                        .edgesIgnoringSafeArea(.all)
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                showAddFriend = false
+                            }
+                        }
+                        .transition(.opacity)
+                    
+                    AddFriendView(isPresented: $showAddFriend, authService: authService, friendsService: authService.friendsService)
+                        .transition(.move(edge: .bottom))
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                        .padding(.top, 50)
+                }
+                .zIndex(201)
+            }
+            
+            // Delete Friend Modal (Dashboard Level to cover TabBar)
+            if showFriendDeleteModal, let friend = friendToDelete {
+                 // Dimmed background
+                 Color.black.opacity(0.4)
+                     .edgesIgnoringSafeArea(.all)
+                     .onTapGesture {
+                         withAnimation { showFriendDeleteModal = false }
+                     }
+                     .zIndex(203)
+                 
+                 // Modal Card
+                 VStack(spacing: 20) {
+                     Capsule()
+                         .fill(Color.gray.opacity(0.3))
+                         .frame(width: 40, height: 4)
+                         .padding(.top, 10)
+                     
+                     VStack(spacing: 15) {
+                          AsyncImage(url: URL(string: friend.profileImageUrl ?? "")) { phase in
+                              if let image = phase.image {
+                                  image.resizable().aspectRatio(contentMode: .fill)
+                              } else {
+                                  Image(systemName: "person.crop.circle.fill")
+                                      .resizable()
+                                      .foregroundColor(.gray.opacity(0.3))
+                              }
+                          }
+                          .frame(width: 80, height: 80)
+                          .clipShape(Circle())
+                          .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                          .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                         
+                         VStack(spacing: 5) {
+                             Text(friend.name)
+                                 .font(.title2)
+                                 .fontWeight(.bold)
+                                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                             
+                             Text("Time to Part Ways?")
+                                 .font(.caption)
+                                 .foregroundColor(.red)
+                         }
+                     }
+                     .padding(.top, 10)
+                     
+                     Text("Are you sure? Removing them means they lose access to all your shared documents. Poof! Gone.")
+                         .font(.body)
+                         .multilineTextAlignment(.center)
+                         .foregroundColor(.gray)
+                         .padding(.horizontal, 30)
+                         .fixedSize(horizontal: false, vertical: true)
+                     
+                     // Buttons
+                     VStack(spacing: 15) {
+                         Button(action: {
+                             // Delete Action
+                             if let currentUser = authService.user {
+                                 authService.friendsService.deleteFriend(currentUser: currentUser, friend: friend)
+                             }
+                             withAnimation { showFriendDeleteModal = false }
+                         }) {
+                             Text("Yes, Unfriend")
+                                .fontWeight(.bold)
+                                .frame(maxWidth: .infinity)
+                         }
+                         .foregroundColor(.white)
+                         .frame(maxWidth: .infinity)
+                         .padding()
+                         .background(Color.red)
+                         .cornerRadius(15)
+                         .shadow(color: Color.red.opacity(0.3), radius: 10, x: 0, y: 5)
+                         .padding(.horizontal, 30)
+                         
+                         Button(action: {
+                             withAnimation { showFriendDeleteModal = false }
+                         }) {
+                             Text("Cancel")
+                                 .fontWeight(.semibold)
+                                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                         }
+                         .padding(.bottom, 50)
+                     }
+                 }
+                 .background(
+                     Color.white
+                         .edgesIgnoringSafeArea(.bottom)
+                 )
+                 .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
+                 .frame(maxHeight: .infinity, alignment: .bottom)
+                 .edgesIgnoringSafeArea(.bottom)
+                 .transition(.move(edge: .bottom))
+                 .zIndex(204)
+            }
+            
+            // Request Action Sheet (Above TabBar)
+            if showRequestSheet, let friend = selectedFriendForRequest, let currentUser = authService.user {
+                RequestActionSheet(
+                    friend: friend,
+                    currentUser: currentUser,
+                    friendsService: authService.friendsService,
+                    isPresented: $showRequestSheet
+                )
+                .zIndex(205)
             }
         }
         .navigationBarHidden(true)
@@ -218,7 +366,8 @@ struct HomeView: View {
                                 }
                                 
                                 HStack(alignment: .bottom) {
-                                    Text(String(format: "%.2f", documentsService.usedStorageMB))
+                                    let storageUsedMB = Double(authService.user?.storageUsed ?? 0) / (1024 * 1024)
+                                    Text(String(format: "%.2f", storageUsedMB))
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(Color(red: 0.3, green: 0.2, blue: 0.9))
@@ -232,7 +381,7 @@ struct HomeView: View {
                                     
                                     Spacer()
                                     
-                                    let storagePercent = appConfigService.maxStorageLimit > 0 ? (documentsService.usedStorageMB / Double(appConfigService.maxStorageLimit)) * 100 : 0
+                                    let storagePercent = appConfigService.maxStorageLimit > 0 ? (storageUsedMB / Double(appConfigService.maxStorageLimit)) * 100 : 0
                                     Text("\(Int(storagePercent))%")
                                         .font(.title2)
                                         .fontWeight(.bold)

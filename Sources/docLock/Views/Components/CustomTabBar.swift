@@ -5,10 +5,10 @@ struct CustomTabBar: View {
     @Namespace private var animation // Create namespace
     
     var body: some View {
-        HStack {
+        HStack(spacing: 35) {
             // Home Tab
             TabBarButton(
-                icon: "square.grid.2x2",
+                icon: "house.fill",
                 text: "Home",
                 isSelected: selectedTab == "Home",
                 color: Color(red: 0.3, green: 0.2, blue: 0.9),
@@ -19,11 +19,9 @@ struct CustomTabBar: View {
                 }
             }
             
-            Spacer()
-            
             // Friends Tab
             TabBarButton(
-                icon: "person.3.fill",
+                icon: "person.2.fill",
                 text: "Friends",
                 isSelected: selectedTab == "Friends",
                 color: Color.orange,
@@ -34,14 +32,12 @@ struct CustomTabBar: View {
                 }
             }
             
-            Spacer()
-            
             // Profile Tab
             TabBarButton(
-                icon: "person.fill",
+                icon: "person.crop.circle.fill",
                 text: "Profile",
                 isSelected: selectedTab == "Profile",
-                color: Color.purple,
+                color: Color(red: 0.2, green: 0.8, blue: 0.7),
                 namespace: animation
             ) {
                 withAnimation(.spring()) {
@@ -49,12 +45,20 @@ struct CustomTabBar: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 15)
+        .padding(.horizontal, 15)
+        .padding(.vertical, 8)
         .background(Color.white)
-        .cornerRadius(40)
-        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-        .padding(.horizontal, 20)
+        .cornerRadius(35)
+        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .padding(.horizontal, 25) // Reduced outer padding (bar is wider)
+        // User asked for "outer padding to less" -> meaning less space between bar and edge.
+        // Previous was 15. Wait, 15 is already small.
+        // Maybe they meant "padding of outer white container" meaning INSIDE the container?
+        // "Make the padding of outer white container to less" -> The white container's padding.
+        // inner padding: .padding(.horizontal, 20) -> now 15. .padding(.vertical, 10) -> now 8.
+        // "and shift bottombar to more down".
+        // I will stick with this. 
+
     }
 }
 

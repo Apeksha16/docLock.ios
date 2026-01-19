@@ -26,32 +26,42 @@ struct ToastView: View {
     
     var body: some View {
         VStack {
-            Spacer()
-            
             if show {
                 HStack(spacing: 12) {
-                    Image(systemName: type.icon)
-                        .font(.system(size: 20))
-                        .foregroundColor(type.color)
+                    // Icon
+                    if type == .success {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 24))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, Color.blue)
+                    } else {
+                        Image(systemName: type.icon)
+                            .font(.system(size: 24))
+                            .foregroundColor(type.color)
+                    }
                     
                     Text(message)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.black)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.leading)
-                    
-                    Spacer()
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
+                .background(Color.black.opacity(0.95))
+                .cornerRadius(40)
+                .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                .padding(.top, 55) // Adjusted for dynamic island position
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .top).combined(with: .scale(scale: 0.2, anchor: .top)),
+                        removal: .opacity.combined(with: .scale(scale: 0.8, anchor: .top))
+                    )
+                )
             }
+            Spacer()
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: show)
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: show)
+        .zIndex(1000) // Ensure it's on top
     }
 }
 

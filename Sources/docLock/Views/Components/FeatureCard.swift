@@ -10,9 +10,13 @@ struct FeatureCard: View {
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(iconBgColor)
-                    .frame(width: 50, height: 50)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white)
+                    .frame(width: 56, height: 56)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(iconColor.opacity(0.3), lineWidth: 1)
+                    )
                 
                 Image(systemName: icon)
                     .font(.system(size: 24))

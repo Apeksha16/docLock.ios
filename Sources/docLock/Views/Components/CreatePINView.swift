@@ -2,7 +2,20 @@ import SwiftUI
 
 struct CreatePINView: View {
     @Binding var isPresented: Bool
+    @ObservedObject var authService: AuthService
     @State private var pin: String = ""
+    @State private var isLoading = false
+    @State private var shakeDots = false
+    @State private var toastMessage: String?
+    @State private var toastType: ToastType = .error
+    
+    @State private var step: PinStep = .create
+    @State private var firstPin: String = ""
+    
+    enum PinStep {
+        case create
+        case confirm
+    }
     
     // UI Constants based on screenshot
     let dotSize: CGFloat = 16
@@ -11,24 +24,21 @@ struct CreatePINView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Drag Handle
-            Image(systemName: "chevron.compact.down")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 40, height: 12)
-                .foregroundColor(.gray.opacity(0.4))
-                .padding(.top, 15)
-                .padding(.bottom, 30)
+            // Drag Handle - Removed
+            Color.clear
+                .frame(height: 30)
             
             // Title
-            Text("Create PIN")
+            Text(step == .create ? "Change MPIN" : "Confirm MPIN")
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                 .padding(.bottom, 8)
+                .id(step) // Animate transition if needed
+                .transition(.opacity)
             
             // Subtitle
-            Text("Create a 4-digit PIN")
+            Text(step == .create ? "Enter your new 4-digit PIN" : "Re-enter to confirm")
                 .font(.subheadline)
                 .foregroundColor(.gray)
                 .padding(.bottom, 40)
@@ -41,6 +51,7 @@ struct CreatePINView: View {
                         .frame(width: dotSize, height: dotSize)
                 }
             }
+            .modifier(ShakeEffect(animatableData: shakeDots ? 1 : 0))
             .padding(.bottom, 60)
             
             // Keypad
@@ -52,6 +63,7 @@ struct CreatePINView: View {
                             KeypadButton(number: "\(number)", action: {
                                 appendDigit("\(number)")
                             })
+                            .disabled(isLoading)
                         }
                     }
                 }
@@ -62,41 +74,119 @@ struct CreatePINView: View {
                     KeypadButton(number: "0", action: {
                         appendDigit("0")
                     })
+                    .disabled(isLoading)
                     
                     Button(action: {
                         deleteDigit()
                     }) {
-                        Image(systemName: "delete.left")
+                        Image(systemName: "delete.left.fill")
                             .font(.title2)
-                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 1.0)) // Blue like screenshot
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                             .frame(width: keypadButtonSize, height: keypadButtonSize)
-                            .background(Color.white) // Empty background
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 15)
-                                    .stroke(Color.blue, lineWidth: 1.5)
-                            )
-                            .cornerRadius(15) // Wait, design has image inside a box? 
-                            // Actually looking at screenshot, backspace is an icon on bottom right
-                            // Let's match the "X" icon inside a box roughly
+                            .contentShape(Rectangle()) // Better touch area
                     }
+                    .disabled(isLoading)
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 30)
             
-            Spacer()
+            // Loading Indicator / Spacer
+            if isLoading {
+                ProgressView()
+                    .padding(.bottom, 20)
+            } else {
+                Spacer().frame(height: 40) // Placeholder for layout stability
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
-        .cornerRadius(30)
+        .presentationDetents([.height(680)]) // Keep height constraint but fill it
+        .presentationDragIndicator(.visible)
+        .animation(.easeInOut, value: step)
+        .overlay(
+            Group {
+                if isLoading {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .edgesIgnoringSafeArea(.all)
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                    }
+                }
+            }
+        )
     }
     
     func appendDigit(_ digit: String) {
         if pin.count < 4 {
             pin.append(digit)
             if pin.count == 4 {
-                // Pin Complete Logic
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    // For now, just dismiss, later save logic
+                handlePinComplete()
+            }
+        }
+    }
+    
+    func handlePinComplete() {
+        if step == .create {
+            // Move to Confirm Step
+            firstPin = pin
+            
+            // Small delay for user to see the last dot filled
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                pin = ""
+                step = .confirm
+            }
+        } else {
+            // Verify Confirmation
+            if pin == firstPin {
+                // Match! Call API
+                updateMPIN()
+            } else {
+                // Mismatch
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.error)
+                withAnimation {
+                    shakeDots = true
+                    pin = ""
+                    // Optionally go back to start or stay on confirm? 
+                    // Usually better to let them try confirm again, or reset everything if strictly secure.
+                    // Let's reset to confirm attempt for now. 
+                    // User said "confirm the mpin again and once it is same then update".
+                    // If they fail validation, maybe they forgot first one? 
+                    // Let's stay on confirm step but clear it.
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    shakeDots = false
+                }
+            }
+        }
+    }
+    
+    func updateMPIN() {
+        isLoading = true
+        authService.updateMPIN(mpin: pin) { success, errorMsg in
+            isLoading = false
+            if success {
+                // Success Feedback
+                 let generator = UINotificationFeedbackGenerator()
+                 generator.notificationOccurred(.success)
+                withAnimation {
                     isPresented = false
+                }
+            } else {
+                // API Error
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.error)
+                withAnimation {
+                    shakeDots = true
+                    pin = ""
+                    step = .create // Reset flow on API failure? Or just stay?
+                    // Safe to reset to start to ensure they know what they are setting.
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    shakeDots = false
                 }
             }
         }
@@ -105,6 +195,14 @@ struct CreatePINView: View {
     func deleteDigit() {
         if !pin.isEmpty {
             pin.removeLast()
+        } else if step == .confirm {
+             // Optional: Allow deleting back to step 1?
+             // For simplicity, just let them clear pin.
+             // If pin is empty and they hit delete, maybe go back to create?
+             step = .create
+             pin = firstPin // Restore first pin so they can edit it? Or just clear?
+             // Let's just go back to clear.
+             pin = ""
         }
     }
 }
@@ -124,5 +222,17 @@ struct KeypadButton: View {
                 .clipShape(Circle())
                 .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
         }
+    }
+}
+
+struct ShakeEffect: GeometryEffect {
+    var amount: CGFloat = 10
+    var shakesPerUnit = 3
+    var animatableData: CGFloat
+    
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(CGAffineTransform(translationX:
+            amount * sin(animatableData * .pi * CGFloat(shakesPerUnit)),
+            y: 0))
     }
 }

@@ -28,6 +28,7 @@ struct CardsView: View {
     @State private var selectedCardToEdit: CardModel?
     @State private var showingDeleteAlert = false
     @State private var cardToDeleteId: UUID?
+    @State private var hasAppeared = false
 
     var body: some View {
         ZStack {
@@ -41,13 +42,20 @@ struct CardsView: View {
                     Button(action: {
                         presentationMode.wrappedValue.dismiss()
                     }) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.black)
-                            .padding(10)
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white)
+                                .frame(width: 56, height: 56)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color(red: 0.3, green: 0.2, blue: 0.9).opacity(0.3), lineWidth: 1)
+                                )
+                            
+                            Image(systemName: "arrow.left")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.black)
+                        }
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                     }
                     Spacer()
                     Text("My Cards")
@@ -73,37 +81,178 @@ struct CardsView: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                if cardsService.cards.isEmpty {
+                    // Premium Animated Empty State (Cards)
+                    VStack {
+                        Spacer().frame(height: 50)
                         
-                        // Debit Cards Section
-                        if !cardsService.cards.filter({ $0.type == .debit }).isEmpty {
-                            SectionHeader(title: "Debit Cards", count: cardsService.cards.filter({ $0.type == .debit }).count)
-                            ForEach(cardsService.cards.filter({ $0.type == .debit })) { card in
-                                CardView(card: card, onEdit: {
-                                    selectedCardToEdit = card
-                                }, onDelete: {
-                                    cardToDeleteId = card.id
-                                    showingDeleteAlert = true
-                                })
-                            }
+                        ZStack {
+                            // Animated Background Glow
+                            RoundedRectangle(cornerRadius: 50)
+                                .fill(
+                                    RadialGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 1.0, green: 0.9, blue: 0.95).opacity(hasAppeared ? 1 : 0.5), // Light Pink
+                                            Color(red: 1.0, green: 0.95, blue: 0.98).opacity(hasAppeared ? 0.8 : 0.3)
+                                        ]),
+                                        center: .center,
+                                        startRadius: 20,
+                                        endRadius: 100
+                                    )
+                                )
+                                .frame(width: 200, height: 200)
+                                .scaleEffect(hasAppeared ? 1 : 0.8)
+                                .rotationEffect(.degrees(hasAppeared ? 0 : 10))
+                            
+                            // Main Icon
+                            Image(systemName: "creditcard.fill")
+                                .font(.system(size: 90, weight: .medium))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 1.0, green: 0.2, blue: 0.5),
+                                            Color(red: 1.0, green: 0.4, blue: 0.6)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .scaleEffect(hasAppeared ? 1 : 0.6)
+                            
+                            // Animated Decorative Elements
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.pink.opacity(0.4),
+                                            Color.orange.opacity(0.2)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 50, height: 50)
+                                .offset(x: -90, y: -80)
+                                .scaleEffect(hasAppeared ? 1 : 0.5)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
+                            
+                            Circle()
+                                .fill(Color.pink.opacity(0.2))
+                                .frame(width: 30, height: 30)
+                                .offset(x: .random(in: 60...100), y: .random(in: 60...80))
+                                .scaleEffect(hasAppeared ? 1 : 0.5)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.5), value: hasAppeared)
                         }
+                        .animation(.spring(response: 0.8, dampingFraction: 0.7), value: hasAppeared)
                         
-                        // Credit Cards Section
-                        if !cardsService.cards.filter({ $0.type == .credit }).isEmpty {
-                            SectionHeader(title: "Credit Cards", count: cardsService.cards.filter({ $0.type == .credit }).count)
-                            ForEach(cardsService.cards.filter({ $0.type == .credit })) { card in
-                                CardView(card: card, onEdit: {
-                                    selectedCardToEdit = card
-                                }, onDelete: {
-                                    cardToDeleteId = card.id
-                                    showingDeleteAlert = true
-                                })
+                        Spacer().frame(height: 40)
+                        
+                        // Content Text
+                        VStack(spacing: 18) {
+                            Text("No Cards Added")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.05, green: 0.07, blue: 0.2),
+                                            Color(red: 0.1, green: 0.12, blue: 0.25)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .opacity(hasAppeared ? 1 : 0)
+                                .offset(y: hasAppeared ? 0 : 20)
+                            
+                            Text("Securely store your debit and credit cards\nfor easy and quick access.")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.gray.opacity(0.9),
+                                            Color.gray.opacity(0.7)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .padding(.horizontal, 40)
+                                .opacity(hasAppeared ? 1 : 0)
+                                .offset(y: hasAppeared ? 0 : 20)
+                        }
+                        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
+                        
+                        Spacer()
+                        
+                        // Action Button
+                        Button(action: {
+                            showingAddCard = true
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                Text("Add New Card")
+                                    .fontWeight(.bold)
                             }
+                            .foregroundColor(.white)
+                            .frame(width: 220, height: 56)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 1.0, green: 0.2, blue: 0.5),
+                                        Color(red: 1.0, green: 0.4, blue: 0.6)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(20)
+                            .shadow(color: Color.pink.opacity(0.4), radius: 10, y: 5)
+                        }
+                        .padding(.bottom, 50)
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 30)
+                        .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.4), value: hasAppeared)
+                    }
+                    .onAppear {
+                        withAnimation {
+                            hasAppeared = true
                         }
                     }
-                    .padding()
-                    .padding(.bottom, 80) // Space for FAB
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            
+                            // Debit Cards Section
+                            if !cardsService.cards.filter({ $0.type == .debit }).isEmpty {
+                                SectionHeader(title: "Debit Cards", count: cardsService.cards.filter({ $0.type == .debit }).count)
+                                ForEach(cardsService.cards.filter({ $0.type == .debit })) { card in
+                                    CardView(card: card, onEdit: {
+                                        selectedCardToEdit = card
+                                    }, onDelete: {
+                                        cardToDeleteId = card.id
+                                        showingDeleteAlert = true
+                                    })
+                                }
+                            }
+                            
+                            // Credit Cards Section
+                            if !cardsService.cards.filter({ $0.type == .credit }).isEmpty {
+                                SectionHeader(title: "Credit Cards", count: cardsService.cards.filter({ $0.type == .credit }).count)
+                                ForEach(cardsService.cards.filter({ $0.type == .credit })) { card in
+                                    CardView(card: card, onEdit: {
+                                        selectedCardToEdit = card
+                                    }, onDelete: {
+                                        cardToDeleteId = card.id
+                                        showingDeleteAlert = true
+                                    })
+                                }
+                            }
+                        }
+                        .padding()
+                        .padding(.bottom, 80) // Space for FAB
+                    }
                 }
             }
             
@@ -226,7 +375,20 @@ struct CardView: View {
             // Card Background
             LinearGradient(gradient: Gradient(colors: [card.colorStart, card.colorEnd]), startPoint: .topLeading, endPoint: .bottomTrailing)
                 .cornerRadius(20)
-                .shadow(radius: 5)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white.opacity(0.7),
+                                    Color.white.opacity(0.5)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2.5
+                        )
+                )
             
             VStack(alignment: .leading) {
                 // Top Row: Actions + VISA

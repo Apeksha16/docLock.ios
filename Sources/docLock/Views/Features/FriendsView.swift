@@ -1,106 +1,1061 @@
 import SwiftUI
 
 struct FriendsView: View {
+    @ObservedObject var authService: AuthService
     @ObservedObject var friendsService: FriendsService
+    @ObservedObject var notificationService: NotificationService
     let userId: String
-    @State private var showAddFriend = false
+    @Binding var showAddFriend: Bool
+    @Binding var showDeleteConfirmation: Bool
+    @Binding var friendToDelete: User?
+    @Binding var showRequestSheet: Bool
+    @Binding var selectedFriendForRequest: User?
+    @State private var hasAppeared = false
+    @State private var headerOffset: CGFloat = -50
+    @State private var statsOpacity: Double = 0
+    @State private var addButtonScale: CGFloat = 0.8
 
     var body: some View {
         ZStack {
-            // Background
-            Color(red: 0.98, green: 0.98, blue: 0.96) // Warm off-white
+            // Premium Animated Background Theme
+            ZStack {
+                // Base Background with gradient
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(red: 0.99, green: 0.99, blue: 0.99),
+                        Color(red: 0.98, green: 0.98, blue: 0.99)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
                 .edgesIgnoringSafeArea(.all)
-            
-            // Top Right Decorative Circle (Sun-like)
-            GeometryReader { geometry in
-                Circle()
-                    .fill(Color.orange.opacity(0.1))
-                    .frame(width: 300, height: 300)
-                    .position(x: geometry.size.width + 50, y: 0)
                 
-                Circle()
-                    .fill(Color.yellow.opacity(0.1))
-                    .frame(width: 200, height: 200)
-                    .position(x: geometry.size.width, y: 50)
-            }
-            
-            VStack(spacing: 30) {
-                Spacer().frame(height: 50)
-                
-                // Header
-                VStack(spacing: 5) {
-                    Text("Trusted Circle")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    
-                    Text("\(friendsService.friendsCount) secure connections")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-                
-                Spacer().frame(height: 20)
-                
-                // Empty State Illustration
-                ZStack {
-                    RoundedRectangle(cornerRadius: 40)
-                        .fill(Color(red: 1.0, green: 0.95, blue: 0.7)) // Light Yellow
-                        .frame(width: 180, height: 180)
-                        .shadow(color: Color.orange.opacity(0.1), radius: 10, x: 0, y: 5)
-                    
-                    Image(systemName: "person.2.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(Color.orange)
-                    
-                    // Decorative small circle
+                // Animated Ambient Gradients
+                GeometryReader { proxy in
+                    // Top Right - Animated Warm Glow
                     Circle()
-                        .fill(Color.yellow.opacity(0.3))
-                        .frame(width: 40, height: 40)
-                        .offset(x: -80, y: 80)
-                }
-                
-                Spacer().frame(height: 30)
-                
-                // Content Text
-                VStack(spacing: 15) {
-                    Text("Build Your Circle")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.orange.opacity(hasAppeared ? 0.15 : 0.05),
+                                    Color.orange.opacity(hasAppeared ? 0.08 : 0.03),
+                                    Color.clear
+                                ]),
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: hasAppeared ? 180 : 150
+                            )
+                        )
+                        .frame(width: 450, height: 450)
+                        .position(x: proxy.size.width * 0.9, y: hasAppeared ? -50 : -100)
+                        .blur(radius: 50)
+                        .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: hasAppeared)
                     
-                    Text("Connect with trusted friends and family\nto securely share important documents\nand cards.")
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal, 40)
+                    // Top Left - Animated Blue Haze
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.blue.opacity(hasAppeared ? 0.06 : 0.02),
+                                    Color.blue.opacity(0.03),
+                                    Color.clear
+                                ]),
+                                center: .center,
+                                startRadius: 20,
+                                endRadius: 200
+                            )
+                        )
+                        .frame(width: 350, height: 350)
+                        .position(x: -50, y: hasAppeared ? 80 : 50)
+                        .blur(radius: 60)
+                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: hasAppeared)
+                    
+                    // Bottom - Subtle Animated Depth
+                    Ellipse()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.gray.opacity(hasAppeared ? 0.04 : 0.01),
+                                    Color.clear
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: proxy.size.width * 1.3, height: 400)
+                        .position(x: proxy.size.width / 2, y: proxy.size.height * 1.1)
+                        .blur(radius: 70)
+                        .animation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true), value: hasAppeared)
                 }
-                
-                // CTA Button
-                Button(action: {
-                    showAddFriend = true
-                }) {
-                    HStack {
-                        Image(systemName: "plus")
-                        Text("Add Your First Friend")
-                            .fontWeight(.bold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.orange)
-                    .foregroundColor(.white)
-                    .cornerRadius(15)
-                }
-                .padding(.horizontal, 40)
-                .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 5)
-                .fullScreenCover(isPresented: $showAddFriend) {
-                    AddFriendView()
-                }
-                
-                Spacer().frame(height: 100) // Space for TabBar
             }
+            
+
+            VStack(spacing: 0) {
+                // Premium Animated Header
+                ZStack {
+                    Text("Trusted Circle")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color(red: 0.1, green: 0.1, blue: 0.25),
+                                    Color(red: 0.15, green: 0.15, blue: 0.3)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .offset(y: hasAppeared ? 0 : headerOffset)
+                        .opacity(hasAppeared ? 1 : 0)
+                    
+                    HStack {
+                        Spacer()
+                        // Premium Animated Add Button
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                showAddFriend = true
+                            }
+                        }) {
+                            ZStack {
+                                // Main Button
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.white,
+                                                Color(red: 0.99, green: 0.98, blue: 0.98)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(
+                                                LinearGradient(
+                                                    gradient: Gradient(colors: [
+                                                        Color.orange.opacity(0.4),
+                                                        Color.orange.opacity(0.2)
+                                                    ]),
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 2
+                                            )
+                                    )
+                                
+                                Image(systemName: "plus")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.orange,
+                                                Color.orange.opacity(0.8)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            }
+                            .scaleEffect(addButtonScale)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 20)
+                .padding(.bottom, 10)
+                
+                // Premium Animated Stats Section
+                HStack(spacing: 12) {
+                    StatCard(
+                        title: "Shared Doc",
+                        count: 0,
+                        color: .blue,
+                        index: 0,
+                        hasAppeared: hasAppeared
+                    )
+                    StatCard(
+                        title: "Shared Card",
+                        count: 0,
+                        color: .pink,
+                        index: 1,
+                        hasAppeared: hasAppeared
+                    )
+                    StatCard(
+                        title: "Requests",
+                        count: notificationService.notifications.filter({ $0.title == "Request Sent" }).count,
+                        color: Color(red: 0.2, green: 0.8, blue: 0.7),
+                        index: 2,
+                        hasAppeared: hasAppeared
+                    )
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 15)
+                .opacity(statsOpacity)
+                
+                Text("\(friendsService.friendsCount) secure connections")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.gray.opacity(0.8),
+                                Color.gray.opacity(0.6)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .padding(.bottom, 20)
+                    .opacity(hasAppeared ? 1 : 0)
+                
+                if friendsService.friends.isEmpty {
+                    // Premium Animated Empty State
+                    Spacer().frame(height: 30)
+                    ZStack {
+                        // Animated Background Glow
+                        RoundedRectangle(cornerRadius: 50)
+                            .fill(
+                                RadialGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 1.0, green: 0.95, blue: 0.75).opacity(hasAppeared ? 1 : 0.5),
+                                        Color(red: 1.0, green: 0.96, blue: 0.8).opacity(hasAppeared ? 0.8 : 0.3)
+                                    ]),
+                                    center: .center,
+                                    startRadius: 20,
+                                    endRadius: 100
+                                )
+                            )
+                            .frame(width: 200, height: 200)
+                            .scaleEffect(hasAppeared ? 1 : 0.8)
+                            .rotationEffect(.degrees(hasAppeared ? 0 : -10))
+                        
+                        // Main Icon
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 90, weight: .medium))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.orange,
+                                        Color.orange.opacity(0.7)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .scaleEffect(hasAppeared ? 1 : 0.6)
+                        
+                        // Animated Decorative Elements
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.yellow.opacity(0.4),
+                                        Color.orange.opacity(0.2)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 50, height: 50)
+                            .offset(x: -90, y: 90)
+                            .scaleEffect(hasAppeared ? 1 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
+                        
+                        Circle()
+                            .fill(Color.orange.opacity(0.2))
+                            .frame(width: 30, height: 30)
+                            .offset(x: 100, y: -70)
+                            .scaleEffect(hasAppeared ? 1 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.5), value: hasAppeared)
+                    }
+                    .animation(.spring(response: 0.8, dampingFraction: 0.7), value: hasAppeared)
+                    
+                    Spacer().frame(height: 40)
+                    
+                    // Premium Animated Content Text
+                    VStack(spacing: 18) {
+                        Text("Build Your Circle")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.05, green: 0.07, blue: 0.2),
+                                        Color(red: 0.1, green: 0.12, blue: 0.25)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                        
+                        Text("Connect with trusted friends and family\nto securely share important documents\nand cards.")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.gray.opacity(0.9),
+                                        Color.gray.opacity(0.7)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .padding(.horizontal, 40)
+                            .opacity(hasAppeared ? 1 : 0)
+                            .offset(y: hasAppeared ? 0 : 20)
+                    }
+                    .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
+                    Spacer()
+                } else {
+                    // Friends List with Swipe Actions
+                    List {
+                        ForEach(Array(friendsService.friends.enumerated()), id: \.element.id) { index, friend in
+                            FriendListRow(
+                                friend: friend,
+                                index: index,
+                                hasAppeared: hasAppeared
+                            )
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedFriendForRequest = friend
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    showRequestSheet = true
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    friendToDelete = friend
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        showDeleteConfirmation = true
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash.fill")
+                                }
+                                .tint(.red)
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .scrollIndicators(.hidden)
+                }
+            }
+            .blur(radius: (showAddFriend || showDeleteConfirmation || showRequestSheet) ? 5 : 0)
         }
         .onAppear {
             friendsService.retry(userId: userId)
+            
+            // Trigger entrance animations
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.8)) {
+                hasAppeared = true
+                headerOffset = 0
+                addButtonScale = 1.0
+            }
+            
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.75).delay(0.2)) {
+                statsOpacity = 1.0
+            }
         }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+}
+
+// Premium Animated Stat Card
+struct StatCard: View {
+    let title: String
+    let count: Int
+    let color: Color
+    let index: Int
+    let hasAppeared: Bool
+    
+    @State private var animatedCount: Int = 0
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.gray.opacity(0.9),
+                            Color.gray.opacity(0.7)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            
+            Text("\(animatedCount)")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            color,
+                            color.opacity(0.8)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .padding(.vertical, 18)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity)
+        .background(
+            ZStack {
+                // Glass morphism effect
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white,
+                                Color(red: 0.99, green: 0.99, blue: 0.99)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Subtle color accent
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(color.opacity(0.05))
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            color.opacity(0.3),
+                            color.opacity(0.1)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+        )
+        .scaleEffect(hasAppeared ? 1 : 0.7)
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 30)
+        .animation(
+            .spring(response: 0.6, dampingFraction: 0.7)
+            .delay(Double(index) * 0.1),
+            value: hasAppeared
+        )
+        .onChange(of: hasAppeared) { newValue in
+            if newValue {
+                animateCount()
+            }
+        }
+        .onChange(of: count) { newValue in
+            animateCount()
+        }
+    }
+    
+    private func animateCount() {
+        let steps = min(abs(count - animatedCount), 20)
+        guard steps > 0 else { return }
+        
+        let stepValue = count > animatedCount ? 1 : -1
+        var currentStep = 0
+        
+        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
+            animatedCount += stepValue
+            currentStep += 1
+            
+            if currentStep >= steps || animatedCount == count {
+                animatedCount = count
+                timer.invalidate()
+            }
+        }
+    }
+}
+
+// Friend List Row Component (Notification-style layout)
+struct FriendListRow: View {
+    let friend: User
+    let index: Int
+    let hasAppeared: Bool
+    
+    @State private var avatarScale: CGFloat = 0.8
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 15) {
+            // Avatar Icon (similar to notification icon style)
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.orange.opacity(0.15))
+                    .frame(width: 50, height: 50)
+                
+                AsyncImage(url: URL(string: friend.profileImageUrl ?? "")) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 50, height: 50)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundColor(Color.orange)
+                    }
+                }
+            }
+            .scaleEffect(avatarScale)
+            .onAppear {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.08)) {
+                    avatarScale = 1.0
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text(friend.name)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    
+                    Spacer()
+                    
+                    if let addedDate = friend.addedAt {
+                        Text(formatShortDate(addedDate))
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                if let addedDate = friend.addedAt {
+                    Text("Joined \(formatDate(addedDate))")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .lineLimit(1)
+                } else {
+                    Text("Friend")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(20)
+        .background(Color.white)
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+        )
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(x: hasAppeared ? 0 : -30)
+        .animation(
+            .spring(response: 0.6, dampingFraction: 0.75)
+            .delay(Double(index) * 0.06),
+            value: hasAppeared
+        )
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+    
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+}
+
+// Premium Button Styles
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+struct PremiumRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Components
+struct RequestActionSheet: View {
+    let friend: User
+    let currentUser: User
+    @ObservedObject var friendsService: FriendsService
+    @Binding var isPresented: Bool
+    
+    @State private var message: String = ""
+    @State private var isLoading = false
+    @State private var sentSuccess = false
+    @State private var sheetOffset: CGFloat = 800
+    @State private var iconScale: CGFloat = 0.5
+    @State private var iconRotation: Double = -180
+    @FocusState private var isTextFieldFocused: Bool
+    
+    var body: some View {
+        ZStack {
+            // Premium Animated Dimmed Background
+            Color.black.opacity(0.5)
+                .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        isPresented = false
+                    }
+                }
+            
+            // Premium Sheet Content
+            VStack(spacing: 0) {
+                // Premium Drag Handle
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.gray.opacity(0.4),
+                                Color.gray.opacity(0.3)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 50, height: 5)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                
+                VStack(spacing: 24) {
+                    // Premium Animated Header
+                    VStack(spacing: 18) {
+                        // Premium Icon with Glow
+                        ZStack {
+                    // Main Icon Background
+                    RoundedRectangle(cornerRadius: 35)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.orange,
+                                    Color.orange.opacity(0.8)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 90, height: 90)
+                            
+                            Image(systemName: "lock.doc.fill")
+                                .font(.system(size: 38, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .scaleEffect(iconScale)
+                        .rotationEffect(.degrees(iconRotation))
+                        .padding(.top, 8)
+
+                        VStack(spacing: 8) {
+                            Text("Secure Request")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.05, green: 0.07, blue: 0.2),
+                                            Color(red: 0.1, green: 0.12, blue: 0.25)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                            
+                            Text("Ask \(friend.name) to share safely.")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.gray.opacity(0.9),
+                                            Color.gray.opacity(0.7)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        }
+                    }
+                    .padding(.bottom, 8)
+                    
+                    if sentSuccess {
+                        // Premium Success State
+                        VStack(spacing: 20) {
+                            ZStack {
+                                // Pulse Effect
+                                Circle()
+                                    .fill(Color.green.opacity(0.2))
+                                    .frame(width: 100, height: 100)
+                                    .scaleEffect(sentSuccess ? 1.3 : 1.0)
+                                    .opacity(sentSuccess ? 0 : 1)
+                                    .animation(.easeOut(duration: 1.0).repeatForever(autoreverses: false), value: sentSuccess)
+                                
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 70, weight: .medium))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.green,
+                                                Color.green.opacity(0.8)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            }
+                            .padding(.top, 20)
+                            
+                            Text("Knock Knock! Request Sent.")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.green,
+                                            Color.green.opacity(0.8)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                            
+                            Text("We've notified \(friend.name) securely.")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundColor(.gray.opacity(0.8))
+                        }
+                        .frame(minHeight: 220)
+                        .padding(.bottom, 50)
+                        .onAppear {
+                            // Auto-close after showing success for 2 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    isPresented = false
+                                }
+                            }
+                        }
+                    } else if isLoading {
+                        // Loading State
+                        VStack(spacing: 20) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .green))
+                                .scaleEffect(1.5)
+                                .padding(.top, 40)
+                            
+                            Text("Sending Request...")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.gray.opacity(0.8))
+                        }
+                        .frame(minHeight: 200)
+                        .padding(.bottom, 40)
+                    } else {
+                        // Premium Input Area
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("PERSONAL NOTE (OPTIONAL)")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundColor(.gray.opacity(0.8))
+                                .tracking(1)
+                            
+                            TextField("e.g. Hey! Need that insurance policy...", text: $message)
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .padding(16)
+                                .background(
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(
+                                                LinearGradient(
+                                                    gradient: Gradient(colors: [
+                                                        Color(red: 0.99, green: 0.99, blue: 0.99),
+                                                        Color.white
+                                                    ]),
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                        
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(
+                                                LinearGradient(
+                                                    gradient: Gradient(colors: [
+                                                        Color.gray.opacity(0.25),
+                                                        Color.gray.opacity(0.1)
+                                                    ]),
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 1.5
+                                            )
+                                    }
+                                )
+                                .focused($isTextFieldFocused)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .onChange(of: message) { newValue in
+                                    // Only allow text, numbers, spaces, hyphens, and underscores
+                                    let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: " -_"))
+                                    let filtered = newValue.unicodeScalars.filter { allowedCharacters.contains($0) }
+                                    let filteredString = String(String.UnicodeScalarView(filtered))
+                                    if filteredString != newValue {
+                                        message = filteredString
+                                    }
+                                }
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Premium Action Buttons
+                        HStack(spacing: 16) {
+                            // Request Card Button
+                            PremiumActionButton(
+                                icon: "creditcard.fill",
+                                title: "Ask for Card",
+                                color: .pink,
+                                isLoading: isLoading,
+                                isDisabled: message.count > 0 && message.count < 3,
+                                action: { sendRequest(type: "card") }
+                            )
+                            
+                            // Request Doc Button
+                            PremiumActionButton(
+                                icon: "doc.text.fill",
+                                title: "Ask for Doc",
+                                color: .blue,
+                                isLoading: isLoading,
+                                isDisabled: message.count > 0 && message.count < 3,
+                                action: { sendRequest(type: "document") }
+                            )
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 30)
+                    }
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 30)
+            }
+            .background(
+                ZStack {
+                    // Glass morphism background
+                    RoundedRectangle(cornerRadius: 32)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color(red: 0.99, green: 0.99, blue: 0.99)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            )
+            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
+            .offset(y: sheetOffset)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .edgesIgnoringSafeArea(.bottom)
+            .onAppear {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    sheetOffset = 0
+                }
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
+                    iconScale = 1.0
+                    iconRotation = 0
+                }
+                // Autofocus the text field
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isTextFieldFocused = true
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .transition(.move(edge: .bottom))
+        }
+        .zIndex(150)
+    }
+    
+    func sendRequest(type: String) {
+        // Disable if input exists and is less than 3 characters (but allow empty)
+        guard message.isEmpty || message.count >= 3 else {
+            return
+        }
+        
+        isLoading = true
+        let msg = message.isEmpty ? "Requested \(type == "card" ? "a card" : "a document")" : message
+        
+        friendsService.sendRequest(fromUser: currentUser, toFriend: friend, requestType: type, message: msg) { success in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if success {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        self.sentSuccess = true
+                    }
+                    // Success state will handle auto-close in its onAppear
+                } else {
+                    // Handle error - reset loading state
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+}
+
+// Premium Action Button Component
+struct PremiumActionButton: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let isLoading: Bool
+    let isDisabled: Bool
+    let action: () -> Void
+    
+    @State private var isPressed = false
+    
+    init(icon: String, title: String, color: Color, isLoading: Bool, isDisabled: Bool = false, action: @escaping () -> Void) {
+        self.icon = icon
+        self.title = title
+        self.color = color
+        self.isLoading = isLoading
+        self.isDisabled = isDisabled
+        self.action = action
+    }
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                action()
+            }
+        }) {
+            VStack(spacing: 12) {
+                ZStack {
+                    // Icon Background
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    color.opacity(0.15),
+                                    color.opacity(0.08)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    color,
+                                    color.opacity(0.8)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: color))
+                    }
+                }
+                
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                color,
+                                color.opacity(0.8)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .background(
+                ZStack {
+                    // Glass morphism background
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color(red: 0.99, green: 0.99, blue: 0.99)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    // Color accent
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(color.opacity(0.05))
+                    
+                    // Border
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    color.opacity(0.3),
+                                    color.opacity(0.15)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2
+                        )
+                }
+            )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .opacity(isDisabled || isLoading ? 0.5 : 1.0)
+        }
+        .buttonStyle(ActionButtonStyle())
+        .disabled(isLoading || isDisabled)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isLoading {
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
+                            isPressed = true
+                        }
+                    }
+                }
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isPressed = false
+                    }
+                }
+        )
+    }
+}
+
+// Action Button Style
+struct ActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }

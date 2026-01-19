@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct NotificationItem: Identifiable {
-    let id: UUID
+    let id: String
     let type: NotificationType
     let title: String
     let message: String
@@ -41,13 +41,20 @@ struct NotificationView: View {
                     Button(action: {
                         presentationMode.wrappedValue.dismiss()
                     }) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.black)
-                            .padding(10)
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white)
+                                .frame(width: 56, height: 56)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color(red: 0.3, green: 0.2, blue: 0.9).opacity(0.3), lineWidth: 1)
+                                )
+                            
+                            Image(systemName: "arrow.left")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.black)
+                        }
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                     }
                     
                     Spacer()
@@ -74,10 +81,7 @@ struct NotificationView: View {
                             .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
-                                    if let index = notificationService.notifications.firstIndex(where: { $0.id == notification.id }) {
-                                        // TODO: Implement delete in service
-                                        // notificationService.delete(id: notification.id)
-                                    }
+                                    notificationService.delete(id: notification.id, userId: userId)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -85,13 +89,11 @@ struct NotificationView: View {
                             }
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 Button {
-                                    if let index = notificationService.notifications.firstIndex(where: { $0.id == notification.id }) {
-                                         // TODO: Implement mark as read in service
-                                    }
+                                    notificationService.markAsRead(id: notification.id, userId: userId)
                                 } label: {
-                                    Image(systemName: "checkmark") // Icon from screenshot
+                                    Image(systemName: "checkmark.circle.fill")
                                 }
-                                .tint(Color(red: 0.4, green: 0.3, blue: 1.0)) // Purple color
+                                .tint(Color(red: 0.2, green: 0.8, blue: 0.7)) // Green color
                             }
                     }
                 }
