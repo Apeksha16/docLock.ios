@@ -1183,12 +1183,13 @@ class DocumentsService: ObservableObject {
         print("📄 DocumentsService: Starting listener for user \(userId), parentFolderId: \(parentFolderId ?? "root")")
         
         // Listening to folders filtered by parentFolderId
-        var query = db.collection("users").document(userId).collection("folders")
+        let collectionRef = db.collection("users").document(userId).collection("folders")
+        let query: Query
         
         if let parentId = parentFolderId {
-            query = query.whereField("parentFolderId", isEqualTo: parentId)
+            query = collectionRef.whereField("parentFolderId", isEqualTo: parentId)
         } else {
-            query = query.whereField("parentFolderId", isEqualTo: NSNull())
+            query = collectionRef.whereField("parentFolderId", isEqualTo: NSNull())
         }
         
         listener = query.addSnapshotListener { [weak self] snapshot, error in
@@ -1237,12 +1238,13 @@ class DocumentsService: ObservableObject {
         folderDocumentsListener?.remove()
         print("📂 DocumentsService: Fetching documents in folder \(folderId ?? "root")")
         
-        var query = db.collection("users").document(userId).collection("documents")
+        let collectionRef = db.collection("users").document(userId).collection("documents")
+        let query: Query
         
         if let folderId = folderId {
-            query = query.whereField("folderId", isEqualTo: folderId)
+            query = collectionRef.whereField("folderId", isEqualTo: folderId)
         } else {
-            query = query.whereField("folderId", isEqualTo: NSNull())
+            query = collectionRef.whereField("folderId", isEqualTo: NSNull())
         }
         
         folderDocumentsListener = query.order(by: "createdAt", descending: true)
@@ -1286,12 +1288,13 @@ class DocumentsService: ObservableObject {
         folderFoldersListener?.remove()
         print("📁 DocumentsService: Fetching folders in parent \(parentFolderId ?? "root")")
         
-        var query = db.collection("users").document(userId).collection("folders")
+        let collectionRef = db.collection("users").document(userId).collection("folders")
+        let query: Query
         
         if let parentId = parentFolderId {
-            query = query.whereField("parentFolderId", isEqualTo: parentId)
+            query = collectionRef.whereField("parentFolderId", isEqualTo: parentId)
         } else {
-            query = query.whereField("parentFolderId", isEqualTo: NSNull())
+            query = collectionRef.whereField("parentFolderId", isEqualTo: NSNull())
         }
         
         folderFoldersListener = query.addSnapshotListener { [weak self] snapshot, error in
