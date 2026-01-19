@@ -31,6 +31,7 @@ struct DocumentsView: View {
     @State private var currentPath: [String] = ["HOME"]
     @State private var selectedFolderId: String? = nil
     @State private var selectedFolderName: String? = nil
+    @State private var pathFolderIds: [String?] = [nil] // Track folder IDs for each path segment (nil for HOME)
     @State private var showCreateFolderSheet = false
     @State private var showUploadDocumentSheet = false
     @State private var showUploadImageSheet = false
@@ -68,6 +69,7 @@ struct DocumentsView: View {
                             // Navigate to parent folder
                             if folderHierarchy.count > 1 {
                                 folderHierarchy.removeLast()
+                                pathFolderIds.removeLast()
                                 let parentId = folderHierarchy.last
                                 
                                 if let parentId = parentId {
@@ -79,6 +81,7 @@ struct DocumentsView: View {
                                     selectedFolderId = nil
                                     selectedFolderName = nil
                                     folderHierarchy = []
+                                    pathFolderIds = [nil]
                                     documentsService.stopListeningToFolder()
                                     documentsService.startListening(userId: userId, parentFolderId: nil)
                                 }
@@ -87,6 +90,7 @@ struct DocumentsView: View {
                                 selectedFolderId = nil
                                 selectedFolderName = nil
                                 folderHierarchy = []
+                                pathFolderIds = [nil]
                                 documentsService.stopListeningToFolder()
                                 documentsService.startListening(userId: userId, parentFolderId: nil)
                             }
@@ -97,6 +101,7 @@ struct DocumentsView: View {
                             }
                         } else if currentPath.count > 1 {
                             currentPath.removeLast()
+                            pathFolderIds.removeLast()
                         } else {
                             presentationMode.wrappedValue.dismiss()
                         }
@@ -122,24 +127,7 @@ struct DocumentsView: View {
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
-                    if (!documentsService.folders.isEmpty || selectedFolderId != nil) {
-                        Button(action: {
-                            withAnimation { showFabMenu.toggle() }
-                        }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.blue)
-                                    .frame(width: 56, height: 56)
-                                Image(systemName: "plus")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .rotationEffect(.degrees(showFabMenu ? 45 : 0))
-                            }
-                            .shadow(color: Color.blue.opacity(0.3), radius: 5, x: 0, y: 2)
-                        }
-                    } else {
-                        Color.clear.frame(width: 56, height: 56)
-                    }
+                    Color.clear.frame(width: 44, height: 44)
                 }
                 .padding()
                 
@@ -163,8 +151,8 @@ struct DocumentsView: View {
                     .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
                 }
                 
-                // Breadcrumbs (Only show if documents exist)
-                if !documentsService.folders.isEmpty {
+                // Breadcrumbs (Show if we have folders or are in a folder)
+                if !documentsService.folders.isEmpty || selectedFolderId != nil {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 5) {
                             ForEach(0..<currentPath.count, id: \.self) { index in
@@ -186,7 +174,7 @@ struct DocumentsView: View {
                                 }
                                 .foregroundColor(index == currentPath.count - 1 ? .blue : .gray)
                                 .onTapGesture {
-                                    // Navigate back logic could go here
+                                    navigateToBreadcrumb(index: index)
                                 }
                             }
                         }
@@ -215,8 +203,10 @@ struct DocumentsView: View {
                             selectedFolderName = folder.name
                             if folderHierarchy.isEmpty {
                                 folderHierarchy = [folder.id]
+                                pathFolderIds = [nil, folder.id]
                             } else {
                                 folderHierarchy.append(folder.id)
+                                pathFolderIds.append(folder.id)
                             }
                             withAnimation {
                                 currentPath.append(folder.name)
@@ -229,10 +219,14 @@ struct DocumentsView: View {
                             if folderHierarchy.count > 1 {
                                 // Go to parent folder
                                 folderHierarchy.removeLast()
+                                pathFolderIds.removeLast()
                                 let parentId = folderHierarchy.last
                                 
                                 if let parentId = parentId {
                                     selectedFolderId = parentId
+                                    if currentPath.count > 1 {
+                                        selectedFolderName = currentPath[currentPath.count - 2]
+                                    }
                                     documentsService.fetchDocumentsInFolder(userId: userId, folderId: parentId)
                                     documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentId)
                                 } else {
@@ -240,6 +234,7 @@ struct DocumentsView: View {
                                     selectedFolderId = nil
                                     selectedFolderName = nil
                                     folderHierarchy = []
+                                    pathFolderIds = [nil]
                                     documentsService.stopListeningToFolder()
                                     documentsService.startListening(userId: userId, parentFolderId: nil)
                                 }
@@ -248,6 +243,7 @@ struct DocumentsView: View {
                                 selectedFolderId = nil
                                 selectedFolderName = nil
                                 folderHierarchy = []
+                                pathFolderIds = [nil]
                                 documentsService.stopListeningToFolder()
                                 documentsService.startListening(userId: userId, parentFolderId: nil)
                             }
@@ -276,8 +272,10 @@ struct DocumentsView: View {
                                 selectedFolderName = folder.name
                                 if folderHierarchy.isEmpty {
                                     folderHierarchy = [folder.id]
+                                    pathFolderIds = [nil, folder.id]
                                 } else {
                                     folderHierarchy.append(folder.id)
+                                    pathFolderIds.append(folder.id)
                                 }
                                 withAnimation {
                                     currentPath.append(folder.name)
@@ -447,6 +445,60 @@ struct DocumentsView: View {
             folderToDelete = folder
             showDeleteConfirmation = true
         }
+    }
+    
+    func navigateToBreadcrumb(index: Int) {
+        // If clicking on HOME (index 0), go to root
+        if index == 0 {
+            selectedFolderId = nil
+            selectedFolderName = nil
+            folderHierarchy = []
+            pathFolderIds = [nil]
+            documentsService.stopListeningToFolder()
+            documentsService.startListening(userId: userId, parentFolderId: nil)
+            withAnimation {
+                currentPath = ["HOME"]
+            }
+            return
+        }
+        
+        // If clicking on current location, do nothing
+        if index == currentPath.count - 1 {
+            return
+        }
+        
+        // Navigate to the clicked breadcrumb location
+        let targetFolderId = pathFolderIds[index]
+        
+        guard let folderId = targetFolderId else {
+            // This shouldn't happen for non-HOME items, but handle it
+            selectedFolderId = nil
+            selectedFolderName = nil
+            folderHierarchy = []
+            pathFolderIds = [nil]
+            documentsService.stopListeningToFolder()
+            documentsService.startListening(userId: userId, parentFolderId: nil)
+            withAnimation {
+                currentPath = ["HOME"]
+            }
+            return
+        }
+        
+        // Navigate to this folder
+        selectedFolderId = folderId
+        selectedFolderName = currentPath[index]
+        
+        // Update hierarchy and path to match the clicked breadcrumb
+        folderHierarchy = Array(pathFolderIds[1...index].compactMap { $0 })
+        currentPath = Array(currentPath[0...index])
+        pathFolderIds = Array(pathFolderIds[0...index])
+        
+        // Fetch data for this folder
+        documentsService.fetchDocumentsInFolder(userId: userId, folderId: folderId)
+        
+        // Determine parent folder ID for fetching subfolders
+        let parentFolderId = index > 1 ? pathFolderIds[index - 1] : nil
+        documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentFolderId)
     }
 }
 
