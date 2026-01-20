@@ -8,6 +8,7 @@ struct NotificationItem: Identifiable {
     let date: String
     var isRead: Bool = false
     var requestType: String? = nil
+    var senderId: String? = nil
 }
 
 enum NotificationType {
@@ -25,10 +26,14 @@ enum NotificationType {
 struct NotificationView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var notificationService: NotificationService
+    @ObservedObject var cardsService: CardsService
+    @ObservedObject var documentsService: DocumentsService
+    @ObservedObject var friendsService: FriendsService
     let userId: String
     
-    // Using service.notifications instead of local state
-    // Removed local state
+    @State private var showContentSelection = false
+    @State private var selectedNotification: NotificationItem? = nil
+    @State private var toastMessage: String? = nil
     
     var body: some View {
         ZStack {
@@ -76,7 +81,13 @@ struct NotificationView: View {
                 // Notification List
                 List {
                     ForEach(notificationService.notifications) { notification in
-                        NotificationCell(notification: notification)
+                        NotificationCell(
+                            notification: notification,
+                            onShare: (notification.requestType != nil && notification.senderId != nil) ? {
+                                selectedNotification = notification
+                                showContentSelection = true
+                            } : nil
+                        )
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
                             .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
@@ -101,17 +112,78 @@ struct NotificationView: View {
                 .listStyle(.plain)
                 .scrollIndicators(.hidden)
             }
+            
+            // Content Selection Sheet
+            if showContentSelection, let notification = selectedNotification, let requestType = notification.requestType, let senderId = notification.senderId {
+                ContentSelectionSheet(
+                    cards: requestType == "card" ? cardsService.cards : [],
+                    documents: requestType == "document" ? getAllDocuments() : [],
+                    requestType: requestType,
+                    onShare: { content in
+                        handleShare(content: content, senderId: senderId, requestType: requestType)
+                    },
+                    isPresented: $showContentSelection
+                )
+                .onAppear {
+                    // Fetch documents from root when showing document selection
+                    if requestType == "document" {
+                        documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
+                    }
+                }
+            }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
+        .toast(message: $toastMessage, type: .success)
         .onAppear {
             notificationService.retry(userId: userId)
+            // Fetch documents if needed
+            documentsService.startListening(userId: userId, parentFolderId: nil)
+        }
+    }
+    
+    private func getAllDocuments() -> [DocumentFile] {
+        // For now, return current folder documents
+        // In a full implementation, you might want to fetch all documents across all folders
+        return documentsService.currentFolderDocuments
+    }
+    
+    private func handleShare(content: Any, senderId: String, requestType: String) {
+        if requestType == "card", let card = content as? CardModel {
+            cardsService.shareCard(userId: userId, card: card, friendId: senderId, notificationService: notificationService) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        toastMessage = "Card shared successfully"
+                        // Mark notification as read
+                        if let notification = selectedNotification {
+                            notificationService.markAsRead(id: notification.id, userId: userId)
+                        }
+                    } else {
+                        toastMessage = error ?? "Failed to share card"
+                    }
+                }
+            }
+        } else if requestType == "document", let document = content as? DocumentFile {
+            documentsService.shareDocument(userId: userId, document: document, friendId: senderId, notificationService: notificationService) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        toastMessage = "Document shared successfully"
+                        // Mark notification as read
+                        if let notification = selectedNotification {
+                            notificationService.markAsRead(id: notification.id, userId: userId)
+                        }
+                    } else {
+                        toastMessage = error ?? "Failed to share document"
+                    }
+                }
+            }
         }
     }
 }
 
 struct NotificationCell: View {
     let notification: NotificationItem
+    let onShare: (() -> Void)?
     
     var body: some View {
         HStack(alignment: .top, spacing: 15) {
@@ -161,6 +233,25 @@ struct NotificationCell: View {
                     .foregroundColor(.gray)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                
+                // Share button for request notifications
+                if let requestType = notification.requestType, notification.senderId != nil, let onShare = onShare {
+                    Button(action: onShare) {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.caption)
+                            Text("Share")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                    }
+                    .padding(.top, 8)
+                }
             }
         }
         .padding(20)

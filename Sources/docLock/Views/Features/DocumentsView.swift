@@ -20,6 +20,9 @@ struct DocumentFile: Identifiable {
     let url: String
     let size: Int
     let createdAt: Date?
+    let isShared: Bool
+    let sharedBy: String?
+    let sharedByName: String?
 }
 
 struct DocumentsView: View {
@@ -91,6 +94,21 @@ struct DocumentsView: View {
         print("🔍 canCreateFolderAtCurrentLocation: currentDepth=\(currentDepth), maxDepth=\(maxDepth), newDepthWouldBe=\(currentDepth + 1), canCreate=\(canCreate)")
         
         return canCreate
+    }
+    
+    // Computed property to inject "Shared" folder if needed
+    var displayedFolders: [DocFolder] {
+        var folders = documentsService.folders
+        if selectedFolderId == nil && documentsService.sharedDocsCount > 0 {
+             let sharedFolder = DocFolder(id: "SHARED_ROOT", name: "Shared", itemCount: documentsService.sharedDocsCount, icon: "person.2.fill", parentFolderId: nil, depth: 0)
+             folders.insert(sharedFolder, at: 0)
+        }
+        return folders
+    }
+    
+    // Check if we have any folders to display (including Shared)
+    var hasFoldersToDisplay: Bool {
+        return !displayedFolders.isEmpty
     }
     
     // Track folder hierarchy for navigation
@@ -215,7 +233,7 @@ struct DocumentsView: View {
                 }
                 
                 // Content
-                if documentsService.folders.isEmpty {
+                if !hasFoldersToDisplay {
                     DocumentsEmptyState(
                         showCreateFolderSheet: $showCreateFolderSheet,
                         showUploadDocumentSheet: $showUploadDocumentSheet,
@@ -332,7 +350,7 @@ struct DocumentsView: View {
                 } else {
                     // Show folders in list view with swipe actions
                     List {
-                        ForEach(documentsService.folders) { folder in
+                        ForEach(displayedFolders) { folder in
                             FolderListRow(folder: folder) {
                                 // Stop current folder listeners before navigating (if in a folder)
                                 if selectedFolderId != nil {
@@ -367,6 +385,7 @@ struct DocumentsView: View {
                                     Image(systemName: "trash")
                                 }
                                 .tint(.red)
+                                .disabled(folder.id == "SHARED_ROOT") // Cannot delete Shared folder
                                 
                                 // Edit action
                                 Button {
@@ -375,6 +394,7 @@ struct DocumentsView: View {
                                     Image(systemName: "pencil")
                                 }
                                 .tint(.blue)
+                                .disabled(folder.id == "SHARED_ROOT") // Cannot edit Shared folder
                             }
                         }
                     }
@@ -1805,7 +1825,7 @@ struct FolderContentsView: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     
-                    Text("Upload documents or images to get started")
+                    Text(folderId == "SHARED_ROOT" ? "No shared documents" : "Upload documents or images to get started")
                         .font(.system(size: 14))
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -1909,18 +1929,28 @@ struct DocumentListItem: View {
                     .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                 
                 HStack(spacing: 6) {
-                    Text(formatFileSize(document.size))
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    
-                    if let createdAt = document.createdAt {
-                        Text("•")
+                    if document.isShared {
+                        Image(systemName: "person.2.fill")
                             .font(.caption)
-                            .foregroundColor(.gray.opacity(0.5))
+                            .foregroundColor(.orange)
                         
-                        Text(formatUploadDate(createdAt))
+                        Text("Shared by \(document.sharedByName ?? "Unknown")")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    } else {
+                        Text(formatFileSize(document.size))
                             .font(.caption)
                             .foregroundColor(.gray)
+                        
+                        if let createdAt = document.createdAt {
+                            Text("•")
+                                .font(.caption)
+                                .foregroundColor(.gray.opacity(0.5))
+                            
+                            Text(formatUploadDate(createdAt))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
                     }
                 }
             }

@@ -61,6 +61,8 @@ class AuthService: ObservableObject {
     // Helper to propagate profile updates to friends' lists
     private func updateFriendRecords(userId: String, data: [String: Any]) {
         let db = Firestore.firestore()
+        print("🔄 updateFriendRecords: Updating friend records for user \(userId) with data: \(data)")
+        
         // Query all 'friends' collections where this user is stored
         db.collectionGroup("friends").whereField("uid", isEqualTo: userId).getDocuments { (snapshot, error) in
             if let error = error {
@@ -73,10 +75,12 @@ class AuthService: ObservableObject {
                 return
             }
             
+            print("📝 Found \(documents.count) friend records to update")
             let batch = db.batch()
             // Note: Firestore batch limit is 500.
             for doc in documents {
                 batch.updateData(data, forDocument: doc.reference)
+                print("  - Updating friend record at: \(doc.reference.path)")
             }
             
             batch.commit { error in
@@ -84,6 +88,7 @@ class AuthService: ObservableObject {
                     print("🔴 Error propagating profile updates to friends: \(error.localizedDescription)")
                 } else {
                     print("🟢 Successfully propagated profile updates to \(documents.count) friends")
+                    // The real-time listeners should automatically pick up these changes
                 }
             }
         }
@@ -935,8 +940,9 @@ class NotificationService: ObservableObject {
                     let date = data["date"] as? String ?? ""
                     let isRead = data["isRead"] as? Bool ?? false
                     let requestType = data["requestType"] as? String
+                    let senderId = data["senderId"] as? String
                     
-                    return NotificationItem(id: doc.documentID, type: type, title: title, message: message, date: date, isRead: isRead, requestType: requestType)
+                    return NotificationItem(id: doc.documentID, type: type, title: title, message: message, date: date, isRead: isRead, requestType: requestType, senderId: senderId)
                 }
                 self?.error = nil // Clear error on success
                 print("🟢 NotificationService: Synced \(self?.notifications.count ?? 0) items")
@@ -1041,22 +1047,24 @@ class FriendsService: ObservableObject {
         
         listener = db.collection("users").document(userId).collection("friends")
             .order(by: "addedAt", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
-                if let error = error {
-                    print("🔴 FriendsService Error: \(error.localizedDescription)")
-                    self?.error = error.localizedDescription
-                    return
+            .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("🔴 FriendsService Error: \(error.localizedDescription)")
+                        self?.error = error.localizedDescription
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents else { return }
+                    
+                    self?.friendsCount = documents.count
+                    self?.friends = documents.compactMap { doc -> User? in
+                        return self?.mapDataToUser(uid: doc.documentID, data: doc.data())
+                    }
+                    
+                    self?.error = nil
+                    print("🟢 FriendsService: Synced \(documents.count) friends")
                 }
-                
-                guard let documents = snapshot?.documents else { return }
-                
-                self?.friendsCount = documents.count
-                self?.friends = documents.compactMap { doc -> User? in
-                    return self?.mapDataToUser(uid: doc.documentID, data: doc.data())
-                }
-                
-                self?.error = nil
-                print("🟢 FriendsService: Synced \(documents.count) friends")
             }
     }
     
@@ -1152,22 +1160,38 @@ class FriendsService: ObservableObject {
     func addFriend(currentUser: User, friend: User, completion: @escaping (Bool, String?) -> Void) {
         print("➕ FriendsService: Adding friend \(friend.name)")
         
-        // 1. Add to Current User's List
-        let friendRef = db.collection("users").document(currentUser.uid).collection("friends").document(friend.uid)
+        // Use batch write to ensure both updates succeed or fail together
+        let batch = db.batch()
         
-        let data: [String: Any] = [
+        // 1. Add friend to current user's list
+        let currentUserFriendRef = db.collection("users").document(currentUser.uid).collection("friends").document(friend.uid)
+        let currentUserFriendData: [String: Any] = [
             "uid": friend.uid,
             "name": friend.name,
             "mobile": friend.mobile ?? "",
             "profileImageUrl": friend.profileImageUrl ?? "",
             "addedAt": FieldValue.serverTimestamp()
         ]
+        batch.setData(currentUserFriendData, forDocument: currentUserFriendRef)
         
-        friendRef.setData(data) { error in
+        // 2. Add current user to friend's list (bidirectional friendship)
+        let friendUserFriendRef = db.collection("users").document(friend.uid).collection("friends").document(currentUser.uid)
+        let friendUserFriendData: [String: Any] = [
+            "uid": currentUser.uid,
+            "name": currentUser.name,
+            "mobile": currentUser.mobile ?? "",
+            "profileImageUrl": currentUser.profileImageUrl ?? "",
+            "addedAt": FieldValue.serverTimestamp()
+        ]
+        batch.setData(friendUserFriendData, forDocument: friendUserFriendRef)
+        
+        // Commit batch
+        batch.commit { error in
             if let error = error {
+                print("🔴 FriendsService: Batch commit error: \(error.localizedDescription)")
                 completion(false, error.localizedDescription)
             } else {
-                // SUCCESS
+                print("✅ FriendsService: Successfully added bidirectional friendship")
                 
                 // Notify Sender
                 NotificationService.send(
@@ -1194,11 +1218,26 @@ class FriendsService: ObservableObject {
     // NEW: Delete Friend
     func deleteFriend(currentUser: User, friend: User) {
         print("➖ FriendsService: Deleting friend \(friend.uid)")
-        db.collection("users").document(currentUser.uid).collection("friends").document(friend.uid).delete { error in
+        
+        // Use batch write to ensure both deletions succeed or fail together
+        let batch = db.batch()
+        
+        // 1. Remove friend from current user's list
+        let currentUserFriendRef = db.collection("users").document(currentUser.uid).collection("friends").document(friend.uid)
+        batch.deleteDocument(currentUserFriendRef)
+        
+        // 2. Remove current user from friend's list (bidirectional removal)
+        let friendUserFriendRef = db.collection("users").document(friend.uid).collection("friends").document(currentUser.uid)
+        batch.deleteDocument(friendUserFriendRef)
+        
+        // Commit batch
+        batch.commit { [weak self] error in
             if let error = error {
-                print("🔴 Error removing friend: \(error)")
-                self.error = "Failed to remove friend"
+                print("🔴 Error removing friend: \(error.localizedDescription)")
+                self?.error = "Failed to remove friend"
             } else {
+                print("✅ FriendsService: Successfully removed bidirectional friendship")
+                
                 // Notifications
                 
                 // Notify Sender
@@ -1251,19 +1290,29 @@ class DocumentsService: ObservableObject {
         return isFetchingDocuments || isFetchingFolders
     }
     @Published var totalDocuments: Int = 0
+    @Published var totalDocuments: Int = 0
     @Published var usedStorageMB: Double = 0.0
+    @Published var sharedDocsCount: Int = 0
     @Published var error: String?
     
     var appConfigService: AppConfigService?
     
     private var listener: ListenerRegistration?
+    private var userListener: ListenerRegistration?
     private var folderDocumentsListener: ListenerRegistration?
     private var folderFoldersListener: ListenerRegistration?
     private let db = Firestore.firestore()
     
     func startListening(userId: String, parentFolderId: String? = nil) {
         listener?.remove()
+        userListener?.remove()
         print("📄 DocumentsService: Starting listener for user \(userId), parentFolderId: \(parentFolderId ?? "root")")
+        
+        // Listen to User Document for sharedDocsCount
+        userListener = db.collection("users").document(userId).addSnapshotListener { [weak self] snapshot, error in
+            guard let data = snapshot?.data() else { return }
+            self?.sharedDocsCount = (data["sharedDocsCount"] as? NSNumber)?.intValue ?? 0
+        }
         
         // Listening to folders filtered by parentFolderId
         let collectionRef = db.collection("users").document(userId).collection("folders")
@@ -1310,7 +1359,9 @@ class DocumentsService: ObservableObject {
     
     func stopListening() {
         listener?.remove()
+        userListener?.remove()
         listener = nil
+        userListener = nil
     }
     
     func retry(userId: String) {
@@ -1329,9 +1380,16 @@ class DocumentsService: ObservableObject {
         let query: Query
         
         if let folderId = folderId {
-            query = collectionRef.whereField("folderId", isEqualTo: folderId)
+            if folderId == "SHARED_ROOT" {
+                 // Fetch all shared documents (no folderId constraint, but isShared == true)
+                 query = collectionRef.whereField("isShared", isEqualTo: true)
+            } else {
+                query = collectionRef.whereField("folderId", isEqualTo: folderId)
+            }
         } else {
-            query = collectionRef.whereField("folderId", isEqualTo: NSNull())
+            // Root - verify we are not showing shared docs here unless we want them mixed (user asked for separate folder)
+            // For now, exclude shared docs from root if possible, or just filter by folderId == null which handles it
+             query = collectionRef.whereField("folderId", isEqualTo: NSNull())
         }
         
         isFetchingDocuments = true
@@ -1379,13 +1437,20 @@ class DocumentsService: ObservableObject {
                     let timestamp = data["createdAt"] as? Timestamp
                     let createdAt = timestamp?.dateValue()
                     
+                    let isShared = data["isShared"] as? Bool ?? false
+                    let sharedBy = data["sharedBy"] as? String
+                    let sharedByName = data["sharedByName"] as? String
+                    
                     return DocumentFile(
                         id: doc.documentID,
                         name: name,
                         type: type,
                         url: url,
                         size: size,
-                        createdAt: createdAt
+                        createdAt: createdAt,
+                        isShared: isShared,
+                        sharedBy: sharedBy,
+                        sharedByName: sharedByName
                     )
                 }
                 
@@ -1800,52 +1865,59 @@ class DocumentsService: ObservableObject {
     // MARK: - Share Document
     func shareDocument(userId: String, document: DocumentFile, friendId: String, notificationService: NotificationService, completion: @escaping (Bool, String?) -> Void) {
         
-        let data: [String: Any] = [
-            "name": document.name,
-            "type": document.type,
-            "url": document.url,
-            "size": document.size,
-            "createdAt": FieldValue.serverTimestamp(),
-            "isShared": true,
-            "sharedBy": userId,
-            "folderId": NSNull() // Shared documents go to root or special folder? keeping root for now
-        ]
-        
-        db.collection("users").document(friendId).collection("documents").addDocument(data: data) { [weak self] error in
-            if let error = error {
-                print("🔴 DocumentsService Share Error: \(error.localizedDescription)")
-                completion(false, error.localizedDescription)
-            } else {
-                print("🟢 DocumentsService: Document shared")
-                
-                // Update shared counts
-                let batch = self?.db.batch()
-                let senderRef = self?.db.collection("users").document(userId)
-                let receiverRef = self?.db.collection("users").document(friendId)
-                
-                if let senderRef = senderRef {
-                    batch?.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: senderRef)
-                }
-                if let receiverRef = receiverRef {
-                    batch?.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
-                }
-                
-                batch?.commit { error in
-                    if let error = error {
-                        print("🔴 DocumentsService Batch Error: \(error.localizedDescription)")
-                    } else {
-                        print("🟢 DocumentsService: Counts updated successfully")
+        // Fetch sender name first
+        db.collection("users").document(userId).getDocument { [weak self] snapshot, error in
+            guard let self = self else {
+                completion(false, "Service unavailable")
+                return
+            }
+            
+            let senderName = snapshot?.data()?["name"] as? String ?? "Unknown"
+            
+            let data: [String: Any] = [
+                "name": document.name,
+                "type": document.type,
+                "url": document.url,
+                "size": document.size,
+                "createdAt": FieldValue.serverTimestamp(),
+                "isShared": true,
+                "sharedBy": userId,
+                "sharedByName": senderName,
+                "folderId": NSNull() // Shared documents go to root, but filtered by query
+            ]
+            
+            self.db.collection("users").document(friendId).collection("documents").addDocument(data: data) { error in
+                if let error = error {
+                    print("🔴 DocumentsService Share Error: \(error.localizedDescription)")
+                    completion(false, error.localizedDescription)
+                } else {
+                    print("🟢 DocumentsService: Document shared")
+                    
+                    // Update shared counts
+                    let batch = self.db.batch()
+                    let senderRef = self.db.collection("users").document(userId)
+                    let receiverRef = self.db.collection("users").document(friendId)
+                    
+                    batch.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: senderRef)
+                    batch.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
+                    
+                    batch.commit { error in
+                        if let error = error {
+                            print("🔴 DocumentsService Batch Error: \(error.localizedDescription)")
+                        } else {
+                            print("🟢 DocumentsService: Counts updated successfully")
+                        }
                     }
+                    
+                    // Send Notifications
+                    // To Receiver
+                    notificationService.addNotification(userId: friendId, title: "Document Shared", message: "A document '\(document.name)' was shared with you.", type: "alert")
+                    
+                    // To Sender
+                    notificationService.addNotification(userId: userId, title: "Document Shared", message: "You successfully shared '\(document.name)' with your friend.", type: "alert")
+                    
+                    completion(true, nil)
                 }
-                
-                // Send Notifications
-                // To Receiver
-                notificationService.addNotification(userId: friendId, title: "Document Shared", message: "A document '\(document.name)' was shared with you.", type: "alert")
-                
-                // To Sender
-                notificationService.addNotification(userId: userId, title: "Document Shared", message: "You successfully shared '\(document.name)' with your friend.", type: "alert")
-                
-                completion(true, nil)
             }
         }
     }

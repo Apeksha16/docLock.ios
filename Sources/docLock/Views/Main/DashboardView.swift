@@ -287,7 +287,13 @@ struct HomeView: View {
                 .padding(.horizontal)
                 .padding(.top, 20)
                 .fullScreenCover(isPresented: $showNotifications) {
-                    NotificationView(notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
+                    NotificationView(
+                        notificationService: notificationService,
+                        cardsService: cardsService,
+                        documentsService: documentsService,
+                        friendsService: friendsService,
+                        userId: authService.user?.id ?? authService.user?.mobile ?? "unknown"
+                    )
                 }
                 
                 ScrollView(showsIndicators: false) {
