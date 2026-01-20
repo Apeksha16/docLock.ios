@@ -888,13 +888,15 @@ struct AddEditCardView: View {
                                     .foregroundColor(.white)
                             }
                             Spacer()
-                            Text(getCardBrand(number: cardNumber))
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .padding(5)
-                                .background(Color.white.opacity(0.3))
-                                .cornerRadius(5)
+                            if !getCardBrand(number: cardNumber).isEmpty {
+                                Text(getCardBrand(number: cardNumber))
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(5)
+                                    .background(Color.white.opacity(0.3))
+                                    .cornerRadius(5)
+                            }
                         }
                         
                         Spacer()
@@ -1217,17 +1219,28 @@ extension View {
 // MARK: - Helper Functions
 func getCardBrand(number: String) -> String {
     let cleanNumber = number.replacingOccurrences(of: " ", with: "")
+    if cleanNumber.isEmpty { return "" }
+    
     if cleanNumber.hasPrefix("4") { return "VISA" }
     if cleanNumber.hasPrefix("34") || cleanNumber.hasPrefix("37") { return "AMEX" }
+    
+    // Mastercard
     if cleanNumber.hasPrefix("51") || cleanNumber.hasPrefix("52") || cleanNumber.hasPrefix("53") || cleanNumber.hasPrefix("54") || cleanNumber.hasPrefix("55") { return "MASTERCARD" }
     if cleanNumber.hasPrefix("2") {
-        let prefix = Int(cleanNumber.prefix(4)) ?? 0
-        if prefix >= 2221 && prefix <= 2720 { return "MASTERCARD" }
+        let prefixInt = Int(cleanNumber.prefix(4)) ?? 0
+        // Check if we have enough digits to definitively say it's MC 2-series range (2221-2720)
+        // If we only have "2", we don't know yet. But user wants auto-detect AS THEY TYPE.
+        // If user types "2", we probably shouldn't show MC yet unless we are sure.
+        // But 2221... requires 4 digits.
+        if cleanNumber.count >= 4 {
+             if prefixInt >= 2221 && prefixInt <= 2720 { return "MASTERCARD" }
+        }
     }
-    // RuPay: Starts with 60, 65, 81, 82, 508
-    if cleanNumber.hasPrefix("60") || cleanNumber.hasPrefix("65") || cleanNumber.hasPrefix("81") || cleanNumber.hasPrefix("82") || cleanNumber.hasPrefix("508") { return "RUPAY" }
     
-    return "VISA"
+    // RuPay
+    if cleanNumber.hasPrefix("60") || cleanNumber.hasPrefix("65") || cleanNumber.hasPrefix("81") || cleanNumber.hasPrefix("82") || cleanNumber.hasPrefix("508") || cleanNumber.hasPrefix("353") || cleanNumber.hasPrefix("356") { return "RUPAY" }
+    
+    return ""
 }
 
 #if os(iOS)

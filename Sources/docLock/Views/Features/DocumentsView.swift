@@ -31,6 +31,7 @@ struct DocumentsView: View {
     @State private var currentPath: [String] = ["HOME"]
     @State private var selectedFolderId: String? = nil
     @State private var selectedFolderName: String? = nil
+    @State private var selectedFolderDepth: Int = 0 // Track the actual depth of the current folder
     @State private var pathFolderIds: [String?] = [nil] // Track folder IDs for each path segment (nil for HOME)
     @State private var showCreateFolderSheet = false
     @State private var showUploadDocumentSheet = false
@@ -53,13 +54,22 @@ struct DocumentsView: View {
         selectedFolderId
     }
     
-    var currentLocationDepth: Int {
-        // Depth is based on how many levels deep we are in the folder hierarchy
-        // folderHierarchy contains folder IDs from root to current folder
-        // Empty array = root (depth 0)
-        // 1 folder = depth 1
-        // 2 folders = depth 2, etc.
-        return folderHierarchy.count
+    // Get the actual depth of the current folder
+    var currentFolderDepth: Int {
+        if selectedFolderId != nil {
+            // Use the stored depth of the selected folder
+            return selectedFolderDepth
+        }
+        // Root level
+        return 0
+    }
+    
+    // Check if we can create a folder at the current location
+    var canCreateFolderAtCurrentLocation: Bool {
+        let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 3
+        // Can create if current depth + 1 < maxDepth
+        // e.g., if maxDepth is 3: can create at depth 0 or 1, but not at depth 2
+        return currentFolderDepth + 1 < maxDepth
     }
     
     // Track folder hierarchy for navigation
@@ -205,6 +215,7 @@ struct DocumentsView: View {
                             
                             selectedFolderId = folder.id
                             selectedFolderName = folder.name
+                            selectedFolderDepth = folder.depth // Store the actual depth from Firestore
                             if folderHierarchy.isEmpty {
                                 folderHierarchy = [folder.id]
                                 pathFolderIds = [nil, folder.id]
@@ -235,6 +246,8 @@ struct DocumentsView: View {
                                     if currentPath.count > 1 {
                                         selectedFolderName = currentPath[currentPath.count - 2]
                                     }
+                                    // Update depth: parent folder's depth is current depth - 1
+                                    selectedFolderDepth = max(0, selectedFolderDepth - 1)
                                     // Fetch with real-time listeners
                                     documentsService.fetchDocumentsInFolder(userId: userId, folderId: parentId)
                                     // Parent of this folder is the one before it in hierarchy
@@ -244,18 +257,20 @@ struct DocumentsView: View {
                                     // Go back to root
                                     selectedFolderId = nil
                                     selectedFolderName = nil
+                                    selectedFolderDepth = 0
                                     folderHierarchy = []
                                     pathFolderIds = [nil]
                                     documentsService.startListening(userId: userId, parentFolderId: nil)
                                 }
-                            } else {
-                                // Go back to root
-                                selectedFolderId = nil
-                                selectedFolderName = nil
-                                folderHierarchy = []
-                                pathFolderIds = [nil]
-                                documentsService.startListening(userId: userId, parentFolderId: nil)
-                            }
+                                } else {
+                                    // Go back to root
+                                    selectedFolderId = nil
+                                    selectedFolderName = nil
+                                    selectedFolderDepth = 0
+                                    folderHierarchy = []
+                                    pathFolderIds = [nil]
+                                    documentsService.startListening(userId: userId, parentFolderId: nil)
+                                }
                             withAnimation {
                                 if currentPath.count > 1 {
                                     currentPath.removeLast()
@@ -300,6 +315,7 @@ struct DocumentsView: View {
                                 
                                 selectedFolderId = folder.id
                                 selectedFolderName = folder.name
+                                selectedFolderDepth = folder.depth // Store the actual depth from Firestore
                                 if folderHierarchy.isEmpty {
                                     folderHierarchy = [folder.id]
                                     pathFolderIds = [nil, folder.id]
@@ -348,7 +364,7 @@ struct DocumentsView: View {
                     documentsService: documentsService,
                     userId: userId,
                     parentFolderId: currentLocationFolderId,
-                    parentDepth: currentLocationDepth,
+                    parentDepth: currentFolderDepth,
                     isPresented: $showCreateFolderSheet,
                     toastMessage: $toastMessage,
                     toastType: $toastType
@@ -392,7 +408,8 @@ struct DocumentsView: View {
                 VStack(spacing: 20) {
                      Spacer()
                     
-                    if currentLocationDepth < (documentsService.appConfigService?.maxFolderDepth ?? 3) {
+                    // Only show "Create Folder" if we can create at current depth
+                    if canCreateFolderAtCurrentLocation {
                         Button(action: {
                             withAnimation {
                                 showFabMenu = false
@@ -427,7 +444,8 @@ struct DocumentsView: View {
             }
             
             // FAB Button (Center Bottom)
-            if !documentsService.folders.isEmpty || selectedFolderId != nil {
+            // Only show FAB if we can create folders at the current location
+            if (!documentsService.folders.isEmpty || selectedFolderId != nil) && canCreateFolderAtCurrentLocation {
                 VStack {
                     Spacer()
                     HStack {
@@ -471,7 +489,7 @@ struct DocumentsView: View {
                     documentsService: documentsService,
                     userId: userId,
                     parentFolderId: currentLocationFolderId, // Not used for edit
-                    parentDepth: currentLocationDepth,   // Not used for edit
+                    parentDepth: currentFolderDepth,   // Not used for edit
                     isPresented: $showEditFolderSheet,
                     toastMessage: $toastMessage,
                     toastType: $toastType,
@@ -579,6 +597,7 @@ struct DocumentsView: View {
         if index == 0 {
             selectedFolderId = nil
             selectedFolderName = nil
+            selectedFolderDepth = 0
             folderHierarchy = []
             pathFolderIds = [nil]
             documentsService.stopListeningToFolder()
@@ -617,6 +636,8 @@ struct DocumentsView: View {
         // Navigate to this folder
         selectedFolderId = folderId
         selectedFolderName = currentPath[index]
+        // Breadcrumb index corresponds to depth: index 0 = HOME (depth 0), index 1 = depth 1, etc.
+        selectedFolderDepth = index - 1
         
         // Update hierarchy and path to match the clicked breadcrumb
         folderHierarchy = Array(pathFolderIds[1...index].compactMap { $0 })
@@ -1950,6 +1971,23 @@ struct EditDocumentSheet: View {
     @State private var iconRotation: Double = -180
     @FocusState private var isFocused: Bool
     
+    // Determine if this is an image file
+    private var isImageFile: Bool {
+        let typeLower = document.type.lowercased()
+        let nameLower = document.name.lowercased()
+        return typeLower == "image" || 
+               nameLower.hasSuffix(".jpg") || 
+               nameLower.hasSuffix(".jpeg") || 
+               nameLower.hasSuffix(".png") || 
+               nameLower.hasSuffix(".heic") ||
+               nameLower.hasSuffix(".gif") ||
+               nameLower.hasSuffix(".webp")
+    }
+    
+    private var fileTypeText: String {
+        isImageFile ? "image" : "file"
+    }
+    
     var body: some View {
         ZStack {
             // No dimmed background - keep background visible
@@ -1992,7 +2030,7 @@ struct EditDocumentSheet: View {
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     
-                    Text("Update your \(document.type == "image" ? "image" : "document") name.")
+                    Text("Update your \(fileTypeText) name.")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -2001,7 +2039,7 @@ struct EditDocumentSheet: View {
                 }
                 
                 // Input Field
-                TextField("\(document.type == "image" ? "Image" : "Document") Name", text: $documentName)
+                TextField("\(isImageFile ? "Image" : "File") Name", text: $documentName)
                     .font(.headline)
                     .padding()
                     .background(Color(red: 0.96, green: 0.96, blue: 0.98))
