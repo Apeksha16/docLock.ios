@@ -23,8 +23,32 @@ struct CardModel: Identifiable {
     var cvv: String
     var colorStart: Color
     var colorEnd: Color
+    var colorIndex: Int? // Store index to persist color selection reliably
     var isShared: Bool = false
     var sharedBy: String? = nil
+    
+    // Static Palettes
+    static let creditCardColors: [[Color]] = [
+        [Color(red: 0.9, green: 0.2, blue: 0.6), Color(red: 0.95, green: 0.4, blue: 0.7)], // Hot Pink
+        [Color(red: 0.6, green: 0.1, blue: 0.4), Color(red: 0.8, green: 0.2, blue: 0.5)], // Deep Berry
+        [Color(red: 1.0, green: 0.6, blue: 0.2), Color(red: 1.0, green: 0.8, blue: 0.4)], // Gold/Orange
+        [Color(red: 0.8, green: 0.1, blue: 0.1), Color(red: 1.0, green: 0.4, blue: 0.4)], // Red
+        [Color(red: 0.4, green: 0.1, blue: 0.6), Color(red: 0.6, green: 0.3, blue: 0.8)]  // Purple
+    ]
+    
+    static let debitCardColors: [[Color]] = [
+        [Color(red: 0.1, green: 0.4, blue: 0.8), Color(red: 0.3, green: 0.6, blue: 1.0)], // Blue
+        [Color(red: 0.0, green: 0.6, blue: 0.6), Color(red: 0.2, green: 0.8, blue: 0.8)], // Teal
+        [Color(red: 0.1, green: 0.7, blue: 0.5), Color(red: 0.3, green: 0.9, blue: 0.6)], // Green
+        [Color(red: 0.05, green: 0.2, blue: 0.4), Color(red: 0.2, green: 0.4, blue: 0.6)], // Navy
+        [Color(red: 0.3, green: 0.5, blue: 0.9), Color(red: 0.5, green: 0.7, blue: 1.0)]  // Light Blue
+    ]
+    
+    static func getColors(for type: CardType, index: Int) -> [Color] {
+        let palette = type == .credit ? creditCardColors : debitCardColors
+        let safeIndex = max(0, min(index, palette.count - 1))
+        return palette[safeIndex]
+    }
 }
 
 // MARK: - Main Cards View
@@ -759,21 +783,7 @@ struct AddEditCardView: View {
     @State private var isLoading = false
     
     // Distinct Palettes
-    let creditCardColors: [[Color]] = [
-        [Color(red: 0.9, green: 0.2, blue: 0.6), Color(red: 0.95, green: 0.4, blue: 0.7)], // Hot Pink
-        [Color(red: 0.6, green: 0.1, blue: 0.4), Color(red: 0.8, green: 0.2, blue: 0.5)], // Deep Berry
-        [Color(red: 1.0, green: 0.6, blue: 0.2), Color(red: 1.0, green: 0.8, blue: 0.4)], // Gold/Orange
-        [Color(red: 0.8, green: 0.1, blue: 0.1), Color(red: 1.0, green: 0.4, blue: 0.4)], // Red
-        [Color(red: 0.4, green: 0.1, blue: 0.6), Color(red: 0.6, green: 0.3, blue: 0.8)]  // Purple
-    ]
-    
-    let debitCardColors: [[Color]] = [
-        [Color(red: 0.1, green: 0.4, blue: 0.8), Color(red: 0.3, green: 0.6, blue: 1.0)], // Blue
-        [Color(red: 0.0, green: 0.6, blue: 0.6), Color(red: 0.2, green: 0.8, blue: 0.8)], // Teal
-        [Color(red: 0.1, green: 0.7, blue: 0.5), Color(red: 0.3, green: 0.9, blue: 0.6)], // Green
-        [Color(red: 0.05, green: 0.2, blue: 0.4), Color(red: 0.2, green: 0.4, blue: 0.6)], // Navy
-        [Color(red: 0.3, green: 0.5, blue: 0.9), Color(red: 0.5, green: 0.7, blue: 1.0)]  // Light Blue
-    ]
+
     
     @State private var selectedColorIndex: Int = 0
     @State private var hasAppeared = false
@@ -794,7 +804,7 @@ struct AddEditCardView: View {
             _cardHolder = State(initialValue: existingCard.cardHolder)
             _expiry = State(initialValue: existingCard.expiry)
             _cvv = State(initialValue: existingCard.cvv)
-            // Keep existing colors for edits
+            _selectedColorIndex = State(initialValue: existingCard.colorIndex ?? 0)
         } else {
             _cardType = State(initialValue: cardType)
             // Auto-select random color from appropriate palette
@@ -945,7 +955,7 @@ struct AddEditCardView: View {
                 
                 // Card Preview
                 ZStack {
-                    let colors = card != nil ? [card!.colorStart, card!.colorEnd] : (cardType == .credit ? creditCardColors[selectedColorIndex] : debitCardColors[selectedColorIndex])
+                    let colors = CardModel.getColors(for: cardType, index: selectedColorIndex)
                     LinearGradient(gradient: Gradient(colors: colors), startPoint: .leading, endPoint: .trailing)
                         .cornerRadius(20)
                         .frame(height: 200)
@@ -1078,7 +1088,13 @@ struct AddEditCardView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(red: 1.0, green: 0.2, blue: 0.5))
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: CardModel.getColors(for: cardType, index: selectedColorIndex)),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .foregroundColor(.white)
                     .cornerRadius(15)
                 }
@@ -1109,8 +1125,8 @@ struct AddEditCardView: View {
     
     func saveCard() {
         isLoading = true
-        // If editing, keep original colors unless we add a picker. If adding, use selected random color.
-        let colors = card != nil ? [card!.colorStart, card!.colorEnd] : (cardType == .credit ? creditCardColors[selectedColorIndex] : debitCardColors[selectedColorIndex])
+        // Get colors based on index
+        let colors = CardModel.getColors(for: cardType, index: selectedColorIndex)
         
         let newCard = CardModel(
             id: card?.id ?? UUID().uuidString,
@@ -1121,7 +1137,8 @@ struct AddEditCardView: View {
             expiry: expiry,
             cvv: cvv,
             colorStart: colors[0],
-            colorEnd: colors[1]
+            colorEnd: colors[1],
+            colorIndex: selectedColorIndex
         )
         
         if card == nil {
@@ -1169,7 +1186,7 @@ struct AddEditCardView: View {
 
     // Helper not strictly needed anymore given random selection, but kept for fallback or validation
     func getGradientColors(for type: CardType) -> [Color] {
-         return type == .credit ? creditCardColors[0] : debitCardColors[0] // Default fallback
+         return CardModel.getColors(for: type, index: 0)
     }
     
     // MARK: - Validation Helpers

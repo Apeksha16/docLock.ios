@@ -1211,6 +1211,13 @@ struct UploadDocumentSheet: View {
                 .contentShape(Rectangle())
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                     if !isUploading {
+                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                             isPresented = false
+                         }
+                     }
+                }
             
             // Modal Content
             VStack(spacing: 0) {
@@ -1320,57 +1327,57 @@ struct UploadDocumentSheet: View {
                                 HStack(spacing: 16) {
                                     ZStack {
                                         Circle()
-                                            .fill(Color.blue.opacity(0.15))
-                                            .frame(width: 56, height: 56)
+                                        .fill(Color.blue.opacity(0.15))
+                                        .frame(width: 56, height: 56)
                                         
                                         Image(systemName: "folder.fill")
-                                            .font(.system(size: 26, weight: .semibold))
-                                            .foregroundColor(.blue)
+                                        .font(.system(size: 26, weight: .semibold))
+                                        .foregroundColor(.blue)
                                     }
                                     
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Choose File")
-                                            .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                                         
                                         Text("Select from your device")
-                                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                                            .foregroundColor(.gray.opacity(0.8))
+                                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                                        .foregroundColor(.gray.opacity(0.8))
                                     }
                                     
                                     Spacer()
                                     
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.gray.opacity(0.4))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.gray.opacity(0.4))
                                 }
                                 .padding(18)
                                 .background(
                                     ZStack {
                                         RoundedRectangle(cornerRadius: 20)
-                                            .fill(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        Color.white,
-                                                        Color(red: 0.99, green: 0.99, blue: 0.99)
-                                                    ]),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [
+                                                    Color.white,
+                                                    Color(red: 0.99, green: 0.99, blue: 0.99)
+                                                ]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
                                             )
+                                        )
                                         
                                         RoundedRectangle(cornerRadius: 20)
-                                            .stroke(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        Color.blue.opacity(0.3),
-                                                        Color.blue.opacity(0.15)
-                                                    ]),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 2
-                                            )
+                                        .stroke(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [
+                                                    Color.blue.opacity(0.3),
+                                                    Color.blue.opacity(0.15)
+                                                ]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 2
+                                        )
                                     }
                                 )
                             }
@@ -1392,26 +1399,21 @@ struct UploadDocumentSheet: View {
                 .padding(.top, 4)
                 .padding(.bottom, 34) // Adjusted for Home Indicator
             }
+            .padding(.bottom, 20)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 32)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white,
-                                    Color(red: 0.99, green: 0.99, blue: 0.99)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.white,
+                        Color(red: 0.99, green: 0.99, blue: 0.99)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .edgesIgnoringSafeArea(.bottom)
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.7) // Limit content height
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom) // Align to screen bottom
             .offset(y: sheetOffset)
-            .edgesIgnoringSafeArea(.bottom)
+            .frame(maxHeight: .infinity, alignment: .bottom)
             .onAppear {
                 // Reset states when sheet appears
                 isUploading = false
@@ -1516,6 +1518,13 @@ struct UploadImageSheet: View {
                 .contentShape(Rectangle())
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    if !isUploading {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            isPresented = false
+                        }
+                    }
+                }
             
             // Modal Content
             VStack(spacing: 0) {
@@ -1637,7 +1646,7 @@ struct UploadImageSheet: View {
                                         Text("Choose Image")
                                             .font(.system(size: 17, weight: .semibold, design: .rounded))
                                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                                        
+                                            
                                         Text("Select from your photo library")
                                             .font(.system(size: 13, weight: .medium, design: .rounded))
                                             .foregroundColor(.gray.opacity(0.8))
@@ -1695,28 +1704,23 @@ struct UploadImageSheet: View {
                     }
                 }
                 .padding(.top, 4)
-                .padding(.bottom, 34) // Adjusted for Home Indicator
+                .padding(.bottom, 4)
             }
+            .padding(.bottom, 20)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 32)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white,
-                                    Color(red: 0.99, green: 0.99, blue: 0.99)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.white,
+                        Color(red: 0.99, green: 0.99, blue: 0.99)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .edgesIgnoringSafeArea(.bottom)
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.7) // Limit content height
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom) // Align to screen bottom
             .offset(y: sheetOffset)
-            .edgesIgnoringSafeArea(.bottom)
+            .frame(maxHeight: .infinity, alignment: .bottom)
             .onAppear {
                 // Reset states when sheet appears
                 isUploading = false
@@ -1734,6 +1738,7 @@ struct UploadImageSheet: View {
             .transition(.move(edge: .bottom))
         }
         .zIndex(200)
+        .edgesIgnoringSafeArea(.all)
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage, isPresented: $showImagePicker)
         }

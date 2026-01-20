@@ -2351,8 +2351,9 @@ class CardsService: ObservableObject {
                         cardHolder: holder,
                         expiry: expiry,
                         cvv: cvv,
-                        colorStart: type == .debit ? Color(red: 0.95, green: 0.85, blue: 0.4) : Color(red: 0.9, green: 0.4, blue: 0.6),
-                        colorEnd: type == .debit ? Color(red: 0.9, green: 0.7, blue: 0.2) : Color(red: 0.95, green: 0.6, blue: 0.75),
+                        colorStart: (data["colorStartHex"] as? String).map { Color(hex: $0) } ?? CardModel.getColors(for: type, index: data["colorIndex"] as? Int ?? 0)[0],
+                        colorEnd: (data["colorEndHex"] as? String).map { Color(hex: $0) } ?? CardModel.getColors(for: type, index: data["colorIndex"] as? Int ?? 0)[1],
+                        colorIndex: data["colorIndex"] as? Int,
                         isShared: data["isShared"] as? Bool ?? false,
                         sharedBy: data["sharedBy"] as? String
                     )
@@ -2381,8 +2382,7 @@ class CardsService: ObservableObject {
             "cardHolder": card.cardHolder, // Usually not encrypted for search, but can be
             "expiry": encExpiry,
             "cvv": encCVV,
-            "colorStartHex": card.colorStart.toHex() ?? "",
-            "colorEndHex": card.colorEnd.toHex() ?? "",
+            "colorIndex": card.colorIndex ?? 0,
             "createdAt": FieldValue.serverTimestamp(),
             "isShared": false
         ]
@@ -2415,8 +2415,7 @@ class CardsService: ObservableObject {
             "cardHolder": card.cardHolder,
             "expiry": encExpiry,
             "cvv": encCVV,
-            "colorStartHex": card.colorStart.toHex() ?? "",
-            "colorEndHex": card.colorEnd.toHex() ?? "",
+            "colorIndex": card.colorIndex ?? 0,
             "createdAt": FieldValue.serverTimestamp(),
             "isShared": true,
             "sharedBy": userId
