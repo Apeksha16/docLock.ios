@@ -676,6 +676,8 @@ struct ImagePicker: UIViewControllerRepresentable {
         picker.delegate = context.coordinator
         picker.sourceType = .photoLibrary
         picker.allowsEditing = true // Allow cropping to square
+        // Only allow image types (JPG, JPEG, PNG, and all iOS supported image types)
+        picker.mediaTypes = ["public.image"]
         return picker
     }
 

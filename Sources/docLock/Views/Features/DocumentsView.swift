@@ -39,6 +39,14 @@ struct DocumentsView: View {
     @State private var folderToEdit: DocFolder?
     @State private var showDeleteConfirmation = false
     @State private var folderToDelete: DocFolder?
+    @State private var showEditDocumentSheet = false
+    @State private var documentToEdit: DocumentFile?
+    @State private var showDeleteDocumentConfirmation = false
+    @State private var documentToDelete: DocumentFile?
+    
+    // Toast messages
+    @State private var toastMessage: String?
+    @State private var toastType: ToastType = .success
     
     // Current location for uploads/creates
     var currentLocationFolderId: String? {
@@ -65,46 +73,8 @@ struct DocumentsView: View {
                 // Header
                 HStack {
                     Button(action: {
-                        if let folderId = selectedFolderId {
-                            // Navigate to parent folder
-                            if folderHierarchy.count > 1 {
-                                folderHierarchy.removeLast()
-                                pathFolderIds.removeLast()
-                                let parentId = folderHierarchy.last
-                                
-                                if let parentId = parentId {
-                                    selectedFolderId = parentId
-                                    documentsService.fetchDocumentsInFolder(userId: userId, folderId: parentId)
-                                    documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentId)
-                                } else {
-                                    // Go back to root
-                                    selectedFolderId = nil
-                                    selectedFolderName = nil
-                                    folderHierarchy = []
-                                    pathFolderIds = [nil]
-                                    documentsService.stopListeningToFolder()
-                                    documentsService.startListening(userId: userId, parentFolderId: nil)
-                                }
-                            } else {
-                                // Go back to root
-                                selectedFolderId = nil
-                                selectedFolderName = nil
-                                folderHierarchy = []
-                                pathFolderIds = [nil]
-                                documentsService.stopListeningToFolder()
-                                documentsService.startListening(userId: userId, parentFolderId: nil)
-                            }
-                            withAnimation {
-                                if currentPath.count > 1 {
-                                    currentPath.removeLast()
-                                }
-                            }
-                        } else if currentPath.count > 1 {
-                            currentPath.removeLast()
-                            pathFolderIds.removeLast()
-                        } else {
-                            presentationMode.wrappedValue.dismiss()
-                        }
+                        // Always go back to dashboard
+                        presentationMode.wrappedValue.dismiss()
                     }) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 16)
@@ -153,33 +123,54 @@ struct DocumentsView: View {
                 
                 // Breadcrumbs (Show if we have folders or are in a folder)
                 if !documentsService.folders.isEmpty || selectedFolderId != nil {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 5) {
-                            ForEach(0..<currentPath.count, id: \.self) { index in
-                                HStack {
-                                    if index == 0 {
-                                        Image(systemName: "house")
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 5) {
+                                ForEach(0..<currentPath.count, id: \.self) { index in
+                                    HStack {
+                                        if index == 0 {
+                                            Image(systemName: "house")
+                                                .font(.caption)
+                                        }
+                                        Text(currentPath[index])
                                             .font(.caption)
+                                            .fontWeight(.bold)
+                                            .textCase(.uppercase)
+                                        
+                                        if index < currentPath.count - 1 {
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption2)
+                                                .foregroundColor(.gray)
+                                        }
                                     }
-                                    Text(currentPath[index])
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .textCase(.uppercase)
-                                    
-                                    if index < currentPath.count - 1 {
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption2)
-                                            .foregroundColor(.gray)
+                                    .foregroundColor(index == currentPath.count - 1 ? .blue : .gray)
+                                    .id(index)
+                                    .onTapGesture {
+                                        navigateToBreadcrumb(index: index)
                                     }
                                 }
-                                .foregroundColor(index == currentPath.count - 1 ? .blue : .gray)
-                                .onTapGesture {
-                                    navigateToBreadcrumb(index: index)
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 20)
+                        }
+                        .onChange(of: currentPath.count) { _ in
+                            // Auto-scroll to show the last breadcrumb item
+                            if currentPath.count > 0 {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(currentPath.count - 1, anchor: .trailing)
                                 }
                             }
                         }
-                        .padding(.horizontal)
-                        .padding(.top, 20)
+                        .onAppear {
+                            // Scroll to last item on appear
+                            if currentPath.count > 0 {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        proxy.scrollTo(currentPath.count - 1, anchor: .trailing)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -199,6 +190,9 @@ struct DocumentsView: View {
                         folderName: selectedFolderName ?? "Folder",
                         appConfigService: documentsService.appConfigService!,
                         onFolderTap: { folder in
+                            // Stop current folder listeners before navigating
+                            documentsService.stopListeningToFolder()
+                            
                             selectedFolderId = folder.id
                             selectedFolderName = folder.name
                             if folderHierarchy.isEmpty {
@@ -211,10 +205,14 @@ struct DocumentsView: View {
                             withAnimation {
                                 currentPath.append(folder.name)
                             }
+                            // Fetch with real-time listeners
                             documentsService.fetchDocumentsInFolder(userId: userId, folderId: folder.id)
                             documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: folder.id)
                         },
                         onBack: {
+                            // Stop current folder listeners
+                            documentsService.stopListeningToFolder()
+                            
                             // Navigate to parent folder
                             if folderHierarchy.count > 1 {
                                 // Go to parent folder
@@ -227,7 +225,10 @@ struct DocumentsView: View {
                                     if currentPath.count > 1 {
                                         selectedFolderName = currentPath[currentPath.count - 2]
                                     }
+                                    // Fetch with real-time listeners
                                     documentsService.fetchDocumentsInFolder(userId: userId, folderId: parentId)
+                                    // Parent of this folder is the one before it in hierarchy
+                                    let grandParentId = folderHierarchy.count > 1 ? folderHierarchy[folderHierarchy.count - 2] : nil
                                     documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentId)
                                 } else {
                                     // Go back to root
@@ -235,7 +236,6 @@ struct DocumentsView: View {
                                     selectedFolderName = nil
                                     folderHierarchy = []
                                     pathFolderIds = [nil]
-                                    documentsService.stopListeningToFolder()
                                     documentsService.startListening(userId: userId, parentFolderId: nil)
                                 }
                             } else {
@@ -244,7 +244,6 @@ struct DocumentsView: View {
                                 selectedFolderName = nil
                                 folderHierarchy = []
                                 pathFolderIds = [nil]
-                                documentsService.stopListeningToFolder()
                                 documentsService.startListening(userId: userId, parentFolderId: nil)
                             }
                             withAnimation {
@@ -261,6 +260,22 @@ struct DocumentsView: View {
                         },
                         onUploadImage: {
                             showUploadImageSheet = true
+                        },
+                        onEditFolder: { folder in
+                            folderToEdit = folder
+                            showEditFolderSheet = true
+                        },
+                        onDeleteFolder: { folder in
+                            folderToDelete = folder
+                            showDeleteConfirmation = true
+                        },
+                        onEditDocument: { document in
+                            documentToEdit = document
+                            showEditDocumentSheet = true
+                        },
+                        onDeleteDocument: { document in
+                            documentToDelete = document
+                            showDeleteDocumentConfirmation = true
                         }
                     )
                 } else {
@@ -268,6 +283,11 @@ struct DocumentsView: View {
                     List {
                         ForEach(documentsService.folders) { folder in
                             FolderListRow(folder: folder) {
+                                // Stop current folder listeners before navigating (if in a folder)
+                                if selectedFolderId != nil {
+                                    documentsService.stopListeningToFolder()
+                                }
+                                
                                 selectedFolderId = folder.id
                                 selectedFolderName = folder.name
                                 if folderHierarchy.isEmpty {
@@ -280,6 +300,7 @@ struct DocumentsView: View {
                                 withAnimation {
                                     currentPath.append(folder.name)
                                 }
+                                // Fetch with real-time listeners
                                 documentsService.fetchDocumentsInFolder(userId: userId, folderId: folder.id)
                                 documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: folder.id)
                             }
@@ -318,7 +339,9 @@ struct DocumentsView: View {
                     userId: userId,
                     parentFolderId: currentLocationFolderId,
                     parentDepth: currentLocationDepth,
-                    isPresented: $showCreateFolderSheet
+                    isPresented: $showCreateFolderSheet,
+                    toastMessage: $toastMessage,
+                    toastType: $toastType
                 )
             }
             
@@ -328,7 +351,9 @@ struct DocumentsView: View {
                     documentsService: documentsService,
                     userId: userId,
                     folderId: currentLocationFolderId,
-                    isPresented: $showUploadDocumentSheet
+                    isPresented: $showUploadDocumentSheet,
+                    toastMessage: $toastMessage,
+                    toastType: $toastType
                 )
             }
             
@@ -338,7 +363,9 @@ struct DocumentsView: View {
                     documentsService: documentsService,
                     userId: userId,
                     folderId: currentLocationFolderId,
-                    isPresented: $showUploadImageSheet
+                    isPresented: $showUploadImageSheet,
+                    toastMessage: $toastMessage,
+                    toastType: $toastType
                 )
             }
             
@@ -387,12 +414,44 @@ struct DocumentsView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             
-            // FAB Removed - Moved to Header
+            // FAB Button (Center Bottom)
+            if !documentsService.folders.isEmpty || selectedFolderId != nil {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                showFabMenu.toggle()
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(showFabMenu ? Color.blue.opacity(0.8) : Color.blue)
+                                    .frame(width: 60, height: 60)
+                                    .shadow(color: Color.blue.opacity(0.4), radius: 10, x: 0, y: 5)
+                                
+                                Image(systemName: "plus")
+                                    .font(.system(size: 30, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .rotationEffect(.degrees(showFabMenu ? 135 : 0))
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding(.bottom, 30)
+                }
+            }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
+        .toast(message: $toastMessage, type: toastType)
         .onAppear {
             documentsService.startListening(userId: userId, parentFolderId: nil)
+            // Calculate storage size in background
+            DispatchQueue.global(qos: .utility).async {
+                documentsService.updateStorageSize(userId: userId, fileSize: 0, isAdd: false)
+            }
         }
         .sheet(isPresented: $showEditFolderSheet) {
             if let folder = folderToEdit {
@@ -400,7 +459,22 @@ struct DocumentsView: View {
                     documentsService: documentsService,
                     userId: userId,
                     folder: folder,
-                    isPresented: $showEditFolderSheet
+                    isPresented: $showEditFolderSheet,
+                    toastMessage: $toastMessage,
+                    toastType: $toastType
+                )
+            }
+        }
+        .sheet(isPresented: $showEditDocumentSheet) {
+            if let document = documentToEdit {
+                EditDocumentSheet(
+                    documentsService: documentsService,
+                    userId: userId,
+                    document: document,
+                    folderId: selectedFolderId,
+                    isPresented: $showEditDocumentSheet,
+                    toastMessage: $toastMessage,
+                    toastType: $toastType
                 )
             }
         }
@@ -420,12 +494,51 @@ struct DocumentsView: View {
                                 DispatchQueue.main.async {
                                     showDeleteConfirmation = false
                                     folderToDelete = nil
+                                    if success {
+                                        toastMessage = "Folder '\(folder.name)' deleted successfully"
+                                        toastType = .success
+                                    } else {
+                                        toastMessage = error ?? "Failed to delete folder"
+                                        toastType = .error
+                                    }
                                 }
                             }
                         },
                         onCancel: {
                             showDeleteConfirmation = false
                             folderToDelete = nil
+                        }
+                    )
+                    .zIndex(300)
+                }
+                
+                if showDeleteDocumentConfirmation, let document = documentToDelete {
+                    CustomActionModal(
+                        icon: "trash.fill",
+                        iconBgColor: .red,
+                        title: "Delete \(document.type == "image" ? "Image" : "Document")?",
+                        subtitle: nil,
+                        message: "Are you sure you want to delete '\(document.name)'? This action cannot be undone.",
+                        primaryButtonText: "Delete",
+                        primaryButtonColor: .red,
+                        onPrimaryAction: {
+                            documentsService.deleteDocument(userId: userId, documentId: document.id, folderId: selectedFolderId) { success, error in
+                                DispatchQueue.main.async {
+                                    showDeleteDocumentConfirmation = false
+                                    documentToDelete = nil
+                                    if success {
+                                        toastMessage = "\(document.type == "image" ? "Image" : "Document") '\(document.name)' deleted successfully"
+                                        toastType = .success
+                                    } else {
+                                        toastMessage = error ?? "Failed to delete \(document.type == "image" ? "image" : "document")"
+                                        toastType = .error
+                                    }
+                                }
+                            }
+                        },
+                        onCancel: {
+                            showDeleteDocumentConfirmation = false
+                            documentToDelete = nil
                         }
                     )
                     .zIndex(300)
@@ -484,21 +597,26 @@ struct DocumentsView: View {
             return
         }
         
+        // Stop current folder listeners before navigating
+        documentsService.stopListeningToFolder()
+        
         // Navigate to this folder
         selectedFolderId = folderId
         selectedFolderName = currentPath[index]
         
         // Update hierarchy and path to match the clicked breadcrumb
         folderHierarchy = Array(pathFolderIds[1...index].compactMap { $0 })
-        currentPath = Array(currentPath[0...index])
+        withAnimation {
+            currentPath = Array(currentPath[0...index])
+        }
         pathFolderIds = Array(pathFolderIds[0...index])
         
-        // Fetch data for this folder
+        // Fetch data for this folder with real-time listeners
         documentsService.fetchDocumentsInFolder(userId: userId, folderId: folderId)
         
-        // Determine parent folder ID for fetching subfolders
-        let parentFolderId = index > 1 ? pathFolderIds[index - 1] : nil
-        documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentFolderId)
+        // Determine parent folder ID for fetching subfolders (parent of current folder)
+        let parentFolderId = index > 0 ? pathFolderIds[index - 1] : nil
+        documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: folderId)
     }
 }
 
@@ -716,6 +834,8 @@ struct CreateFolderSheet: View {
     let parentFolderId: String?
     let parentDepth: Int
     @Binding var isPresented: Bool
+    @Binding var toastMessage: String?
+    @Binding var toastType: ToastType
     @State private var folderName: String = ""
     @State private var sheetOffset: CGFloat = 800
     @State private var iconScale: CGFloat = 0.5
@@ -792,6 +912,15 @@ struct CreateFolderSheet: View {
                     .focused($isFocused)
                     .padding(.horizontal, 25)
                     .submitLabel(.done)
+                    .onChange(of: folderName) { newValue in
+                        // Only allow alphanumeric, space, hyphen, and underscore
+                        let filtered = newValue.filter { char in
+                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                        }
+                        if folderName != filtered {
+                            folderName = filtered
+                        }
+                    }
                 
                 // Action Buttons
                 VStack(spacing: 15) {
@@ -801,11 +930,14 @@ struct CreateFolderSheet: View {
                         documentsService.createFolder(userId: userId, folderName: folderName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
                             DispatchQueue.main.async {
                                 if success {
+                                    toastMessage = "Folder '\(folderName)' created successfully"
+                                    toastType = .success
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                         isPresented = false
                                     }
                                 } else {
-                                    // Optionally show error, but close anyway
+                                    toastMessage = error ?? "Failed to create folder"
+                                    toastType = .error
                                     print("Error creating folder: \(error ?? "Unknown error")")
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                         isPresented = false
@@ -872,6 +1004,8 @@ struct UploadDocumentSheet: View {
     let userId: String
     let folderId: String?
     @Binding var isPresented: Bool
+    @Binding var toastMessage: String?
+    @Binding var toastType: ToastType
     @State private var isUploading = false
     @State private var errorMessage: String?
     @State private var sheetOffset: CGFloat = 800
@@ -902,64 +1036,66 @@ struct UploadDocumentSheet: View {
                     .padding(.bottom, 8)
                 
                 VStack(spacing: 24) {
-                    // Premium Animated Header
-                    VStack(spacing: 18) {
-                        // Premium Animated Icon
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 35)
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.blue,
-                                            Color.blue.opacity(0.8)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                    // Premium Animated Header - Hide during upload
+                    if !isUploading {
+                        VStack(spacing: 18) {
+                            // Premium Animated Icon
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 35)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.blue,
+                                                Color.blue.opacity(0.8)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
                                     )
-                                )
-                                .frame(width: 90, height: 90)
+                                    .frame(width: 90, height: 90)
+                                
+                                Image(systemName: "doc.text.fill")
+                                    .font(.system(size: 38, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            .scaleEffect(iconScale)
+                            .rotationEffect(.degrees(iconRotation))
+                            .padding(.top, 8)
                             
-                            Image(systemName: "doc.text.fill")
-                                .font(.system(size: 38, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                        .scaleEffect(iconScale)
-                        .rotationEffect(.degrees(iconRotation))
-                        .padding(.top, 8)
-                        
-                        VStack(spacing: 8) {
-                            Text("Upload Document")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.05, green: 0.07, blue: 0.2),
-                                            Color(red: 0.1, green: 0.12, blue: 0.25)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                            VStack(spacing: 8) {
+                                Text("Upload Document")
+                                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color(red: 0.05, green: 0.07, blue: 0.2),
+                                                Color(red: 0.1, green: 0.12, blue: 0.25)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                            
-                            Text("Select a file to securely upload\nto your documents.")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.gray.opacity(0.9),
-                                            Color.gray.opacity(0.7)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                                
+                                Text("Select a PDF file to securely upload\nto your documents.")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.gray.opacity(0.9),
+                                                Color.gray.opacity(0.7)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                                .multilineTextAlignment(.center)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
+                        .padding(.bottom, 8)
                     }
-                    .padding(.bottom, 8)
                     
                     if isUploading {
-                        // Loading State
+                        // Loading State - Show within sheet
                         VStack(spacing: 20) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .blue))
@@ -969,8 +1105,9 @@ struct UploadDocumentSheet: View {
                             Text("Uploading Document...")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(.gray.opacity(0.8))
+                                .padding(.top, 10)
                         }
-                        .frame(minHeight: 200)
+                        .frame(maxWidth: .infinity)
                         .padding(.bottom, 40)
                     } else if let error = errorMessage {
                         // Error State
@@ -1106,9 +1243,14 @@ struct UploadDocumentSheet: View {
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
-            .frame(maxHeight: .infinity, alignment: .bottom)
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.85, alignment: .bottom)
             .edgesIgnoringSafeArea(.bottom)
             .onAppear {
+                // Reset states when sheet appears
+                isUploading = false
+                errorMessage = nil
+                selectedFile = nil
+                
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     sheetOffset = 0
                 }
@@ -1123,7 +1265,7 @@ struct UploadDocumentSheet: View {
         .edgesIgnoringSafeArea(.all)
         .fileImporter(
             isPresented: $showDocumentPicker,
-            allowedContentTypes: [.item],
+            allowedContentTypes: [.pdf],
             allowsMultipleSelection: false
         ) { result in
             switch result {
@@ -1144,6 +1286,15 @@ struct UploadDocumentSheet: View {
         // Get file name from URL
         let fileName = url.lastPathComponent
         
+        // Validate file type - only PDFs allowed
+        let fileExtension = (fileName as NSString).pathExtension.lowercased()
+        guard fileExtension == "pdf" else {
+            isUploading = false
+            errorMessage = "Only PDF files are supported. Please select a PDF file."
+            print("Invalid file type: \(fileExtension)")
+            return
+        }
+        
         // Start security-scoped resource access
         guard url.startAccessingSecurityScopedResource() else {
             isUploading = false
@@ -1159,6 +1310,8 @@ struct UploadDocumentSheet: View {
             DispatchQueue.main.async {
                 isUploading = false
                 if success {
+                    toastMessage = "Document '\(fileName)' uploaded successfully"
+                    toastType = .success
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         isPresented = false
                     }
@@ -1179,6 +1332,8 @@ struct UploadImageSheet: View {
     let userId: String
     let folderId: String?
     @Binding var isPresented: Bool
+    @Binding var toastMessage: String?
+    @Binding var toastType: ToastType
     @State private var isUploading = false
     @State private var errorMessage: String?
     @State private var sheetOffset: CGFloat = 800
@@ -1189,15 +1344,6 @@ struct UploadImageSheet: View {
     
     var body: some View {
         ZStack {
-            // Dimmed background
-            Color.black.opacity(0.4)
-                .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
-            
             // Modal Content
             VStack(spacing: 0) {
                 // Premium Drag Handle
@@ -1208,64 +1354,66 @@ struct UploadImageSheet: View {
                     .padding(.bottom, 8)
                 
                 VStack(spacing: 24) {
-                    // Premium Animated Header
-                    VStack(spacing: 18) {
-                        // Premium Animated Icon
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 35)
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.cyan,
-                                            Color.cyan.opacity(0.8)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                    // Premium Animated Header - Hide during upload
+                    if !isUploading {
+                        VStack(spacing: 18) {
+                            // Premium Animated Icon
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 35)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.cyan,
+                                                Color.cyan.opacity(0.8)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
                                     )
-                                )
-                                .frame(width: 90, height: 90)
+                                    .frame(width: 90, height: 90)
+                                
+                                Image(systemName: "photo.fill")
+                                    .font(.system(size: 38, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            .scaleEffect(iconScale)
+                            .rotationEffect(.degrees(iconRotation))
+                            .padding(.top, 8)
                             
-                            Image(systemName: "photo.fill")
-                                .font(.system(size: 38, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                        .scaleEffect(iconScale)
-                        .rotationEffect(.degrees(iconRotation))
-                        .padding(.top, 8)
-                        
-                        VStack(spacing: 8) {
-                            Text("Upload Image")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.05, green: 0.07, blue: 0.2),
-                                            Color(red: 0.1, green: 0.12, blue: 0.25)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                            VStack(spacing: 8) {
+                                Text("Upload Image")
+                                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color(red: 0.05, green: 0.07, blue: 0.2),
+                                                Color(red: 0.1, green: 0.12, blue: 0.25)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                            
-                            Text("Select an image from your gallery\nto upload securely.")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.gray.opacity(0.9),
-                                            Color.gray.opacity(0.7)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                                
+                                Text("Select an image from your gallery\nto upload securely.")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.gray.opacity(0.9),
+                                                Color.gray.opacity(0.7)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                                .multilineTextAlignment(.center)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
+                        .padding(.bottom, 8)
                     }
-                    .padding(.bottom, 8)
                     
                     if isUploading {
-                        // Loading State
+                        // Loading State - Show within sheet
                         VStack(spacing: 20) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .cyan))
@@ -1275,8 +1423,9 @@ struct UploadImageSheet: View {
                             Text("Uploading Image...")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(.gray.opacity(0.8))
+                                .padding(.top, 10)
                         }
-                        .frame(minHeight: 200)
+                        .frame(maxWidth: .infinity)
                         .padding(.bottom, 40)
                     } else if let error = errorMessage {
                         // Error State
@@ -1412,9 +1561,14 @@ struct UploadImageSheet: View {
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
-            .frame(maxHeight: .infinity, alignment: .bottom)
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.85, alignment: .bottom)
             .edgesIgnoringSafeArea(.bottom)
             .onAppear {
+                // Reset states when sheet appears
+                isUploading = false
+                errorMessage = nil
+                selectedImage = nil
+                
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     sheetOffset = 0
                 }
@@ -1426,7 +1580,6 @@ struct UploadImageSheet: View {
             .transition(.move(edge: .bottom))
         }
         .zIndex(200)
-        .edgesIgnoringSafeArea(.all)
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage, isPresented: $showImagePicker)
         }
@@ -1441,7 +1594,17 @@ struct UploadImageSheet: View {
         isUploading = true
         errorMessage = nil
         
-        // Generate file name with timestamp
+        // Validate image - UIImagePickerController already ensures it's a valid image
+        // But we can double-check that we have valid image data
+        // Try JPEG first (smaller file size), then PNG
+        guard image.jpegData(compressionQuality: 0.8) != nil || image.pngData() != nil else {
+            isUploading = false
+            errorMessage = "Invalid image format. Please select a valid image (JPG, JPEG, PNG, or other supported format)."
+            print("Failed to convert image to data")
+            return
+        }
+        
+        // Generate file name with timestamp - use jpg extension (will be converted to JPEG in upload)
         let fileName = "image_\(Int(Date().timeIntervalSince1970)).jpg"
         
         // Upload image using DocumentsService
@@ -1449,6 +1612,8 @@ struct UploadImageSheet: View {
             DispatchQueue.main.async {
                 isUploading = false
                 if success {
+                    toastMessage = "Image '\(fileName)' uploaded successfully"
+                    toastType = .success
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         isPresented = false
                     }
@@ -1475,6 +1640,10 @@ struct FolderContentsView: View {
     let onCreateFolder: () -> Void
     let onUploadDocument: () -> Void
     let onUploadImage: () -> Void
+    let onEditFolder: (DocFolder) -> Void
+    let onDeleteFolder: (DocFolder) -> Void
+    let onEditDocument: (DocumentFile) -> Void
+    let onDeleteDocument: (DocumentFile) -> Void
     
     var body: some View {
         Group {
@@ -1511,6 +1680,23 @@ struct FolderContentsView: View {
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
                             .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                // Delete action
+                                Button(role: .destructive) {
+                                    onDeleteFolder(folder)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .tint(.red)
+                                
+                                // Edit action
+                                Button {
+                                    onEditFolder(folder)
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
                         }
                     }
                     
@@ -1521,6 +1707,23 @@ struct FolderContentsView: View {
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                                 .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    // Delete action
+                                    Button(role: .destructive) {
+                                        onDeleteDocument(document)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    .tint(.red)
+                                    
+                                    // Edit name action
+                                    Button {
+                                        onEditDocument(document)
+                                    } label: {
+                                        Label("Edit Name", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
                         }
                     }
                 }
@@ -1556,9 +1759,21 @@ struct DocumentListItem: View {
                     .fontWeight(.bold)
                     .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                 
-                Text(formatFileSize(document.size))
-                    .font(.caption)
-                    .foregroundColor(.gray)
+                HStack(spacing: 6) {
+                    Text(formatFileSize(document.size))
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    if let createdAt = document.createdAt {
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(.gray.opacity(0.5))
+                        
+                        Text(formatUploadDate(createdAt))
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
             }
             
             Spacer()
@@ -1578,6 +1793,42 @@ struct DocumentListItem: View {
         formatter.allowedUnits = [.useKB, .useMB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: Int64(bytes))
+    }
+    
+    func formatUploadDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // If date is today, show time
+        if calendar.isDateInToday(date) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        
+        // If date is yesterday
+        if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        }
+        
+        // If date is within the last week, show day name
+        if let days = calendar.dateComponents([.day], from: date, to: now).day, days < 7 {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE" // Day name
+            return formatter.string(from: date)
+        }
+        
+        // If date is within the same year, show month and day
+        if calendar.component(.year, from: date) == calendar.component(.year, from: now) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d" // Jan 15
+            return formatter.string(from: date)
+        }
+        
+        // Otherwise, show full date
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy" // Jan 15, 2024
+        return formatter.string(from: date)
     }
 }
 
@@ -1645,7 +1896,7 @@ struct DocumentGridItem: View {
             }
             
             Text(document.name)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -1665,6 +1916,8 @@ struct EditFolderSheet: View {
     let userId: String
     let folder: DocFolder
     @Binding var isPresented: Bool
+    @Binding var toastMessage: String?
+    @Binding var toastType: ToastType
     @State private var folderName: String = ""
     @State private var sheetOffset: CGFloat = 800
     @State private var iconScale: CGFloat = 0.5
@@ -1673,14 +1926,7 @@ struct EditFolderSheet: View {
     
     var body: some View {
         ZStack {
-            // Dimmed background
-            Color.black.opacity(0.4)
-                .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
+            // No dimmed background - keep background visible
             
             // Modal Content
             VStack(spacing: 20) {
@@ -1741,14 +1987,30 @@ struct EditFolderSheet: View {
                     .focused($isFocused)
                     .padding(.horizontal, 25)
                     .submitLabel(.done)
+                    .onChange(of: folderName) { newValue in
+                        // Only allow alphanumeric, space, hyphen, and underscore
+                        let filtered = newValue.filter { char in
+                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                        }
+                        if folderName != filtered {
+                            folderName = filtered
+                        }
+                    }
                 
                 // Action Buttons
                 VStack(spacing: 15) {
                     Button(action: {
                         documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName) { success, error in
-                            if success {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    isPresented = false
+                            DispatchQueue.main.async {
+                                if success {
+                                    toastMessage = "Folder renamed to '\(folderName)'"
+                                    toastType = .success
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        isPresented = false
+                                    }
+                                } else {
+                                    toastMessage = error ?? "Failed to update folder"
+                                    toastType = .error
                                 }
                             }
                         }
@@ -1801,6 +2063,175 @@ struct EditFolderSheet: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     isFocused = true
                 }
+            }
+            .transition(.move(edge: .bottom))
+        }
+        .zIndex(200)
+        .edgesIgnoringSafeArea(.all)
+    }
+}
+
+// MARK: - Edit Document Sheet
+struct EditDocumentSheet: View {
+    @ObservedObject var documentsService: DocumentsService
+    let userId: String
+    let document: DocumentFile
+    let folderId: String?
+    @Binding var isPresented: Bool
+    @Binding var toastMessage: String?
+    @Binding var toastType: ToastType
+    @State private var documentName: String = ""
+    @State private var sheetOffset: CGFloat = 800
+    @State private var iconScale: CGFloat = 0.5
+    @State private var iconRotation: Double = -180
+    @FocusState private var isFocused: Bool
+    
+    var body: some View {
+        ZStack {
+            // No dimmed background - keep background visible
+            
+            // Modal Content
+            VStack(spacing: 20) {
+                // Drag Handle
+                Capsule()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 40, height: 4)
+                    .padding(.top, 10)
+                
+                // Premium Animated Header Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    document.type == "image" ? Color.cyan.opacity(0.15) : Color.blue.opacity(0.15),
+                                    document.type == "image" ? Color.cyan.opacity(0.08) : Color.blue.opacity(0.08)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 60, height: 60)
+                    
+                    Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(document.type == "image" ? .cyan : .blue)
+                }
+                .scaleEffect(iconScale)
+                .rotationEffect(.degrees(iconRotation))
+                .padding(.top, 5)
+                
+                // Title & Subtitle
+                VStack(spacing: 8) {
+                    Text("Edit Name")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    
+                    Text("Update your \(document.type == "image" ? "image" : "document") name.")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal)
+                }
+                
+                // Input Field
+                TextField("\(document.type == "image" ? "Image" : "Document") Name", text: $documentName)
+                    .font(.headline)
+                    .padding()
+                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .focused($isFocused)
+                    .padding(.horizontal, 25)
+                    .submitLabel(.done)
+                    .onChange(of: documentName) { newValue in
+                        // Only allow alphanumeric, space, hyphen, and underscore
+                        let filtered = newValue.filter { char in
+                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                        }
+                        if documentName != filtered {
+                            documentName = filtered
+                        }
+                    }
+                
+                // Action Buttons
+                VStack(spacing: 15) {
+                    Button(action: {
+                        print("🔄 EditDocumentSheet: Updating document \(document.id) name from '\(document.name)' to '\(documentName)'")
+                        documentsService.updateDocumentName(userId: userId, documentId: document.id, newName: documentName.trimmingCharacters(in: .whitespacesAndNewlines)) { success, error in
+                            DispatchQueue.main.async {
+                                if success {
+                                    print("✅ EditDocumentSheet: Update successful")
+                                    toastMessage = "\(document.type == "image" ? "Image" : "Document") renamed to '\(documentName)'"
+                                    toastType = .success
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        isPresented = false
+                                    }
+                                } else {
+                                    print("❌ EditDocumentSheet: Update failed - \(error ?? "Unknown error")")
+                                    toastMessage = error ?? "Failed to update \(document.type == "image" ? "image" : "document") name"
+                                    toastType = .error
+                                }
+                            }
+                        }
+                    }) {
+                        Text("Save Changes")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || documentName.trimmingCharacters(in: .whitespacesAndNewlines) == document.name ? Color.gray.opacity(0.5) : (document.type == "image" ? Color.cyan : Color.blue))
+                            .cornerRadius(15)
+                    }
+                    .disabled(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || documentName.trimmingCharacters(in: .whitespacesAndNewlines) == document.name)
+                    
+                    Button(action: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            isPresented = false
+                        }
+                    }) {
+                        Text("Cancel")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    }
+                }
+                .padding(.horizontal, 25)
+                .padding(.bottom, 30)
+            }
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30)
+                        .fill(Color.white)
+                }
+            )
+            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
+            .offset(y: sheetOffset)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .edgesIgnoringSafeArea(.bottom)
+            .onAppear {
+                documentName = document.name
+                print("📝 EditDocumentSheet: Opened for document \(document.id) with name '\(document.name)'")
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    sheetOffset = 0
+                }
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
+                    iconScale = 1.0
+                    iconRotation = 0
+                }
+                // Auto focus
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isFocused = true
+                }
+            }
+            .onChange(of: documentName) { newValue in
+                print("📝 EditDocumentSheet: documentName changed to '\(newValue)'")
             }
             .transition(.move(edge: .bottom))
         }

@@ -3,6 +3,8 @@ import UIKit
 import FirebaseFirestore
 import FirebaseAuth
 import FirebaseStorage
+import CryptoKit
+import Security
 
 class AuthService: ObservableObject {
     @Published var isLoading = false
@@ -898,6 +900,31 @@ class NotificationService: ObservableObject {
             }
     }
     
+    func addNotification(userId: String, title: String, message: String, type: String = "alert", completion: ((Error?) -> Void)? = nil) {
+        // Simple date formatter for display sorting if needed, or use timestamp
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMM d, h:mm a"
+        let dateString = dateFormatter.string(from: Date())
+        
+        let data: [String: Any] = [
+            "title": title,
+            "message": message,
+            "type": type,
+            "date": dateString,
+            "isRead": false,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(userId).collection("notifications").addDocument(data: data) { error in
+            if let error = error {
+                print("🔴 NotificationService: Error adding notification: \(error.localizedDescription)")
+            } else {
+                print("🟢 NotificationService: Notification added")
+            }
+            completion?(error)
+        }
+    }
+    
     func stopListening() {
         listener?.remove()
         listener = nil
@@ -1216,10 +1243,14 @@ class DocumentsService: ObservableObject {
                     return DocFolder(id: doc.documentID, name: name, itemCount: itemCount, icon: icon, parentFolderId: parentFolderId, depth: depth)
                 }
                 
-                // Calculate totals
-                self?.totalDocuments = self?.folders.reduce(0) { $0 + $1.itemCount } ?? 0
-                // Mock storage calculation based on count for now
-                self?.usedStorageMB = Double(self?.totalDocuments ?? 0) * 1.5 
+                // Calculate totals from folders (itemCounts) - this is approximate
+                // Real count will be updated by updateStorageSize
+                let folderItemCount = self?.folders.reduce(0) { $0 + $1.itemCount } ?? 0
+                
+                // Update storage size in background (non-blocking) - this will also update totalDocuments accurately
+                DispatchQueue.global(qos: .utility).async {
+                    self?.updateStorageSize(userId: userId, fileSize: 0, isAdd: false)
+                } 
                 
                 self?.error = nil
                 print("🟢 DocumentsService: Synced \(self?.folders.count ?? 0) folders")
@@ -1253,19 +1284,42 @@ class DocumentsService: ObservableObject {
         }
         
         folderDocumentsListener = query.order(by: "createdAt", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
+            .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, error in
                 if let error = error {
                     print("🔴 DocumentsService Folder Documents Error: \(error.localizedDescription)")
                     self?.error = error.localizedDescription
                     return
                 }
                 
-                guard let documents = snapshot?.documents else {
-                    self?.currentFolderDocuments = []
+                guard let snapshot = snapshot else {
+                    print("⚠️ DocumentsService: No snapshot received")
+                    DispatchQueue.main.async {
+                        self?.currentFolderDocuments = []
+                    }
                     return
                 }
                 
-                self?.currentFolderDocuments = documents.compactMap { doc -> DocumentFile? in
+                // Check if this is the initial load or an update
+                let isInitialLoad = snapshot.metadata.isFromCache && !snapshot.metadata.hasPendingWrites
+                let hasChanges = snapshot.documentChanges.count > 0
+                print("📂 DocumentsService: Snapshot received - \(snapshot.documents.count) documents, \(snapshot.documentChanges.count) changes (fromCache: \(snapshot.metadata.isFromCache), hasPendingWrites: \(snapshot.metadata.hasPendingWrites))")
+                
+                // Log document changes for debugging
+                for change in snapshot.documentChanges {
+                    let doc = change.document
+                    let data = doc.data()
+                    let name = data["name"] as? String ?? "Unnamed"
+                    switch change.type {
+                    case .added:
+                        print("➕ DocumentsService: Document added - ID: \(doc.documentID), Name: \(name)")
+                    case .modified:
+                        print("✏️ DocumentsService: Document modified - ID: \(doc.documentID), Name: \(name)")
+                    case .removed:
+                        print("🗑️ DocumentsService: Document removed - ID: \(doc.documentID), Name: \(name)")
+                    }
+                }
+                
+                let documents = snapshot.documents.compactMap { doc -> DocumentFile? in
                     let data = doc.data()
                     let name = data["name"] as? String ?? "Unnamed"
                     let type = data["type"] as? String ?? "document"
@@ -1284,7 +1338,10 @@ class DocumentsService: ObservableObject {
                     )
                 }
                 
-                print("🟢 DocumentsService: Loaded \(self?.currentFolderDocuments.count ?? 0) documents in folder")
+                DispatchQueue.main.async {
+                    self?.currentFolderDocuments = documents
+                    print("🟢 DocumentsService: Updated \(documents.count) documents in folder (UI updated on main thread)")
+                }
             }
     }
     
@@ -1339,19 +1396,63 @@ class DocumentsService: ObservableObject {
     
     // MARK: - Create Folder
     func createFolder(userId: String, folderName: String, parentFolderId: String?, parentDepth: Int, maxDepth: Int, completion: @escaping (Bool, String?) -> Void) {
-        print("📁 DocumentsService: Creating folder '\(folderName)' for user \(userId), parent: \(parentFolderId ?? "root"), depth: \(parentDepth + 1)")
+        print("📁 DocumentsService: Creating folder '\(folderName)' for user \(userId), parent: \(parentFolderId ?? "root")")
         
-        // Check depth limit
-        if parentDepth + 1 >= maxDepth {
-            completion(false, "Maximum folder nesting depth (\(maxDepth)) reached")
-            return
+        // First, get the actual parent folder depth from Firestore to verify nesting limit
+        if let parentId = parentFolderId {
+            // Fetch parent folder to get its actual depth
+            db.collection("users").document(userId).collection("folders").document(parentId).getDocument { [weak self] snapshot, error in
+                guard let self = self else {
+                    completion(false, "Service unavailable")
+                    return
+                }
+                
+                if let error = error {
+                    print("🔴 DocumentsService: Error fetching parent folder: \(error.localizedDescription)")
+                    completion(false, "Failed to verify folder depth: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let data = snapshot?.data() else {
+                    completion(false, "Parent folder not found")
+                    return
+                }
+                
+                let actualParentDepth = data["depth"] as? Int ?? 0
+                let newDepth = actualParentDepth + 1
+                
+                print("📁 DocumentsService: Parent folder depth: \(actualParentDepth), new folder depth will be: \(newDepth), maxDepth: \(maxDepth)")
+                
+                // Check depth limit based on actual parent depth
+                if newDepth >= maxDepth {
+                    completion(false, "Maximum folder nesting depth (\(maxDepth)) reached. Cannot create folder at this level.")
+                    return
+                }
+                
+                // Proceed with folder creation
+                self.createFolderWithDepth(userId: userId, folderName: folderName, parentFolderId: parentId, depth: newDepth, completion: completion)
+            }
+        } else {
+            // Root level folder - depth will be 0
+            let newDepth = 0
+            print("📁 DocumentsService: Creating root folder, depth: \(newDepth), maxDepth: \(maxDepth)")
+            
+            if newDepth >= maxDepth {
+                completion(false, "Maximum folder nesting depth (\(maxDepth)) reached")
+                return
+            }
+            
+            createFolderWithDepth(userId: userId, folderName: folderName, parentFolderId: nil, depth: newDepth, completion: completion)
         }
-        
+    }
+    
+    // MARK: - Create Folder With Depth (Internal helper)
+    private func createFolderWithDepth(userId: String, folderName: String, parentFolderId: String?, depth: Int, completion: @escaping (Bool, String?) -> Void) {
         var data: [String: Any] = [
             "name": folderName,
             "itemCount": 0,
             "icon": "folder",
-            "depth": parentDepth + 1,
+            "depth": depth,
             "createdAt": FieldValue.serverTimestamp()
         ]
         
@@ -1366,7 +1467,15 @@ class DocumentsService: ObservableObject {
                 print("🔴 DocumentsService Create Folder Error: \(error.localizedDescription)")
                 completion(false, error.localizedDescription)
             } else {
-                print("🟢 DocumentsService: Folder '\(folderName)' created successfully")
+                print("🟢 DocumentsService: Folder '\(folderName)' created successfully at depth \(depth)")
+                
+                // Update parent folder itemCount in background (non-blocking)
+                if let parentId = parentFolderId {
+                    DispatchQueue.global(qos: .utility).async {
+                        self?.updateFolderItemCount(userId: userId, folderId: parentId)
+                    }
+                }
+                
                 completion(true, nil)
             }
         }
@@ -1393,13 +1502,25 @@ class DocumentsService: ObservableObject {
     func deleteFolder(userId: String, folderId: String, completion: @escaping (Bool, String?) -> Void) {
         print("🗑️ DocumentsService: Deleting folder \(folderId)")
         
-        db.collection("users").document(userId).collection("folders").document(folderId).delete { error in
-            if let error = error {
-                print("🔴 DocumentsService Delete Folder Error: \(error.localizedDescription)")
-                completion(false, error.localizedDescription)
-            } else {
-                print("🟢 DocumentsService: Folder deleted successfully")
-                completion(true, nil)
+        // First, get the parent folder ID to update its itemCount
+        db.collection("users").document(userId).collection("folders").document(folderId).getDocument { [weak self] snapshot, error in
+            guard let self = self else { return }
+            
+            let parentFolderId = snapshot?.data()?["parentFolderId"] as? String
+            
+            // Delete the folder
+            self.db.collection("users").document(userId).collection("folders").document(folderId).delete { error in
+                if let error = error {
+                    print("🔴 DocumentsService Delete Folder Error: \(error.localizedDescription)")
+                    completion(false, error.localizedDescription)
+                } else {
+                    print("🟢 DocumentsService: Folder deleted successfully")
+                    // Update parent folder itemCount if it exists
+                    if let parentId = parentFolderId {
+                        self.updateFolderItemCount(userId: userId, folderId: parentId)
+                    }
+                    completion(true, nil)
+                }
             }
         }
     }
@@ -1416,7 +1537,7 @@ class DocumentsService: ObservableObject {
         }
         
         let storage = Storage.storage()
-        let fileRef = storage.reference().child("documents/\(storageUserId)/\(UUID().uuidString)_\(fileName)")
+        let fileRef = storage.reference().child("users/\(storageUserId)/documents/\(UUID().uuidString)_\(fileName)")
         
         fileRef.putFile(from: fileURL, metadata: nil) { [weak self] metadata, error in
             if let error = error {
@@ -1451,12 +1572,23 @@ class DocumentsService: ObservableObject {
                     data["folderId"] = NSNull()
                 }
                 
-                self?.db.collection("users").document(userId).collection("documents").addDocument(data: data) { error in
+                self?.db.collection("users").document(userId).collection("documents").addDocument(data: data) { [weak self] error in
                     if let error = error {
                         print("🔴 DocumentsService Save Document Metadata Error: \(error.localizedDescription)")
                         completion(false, error.localizedDescription)
                     } else {
                         print("🟢 DocumentsService: Document '\(fileName)' uploaded successfully")
+                        let fileSize = Int64(metadata?.size ?? 0)
+                        
+                        // Update folder itemCount and storage in background (non-blocking)
+                        DispatchQueue.global(qos: .utility).async {
+                            if let folderId = folderId {
+                                self?.updateFolderItemCount(userId: userId, folderId: folderId)
+                            }
+                            // Update centralized storage size
+                            self?.updateStorageSize(userId: userId, fileSize: fileSize, isAdd: true)
+                        }
+                        
                         completion(true, nil)
                     }
                 }
@@ -1481,7 +1613,7 @@ class DocumentsService: ObservableObject {
         }
         
         let storage = Storage.storage()
-        let fileRef = storage.reference().child("images/\(storageUserId)/\(UUID().uuidString)_\(fileName)")
+        let fileRef = storage.reference().child("users/\(storageUserId)/images/\(UUID().uuidString)_\(fileName)")
         
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
@@ -1519,16 +1651,328 @@ class DocumentsService: ObservableObject {
                     data["folderId"] = NSNull()
                 }
                 
-                self?.db.collection("users").document(userId).collection("documents").addDocument(data: data) { error in
+                self?.db.collection("users").document(userId).collection("documents").addDocument(data: data) { [weak self] error in
                     if let error = error {
                         print("🔴 DocumentsService Save Image Metadata Error: \(error.localizedDescription)")
                         completion(false, error.localizedDescription)
                     } else {
                         print("🟢 DocumentsService: Image '\(fileName)' uploaded successfully")
+                        let fileSize = Int64(imageData.count)
+                        
+                        // Update folder itemCount and storage in background (non-blocking)
+                        DispatchQueue.global(qos: .utility).async {
+                            if let folderId = folderId {
+                                self?.updateFolderItemCount(userId: userId, folderId: folderId)
+                            }
+                            // Update centralized storage size
+                            self?.updateStorageSize(userId: userId, fileSize: fileSize, isAdd: true)
+                        }
+                        
                         completion(true, nil)
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Update Folder Item Count (Recursive - updates folder and all parents)
+    private func updateFolderItemCount(userId: String, folderId: String) {
+        // Count both documents and folders in this folder
+        let documentsRef = db.collection("users").document(userId).collection("documents")
+        let foldersRef = db.collection("users").document(userId).collection("folders")
+        
+        // Count documents
+        documentsRef.whereField("folderId", isEqualTo: folderId).getDocuments { [weak self] documentsSnapshot, documentsError in
+            guard let self = self else { return }
+            
+            if let documentsError = documentsError {
+                print("🔴 DocumentsService: Error counting documents in folder: \(documentsError.localizedDescription)")
+                return
+            }
+            
+            let documentsCount = documentsSnapshot?.documents.count ?? 0
+            
+            // Count folders (subfolders)
+            foldersRef.whereField("parentFolderId", isEqualTo: folderId).getDocuments { [weak self] foldersSnapshot, foldersError in
+                guard let self = self else { return }
+                
+                if let foldersError = foldersError {
+                    print("🔴 DocumentsService: Error counting folders in folder: \(foldersError.localizedDescription)")
+                    return
+                }
+                
+                let foldersCount = foldersSnapshot?.documents.count ?? 0
+                let totalCount = documentsCount + foldersCount
+                
+                // Update folder itemCount
+                self.db.collection("users").document(userId).collection("folders").document(folderId).updateData([
+                    "itemCount": totalCount
+                ]) { error in
+                    if let error = error {
+                        print("🔴 DocumentsService: Error updating folder itemCount: \(error.localizedDescription)")
+                    } else {
+                        print("🟢 DocumentsService: Updated folder \(folderId) itemCount to \(totalCount) (documents: \(documentsCount), folders: \(foldersCount))")
+                        
+                        // Get parent folder and recursively update it
+                        self.db.collection("users").document(userId).collection("folders").document(folderId).getDocument { snapshot, error in
+                            if let error = error {
+                                print("🔴 DocumentsService: Error getting folder parent: \(error.localizedDescription)")
+                                return
+                            }
+                            
+                            guard let data = snapshot?.data(),
+                                  let parentFolderId = data["parentFolderId"] as? String else {
+                                // No parent folder (reached root), stop recursion
+                                print("🟢 DocumentsService: Reached root, itemCount update complete")
+                                return
+                            }
+                            
+                            // Recursively update parent folder
+                            print("📂 DocumentsService: Updating parent folder \(parentFolderId)")
+                            self.updateFolderItemCount(userId: userId, folderId: parentFolderId)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Update Folder Item Count for Root (when folderId is nil)
+    private func updateRootFolderItemCount(userId: String) {
+        // Count documents in root (where folderId is NSNull)
+        let documentsRef = db.collection("users").document(userId).collection("documents")
+        documentsRef.whereField("folderId", isEqualTo: NSNull()).getDocuments { snapshot, error in
+            if let error = error {
+                print("🔴 DocumentsService: Error counting root documents: \(error.localizedDescription)")
+                return
+            }
+            
+            let count = snapshot?.documents.count ?? 0
+            print("🟢 DocumentsService: Root folder has \(count) documents (no folder itemCount to update for root)")
+        }
+    }
+    
+    // MARK: - Update Storage Size
+    func updateStorageSize(userId: String, fileSize: Int64, isAdd: Bool) {
+        // Get all documents and calculate total storage
+        let documentsRef = db.collection("users").document(userId).collection("documents")
+        documentsRef.getDocuments { [weak self] snapshot, error in
+            guard let self = self else { return }
+            if let error = error {
+                print("🔴 DocumentsService: Error calculating storage size: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                // No documents, set storage to 0
+                DispatchQueue.main.async {
+                    self.usedStorageMB = 0.0
+                    self.totalDocuments = 0
+                }
+                return
+            }
+            
+            // Calculate total size in bytes
+            var totalSizeBytes: Int64 = 0
+            for doc in documents {
+                if let size = doc.data()["size"] as? Int64 {
+                    totalSizeBytes += size
+                } else if let size = doc.data()["size"] as? Int {
+                    totalSizeBytes += Int64(size)
+                }
+            }
+            
+            // Convert to MB
+            let totalSizeMB = Double(totalSizeBytes) / (1024.0 * 1024.0)
+            
+            // Update on main thread
+            DispatchQueue.main.async {
+                self.usedStorageMB = totalSizeMB
+                self.totalDocuments = documents.count
+                print("🟢 DocumentsService: Updated storage size to \(String(format: "%.2f", totalSizeMB)) MB (\(documents.count) files)")
+            }
+        }
+    }
+    
+    // MARK: - Update Document/Image Name
+    func updateDocumentName(userId: String, documentId: String, newName: String, completion: @escaping (Bool, String?) -> Void) {
+        let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            print("🔴 DocumentsService: Cannot update document name to empty string")
+            completion(false, "Document name cannot be empty")
+            return
+        }
+        
+        print("✏️ DocumentsService: Updating document \(documentId) name to '\(trimmedName)'")
+        
+        db.collection("users").document(userId).collection("documents").document(documentId).updateData([
+            "name": trimmedName,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]) { error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("🔴 DocumentsService Update Document Name Error: \(error.localizedDescription)")
+                    completion(false, error.localizedDescription)
+                } else {
+                    print("🟢 DocumentsService: Document name updated successfully to '\(trimmedName)'")
+                    // The real-time listener will automatically pick up this change
+                    // Small delay to ensure Firestore propagates the change
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        completion(true, nil)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Delete Document/Image
+    func deleteDocument(userId: String, documentId: String, folderId: String?, completion: @escaping (Bool, String?) -> Void) {
+        print("🗑️ DocumentsService: Deleting document \(documentId)")
+        
+        // Get document data to get file size and storage path
+        db.collection("users").document(userId).collection("documents").document(documentId).getDocument { [weak self] snapshot, error in
+            guard let self = self else {
+                completion(false, "Service unavailable")
+                return
+            }
+            
+            if let error = error {
+                print("🔴 DocumentsService: Error getting document: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+                return
+            }
+            
+            guard let data = snapshot?.data() else {
+                completion(false, "Document not found")
+                return
+            }
+            
+            let fileSize = (data["size"] as? Int64) ?? (data["size"] as? Int).map { Int64($0) } ?? 0
+            let storageUrl = data["url"] as? String ?? ""
+            
+            // Delete from Firestore
+            self.db.collection("users").document(userId).collection("documents").document(documentId).delete { error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("🔴 DocumentsService Delete Document Error: \(error.localizedDescription)")
+                        completion(false, error.localizedDescription)
+                    } else {
+                        print("🟢 DocumentsService: Document deleted successfully")
+                        // The real-time listener will automatically pick up this deletion
+                        
+                        // Delete from Firebase Storage in background
+                        if !storageUrl.isEmpty {
+                            let storageRef = Storage.storage().reference(forURL: storageUrl)
+                            storageRef.delete { error in
+                                if let error = error {
+                                    print("⚠️ DocumentsService: Error deleting storage file: \(error.localizedDescription)")
+                                } else {
+                                    print("🟢 DocumentsService: Storage file deleted successfully")
+                                }
+                            }
+                        }
+                        
+                        // Update folder itemCount and storage in background (non-blocking)
+                        DispatchQueue.global(qos: .utility).async {
+                            if let folderId = folderId {
+                                self.updateFolderItemCount(userId: userId, folderId: folderId)
+                            } else {
+                                self.updateRootFolderItemCount(userId: userId)
+                            }
+                            // Update centralized storage size
+                            self.updateStorageSize(userId: userId, fileSize: fileSize, isAdd: false)
+                        }
+                        
+                        // Small delay to ensure Firestore propagates the deletion
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            completion(true, nil)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Crypto Service
+class CryptoService {
+    static let shared = CryptoService()
+    private let keychainTag = "com.docLock.keys.dataEncryptionKey"
+    
+    private init() {}
+    
+    // MARK: - Key Management
+    private func getOrGenerateKey() -> SymmetricKey {
+        if let keyData = retrieveKeyFromKeychain() {
+            return SymmetricKey(data: keyData)
+        } else {
+            let newKey = SymmetricKey(size: .bits256)
+            saveKeyToKeychain(key: newKey)
+            return newKey
+        }
+    }
+    
+    private func saveKeyToKeychain(key: SymmetricKey) {
+        let keyData = key.withUnsafeBytes { Data($0) }
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: keychainTag.data(using: .utf8)!,
+            kSecValueData as String: keyData,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock // Secure access
+        ]
+        
+        SecItemAdd(query as CFDictionary, nil)
+    }
+    
+    private func retrieveKeyFromKeychain() -> Data? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: keychainTag.data(using: .utf8)!,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var dataTypeRef: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
+        
+        if status == errSecSuccess {
+            return dataTypeRef as? Data
+        }
+        return nil
+    }
+    
+    // MARK: - Encryption / Decryption
+    
+    /// Encrypts a string using AES-GCM.
+    /// Returns a Base64 encoded string of the combined sealed box (Nonce + Ciphertext + Tag).
+    func encrypt(_ text: String) -> String? {
+        guard let data = text.data(using: .utf8) else { return nil }
+        let key = getOrGenerateKey()
+        
+        do {
+            // AES-GCM provides authentication (Tag) ensuring data integrity.
+            // It automatically generates a unique Nonce for every encryption call.
+            let sealedBox = try AES.GCM.seal(data, using: key)
+            return sealedBox.combined?.base64EncodedString()
+        } catch {
+            print("Encryption Error: \(error)")
+            return nil
+        }
+    }
+    
+    /// Decrypts a Base64 encoded string using AES-GCM.
+    func decrypt(_ base64String: String) -> String? {
+        guard let data = Data(base64Encoded: base64String) else { return nil }
+        let key = getOrGenerateKey()
+        
+        do {
+            let sealedBox = try AES.GCM.SealedBox(combined: data)
+            let decryptedData = try AES.GCM.open(sealedBox, using: key)
+            return String(data: decryptedData, encoding: .utf8)
+        } catch {
+            print("Decryption Error: \(error)")
+            return nil // Failed to decrypt (Key mismatch or Tampered data)
         }
     }
 }
@@ -1557,18 +2001,24 @@ class CardsService: ObservableObject {
                 self?.cards = documents.compactMap { doc -> CardModel? in
                     let data = doc.data()
                     guard let typeString = data["type"] as? String,
-                          let name = data["cardName"] as? String,
-                          let number = data["cardNumber"] as? String,
-                          let holder = data["cardHolder"] as? String,
-                          let expiry = data["expiry"] as? String,
-                          let cvv = data["cvv"] as? String else { return nil }
+                          let name = data["cardName"] as? String else { return nil }
+                    
+                    let holder = data["cardHolder"] as? String ?? ""
+                    
+                    // Decrypt sensitive data
+                    let rawNumber = data["cardNumber"] as? String ?? ""
+                    let rawCVV = data["cvv"] as? String ?? ""
+                    let rawExpiry = data["expiry"] as? String ?? ""
+                    
+                    // Attempt decryption, fallback to raw if fail
+                    let number = CryptoService.shared.decrypt(rawNumber) ?? rawNumber
+                    let cvv = CryptoService.shared.decrypt(rawCVV) ?? rawCVV
+                    let expiry = CryptoService.shared.decrypt(rawExpiry) ?? rawExpiry
                     
                     let type: CardType = (typeString == "Debit Card") ? .debit : .credit
                     
-                    // Colors - Using simplified logic for now as storing Color in Firestore is complex
-                    // Ideally we store color hex codes
                     return CardModel(
-                        id: UUID(), // Or use doc.documentID
+                        id: doc.documentID,
                         type: type,
                         cardName: name,
                         cardNumber: number,
@@ -1583,6 +2033,80 @@ class CardsService: ObservableObject {
                 self?.error = nil
                 print("🟢 CardsService: Synced \(self?.cards.count ?? 0) cards")
             }
+    }
+    
+    func addCard(userId: String, card: CardModel, completion: @escaping (Bool, String?) -> Void) {
+        guard let encNumber = CryptoService.shared.encrypt(card.cardNumber),
+              let encCVV = CryptoService.shared.encrypt(card.cvv) else {
+            completion(false, "Encryption failed")
+            return
+        }
+        
+        // Optionally encrypt expiry as well if desired, but user focused on sensitive data. 
+        // Let's encrypt expiry too for good measure.
+        let encExpiry = CryptoService.shared.encrypt(card.expiry) ?? card.expiry
+        
+        let data: [String: Any] = [
+            "type": card.type.rawValue,
+            "cardName": card.cardName,
+            "cardNumber": encNumber,
+            "cardHolder": card.cardHolder, // Usually not encrypted for search, but can be
+            "expiry": encExpiry,
+            "cvv": encCVV,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(userId).collection("cards").addDocument(data: data) { error in
+            if let error = error {
+                print("🔴 CardsService Add Error: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                print("🟢 CardsService: Card added")
+                completion(true, nil)
+            }
+        }
+    }
+    
+    func updateCard(userId: String, cardId: String, card: CardModel, completion: @escaping (Bool, String?) -> Void) {
+        guard let encNumber = CryptoService.shared.encrypt(card.cardNumber),
+              let encCVV = CryptoService.shared.encrypt(card.cvv) else {
+            completion(false, "Encryption failed")
+            return
+        }
+        
+        let encExpiry = CryptoService.shared.encrypt(card.expiry) ?? card.expiry
+        
+        let data: [String: Any] = [
+            "type": card.type.rawValue,
+            "cardName": card.cardName,
+            "cardNumber": encNumber,
+            "cardHolder": card.cardHolder,
+            "expiry": encExpiry,
+            "cvv": encCVV,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(userId).collection("cards").document(cardId).updateData(data) { error in
+            if let error = error {
+                print("🔴 CardsService Update Error: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                print("🟢 CardsService: Card updated")
+                completion(true, nil)
+            }
+        }
+    }
+    
+    func deleteCard(userId: String, cardId: String, completion: @escaping (Bool, String?) -> Void) {
+        db.collection("users").document(userId).collection("cards").document(cardId).delete { error in
+            if let error = error {
+                print("🔴 CardsService Delete Error: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                print("🟢 CardsService: Card deleted")
+                completion(true, nil)
+            }
+        }
     }
     
     func stopListening() {
