@@ -24,7 +24,7 @@ struct CustomTabBar: View {
                 icon: "person.2.fill",
                 text: "Friends",
                 isSelected: selectedTab == "Friends",
-                color: Color.orange,
+                color: Color(hex: "BF092F"),
                 namespace: animation
             ) {
                 withAnimation(.spring()) {

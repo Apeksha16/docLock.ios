@@ -25,22 +25,22 @@ struct AddFriendView: View {
             // So: Search View is the BASE. Confirmation is the OVERLAY.
             
             VStack(spacing: 0) {
-                 // Decorative Background Pops
+                // Decorative Background Pops
                  GeometryReader { geometry in
                      Circle()
-                         .fill(Color.orange.opacity(0.15))
+                         .fill(Color(hex: "BF092F").opacity(0.15))
                          .frame(width: 150, height: 150)
                          .position(x: 50, y: 100)
                          .blur(radius: 20)
                      
                      Circle()
-                         .fill(Color.yellow.opacity(0.2))
+                         .fill(Color(hex: "BF092F").opacity(0.1))
                          .frame(width: 200, height: 200)
                          .position(x: geometry.size.width - 20, y: 50)
                          .blur(radius: 30)
                          
                      Circle()
-                         .fill(Color.orange.opacity(0.1))
+                         .fill(Color(hex: "BF092F").opacity(0.05))
                          .frame(width: 100, height: 100)
                          .position(x: geometry.size.width / 2, y: geometry.size.height - 100)
                          .blur(radius: 15)
@@ -68,7 +68,7 @@ struct AddFriendView: View {
                                 .frame(width: 56, height: 56)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color(red: 0.3, green: 0.2, blue: 0.9).opacity(0.3), lineWidth: 1)
+                                        .stroke(Color.gray.opacity(0.1), lineWidth: 1)
                                 )
                             
                             Image(systemName: "arrow.left")
@@ -92,7 +92,7 @@ struct AddFriendView: View {
                 // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 30)
-                        .fill(Color.orange)
+                        .fill(Color(hex: "BF092F"))
                         .frame(width: 80, height: 80)
                     
                     Image(systemName: "person.badge.plus")
@@ -171,7 +171,7 @@ struct AddFriendView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.orange)
+                    .background(Color(hex: "BF092F"))
                     .cornerRadius(15)
                 }
                 .padding(.horizontal, 30)
@@ -185,19 +185,19 @@ struct AddFriendView: View {
                     // Decorative Pops
                     GeometryReader { proxy in
                         Circle()
-                            .fill(Color.orange.opacity(0.15))
+                            .fill(Color(hex: "BF092F").opacity(0.15))
                             .frame(width: 150, height: 150)
                             .position(x: 50, y: 100)
                             .blur(radius: 20)
                         
                         Circle()
-                            .fill(Color.yellow.opacity(0.2))
+                            .fill(Color(hex: "BF092F").opacity(0.1))
                             .frame(width: 200, height: 200)
                             .position(x: proxy.size.width - 20, y: 50)
                             .blur(radius: 30)
                             
                         Circle()
-                             .fill(Color.orange.opacity(0.1))
+                             .fill(Color(hex: "BF092F").opacity(0.05))
                              .frame(width: 120, height: 120)
                              .position(x: proxy.size.width * 0.8, y: proxy.size.height * 0.6)
                              .blur(radius: 40)
@@ -287,7 +287,7 @@ struct AddFriendView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.orange)
+                        .background(Color(hex: "BF092F"))
                         .cornerRadius(15)
                         .padding(.horizontal, 30)
                         .disabled(isLoading)
@@ -324,12 +324,12 @@ struct AddFriendView: View {
             if showAlert {
                  CustomActionModal(
                      icon: "exclamationmark.triangle.fill",
-                     iconBgColor: .orange,
+                     iconBgColor: Color(hex: "BF092F"),
                      title: "Notice",
                      subtitle: nil,
                      message: alertMessage,
                      primaryButtonText: "Okay",
-                     primaryButtonColor: .orange,
+                     primaryButtonColor: Color(hex: "BF092F"),
                      onPrimaryAction: {
                          withAnimation {
                              showAlert = false

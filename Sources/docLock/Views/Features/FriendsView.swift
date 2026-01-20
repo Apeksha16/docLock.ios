@@ -37,8 +37,8 @@ struct FriendsView: View {
                         .fill(
                             RadialGradient(
                                 gradient: Gradient(colors: [
-                                    Color.orange.opacity(hasAppeared ? 0.15 : 0.05),
-                                    Color.orange.opacity(hasAppeared ? 0.08 : 0.03),
+                                    Color(hex: "BF092F").opacity(hasAppeared ? 0.15 : 0.05),
+                                    Color(hex: "BF092F").opacity(hasAppeared ? 0.08 : 0.03),
                                     Color.clear
                                 ]),
                                 center: .center,
@@ -123,41 +123,19 @@ struct FriendsView: View {
                                     .fill(
                                         LinearGradient(
                                             gradient: Gradient(colors: [
-                                                Color.white,
-                                                Color(red: 0.99, green: 0.98, blue: 0.98)
+                                                Color(hex: "BF092F"),
+                                                Color(hex: "BF092F").opacity(0.8)
                                             ]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
                                     .frame(width: 60, height: 60)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .stroke(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        Color.orange.opacity(0.4),
-                                                        Color.orange.opacity(0.2)
-                                                    ]),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 2
-                                            )
-                                    )
+                                    .shadow(color: Color(hex: "BF092F").opacity(0.3), radius: 10, x: 0, y: 5)
                                 
                                 Image(systemName: "plus")
                                     .font(.system(size: 26, weight: .bold))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.orange,
-                                                Color.orange.opacity(0.8)
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
+                                    .foregroundColor(.white)
                             }
                             .scaleEffect(addButtonScale)
                         }
@@ -241,8 +219,8 @@ struct FriendsView: View {
                             .foregroundStyle(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
-                                        Color.orange,
-                                        Color.orange.opacity(0.7)
+                                        Color(hex: "BF092F"),
+                                        Color(hex: "BF092F").opacity(0.7)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -256,7 +234,7 @@ struct FriendsView: View {
                                 LinearGradient(
                                     gradient: Gradient(colors: [
                                         Color.yellow.opacity(0.4),
-                                        Color.orange.opacity(0.2)
+                                        Color(hex: "BF092F").opacity(0.2)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -268,7 +246,7 @@ struct FriendsView: View {
                             .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
                         
                         Circle()
-                            .fill(Color.orange.opacity(0.2))
+                            .fill(Color(hex: "BF092F").opacity(0.2))
                             .frame(width: 30, height: 30)
                             .offset(x: 100, y: -70)
                             .scaleEffect(hasAppeared ? 1 : 0.5)
@@ -494,7 +472,7 @@ struct FriendListRow: View {
             // Avatar Icon (similar to notification icon style)
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.orange.opacity(0.15))
+                    .fill(Color(hex: "BF092F").opacity(0.15))
                     .frame(width: 50, height: 50)
                 
                 AsyncImage(url: URL(string: friend.profileImageUrl ?? "")) { phase in
@@ -507,7 +485,7 @@ struct FriendListRow: View {
                     } else {
                         Image(systemName: "person.fill")
                             .font(.system(size: 22, weight: .medium))
-                            .foregroundColor(Color.orange)
+                            .foregroundColor(Color(hex: "BF092F"))
                     }
                 }
             }
@@ -593,6 +571,8 @@ struct PremiumRowButtonStyle: ButtonStyle {
     }
 }
 
+
+
 // MARK: - Components
 struct RequestActionSheet: View {
     let friend: User
@@ -648,8 +628,8 @@ struct RequestActionSheet: View {
                                     .fill(
                                         LinearGradient(
                                             gradient: Gradient(colors: [
-                                                Color.orange,
-                                                Color.orange.opacity(0.8)
+                                                Color(hex: "BF092F"),
+                                                Color(hex: "BF092F").opacity(0.8)
                                             ]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
