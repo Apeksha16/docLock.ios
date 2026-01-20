@@ -403,7 +403,6 @@ struct DocumentsView: View {
                                 .disabled(folder.id == "SHARED_ROOT") // Cannot edit Shared folder
                             }
                         }
-                        }
                         
                         // Documents section (Root)
                         if !documentsService.currentFolderDocuments.isEmpty {

@@ -41,256 +41,126 @@ struct SecureQRView: View {
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
                     
-                    // Add Button in Header when list is not empty
-                    if !generatedQRs.isEmpty {
-                        Button(action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                selectedQR = nil // Clear selection for new creation
-                                showNewQRSheet = true
-                            }
-                        }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.orange.opacity(0.1))
-                                    .frame(width: 44, height: 44)
-                                
-                                Image(systemName: "plus")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                    } else {
-                        Color.clear.frame(width: 44, height: 44)
-                    }
+                    // Fixed width spacer to keep title centered
+                    Color.clear.frame(width: 56, height: 56)
                 }
                 .padding()
                 
-                if generatedQRs.isEmpty {
-                    // Animated Empty State
-                    Spacer()
-                    VStack {
-                        Spacer().frame(height: 50)
-                        
-                        ZStack {
-                            // Animated Background Glow
-                            RoundedRectangle(cornerRadius: 50)
-                                .fill(
-                                    RadialGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.orange.opacity(hasAppeared ? 0.2 : 0.1),
-                                            Color.orange.opacity(hasAppeared ? 0.1 : 0.05)
-                                        ]),
-                                        center: .center,
-                                        startRadius: 20,
-                                        endRadius: 100
-                                    )
-                                )
-                                .frame(width: 200, height: 200)
-                                .scaleEffect(hasAppeared ? 1 : 0.8)
-                                .rotationEffect(.degrees(hasAppeared ? 0 : 10))
-                            
-                            // Main Icon
-                            Image(systemName: "qrcode")
-                                .font(.system(size: 90, weight: .medium))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.orange,
-                                            Color.yellow
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .scaleEffect(hasAppeared ? 1 : 0.6)
-                            
-                            // Animated Decorative Elements
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.orange.opacity(0.4),
-                                            Color.yellow.opacity(0.2)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 50, height: 50)
-                                .offset(x: -90, y: -80)
-                                .scaleEffect(hasAppeared ? 1 : 0.5)
-                                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: hasAppeared)
-                            
-                            Circle()
-                                .fill(Color.orange.opacity(0.2))
-                                .frame(width: 30, height: 30)
-                                .offset(x: .random(in: 60...100), y: .random(in: 60...80))
-                                .scaleEffect(hasAppeared ? 1 : 0.5)
-                                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.5), value: hasAppeared)
-                        }
-                        .animation(.spring(response: 0.8, dampingFraction: 0.7), value: hasAppeared)
-                        
-                        Spacer().frame(height: 40)
-                        
-                        // Content Text
-                        VStack(spacing: 18) {
-                            Text("No QR Codes")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.05, green: 0.07, blue: 0.2),
-                                            Color(red: 0.1, green: 0.12, blue: 0.25)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .opacity(hasAppeared ? 1 : 0)
-                                .offset(y: hasAppeared ? 0 : 20)
-                            
-                            Text("Create a secure access point\nfor your documents.")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .multilineTextAlignment(.center)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.gray.opacity(0.9),
-                                            Color.gray.opacity(0.7)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .padding(.horizontal, 40)
-                                .opacity(hasAppeared ? 1 : 0)
-                                .offset(y: hasAppeared ? 0 : 20)
-                        }
-                        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
-                        
-                        Spacer()
-                        
-                        // Action Button
-                        Button(action: {
-                            withAnimation {
-                                selectedQR = nil // Clear selection for new creation
-                                showNewQRSheet = true
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title3)
-                                Text("Generate Secure QR")
-                                    .fontWeight(.bold)
-                            }
-                            .foregroundColor(.white)
-                            .frame(width: 240, height: 56)
-                            .background(
-                                LinearGradient(
+                // Animated Empty State (Full display)
+                Spacer()
+                VStack {
+                    ZStack {
+                        // Animated Background Glow
+                        RoundedRectangle(cornerRadius: 50)
+                            .fill(
+                                RadialGradient(
                                     gradient: Gradient(colors: [
-                                        Color.orange,
-                                        Color.yellow.opacity(0.8)
+                                        Color.orange.opacity(hasAppeared ? 0.2 : 0.1),
+                                        Color.orange.opacity(hasAppeared ? 0.1 : 0.05)
                                     ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                                    center: .center,
+                                    startRadius: 20,
+                                    endRadius: 100
                                 )
                             )
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : 20)
+                            .frame(width: 200, height: 200)
+                            .scaleEffect(hasAppeared ? 1 : 0.8)
                         
-                        Text("Create a secure access point\nfor your documents.")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .multilineTextAlignment(.center)
+                        // Main Icon
+                        Image(systemName: "qrcode")
+                            .font(.system(size: 80, weight: .medium))
                             .foregroundStyle(
                                 LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.gray.opacity(0.9),
-                                        Color.gray.opacity(0.7)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                                    gradient: Gradient(colors: [Color.orange, Color.yellow]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
                                 )
                             )
-                            .padding(.horizontal, 40)
-                            .opacity(hasAppeared ? 1 : 0)
-                            .offset(y: hasAppeared ? 0 : 20)
+                            .scaleEffect(hasAppeared ? 1 : 0.6)
+                        
+                        // Floating circles
+                        Circle()
+                            .fill(Color.orange.opacity(0.2))
+                            .frame(width: 40, height: 40)
+                            .offset(x: -80, y: -70)
+                            .scaleEffect(hasAppeared ? 1 : 0.5)
+                        
+                        Circle()
+                            .fill(Color.yellow.opacity(0.2))
+                            .frame(width: 30, height: 30)
+                            .offset(x: 80, y: 60)
+                            .scaleEffect(hasAppeared ? 1 : 0.5)
                     }
+                    .animation(.spring(response: 0.8, dampingFraction: 0.7), value: hasAppeared)
+                    
+                    Spacer().frame(height: 40)
+                    
+                    VStack(spacing: 12) {
+                        Text("No QR Codes Yet")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        
+                        Text("Create a secure access point\nfor your documents.")
+                            .font(.system(size: 16, weight: .medium))
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 40)
+                    }
+                    .opacity(hasAppeared ? 1 : 0)
+                    .offset(y: hasAppeared ? 0 : 20)
                     .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: hasAppeared)
                     
-                    Spacer()
+                    Spacer().frame(height: 60)
                     
-                    // Action Button
+                    // Generate Button
                     Button(action: {
-                        withAnimation {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             showAddQRSheet = true
                         }
-                        .padding(.bottom, 50)
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 30)
-                        .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.4), value: hasAppeared)
-                    }
-                    .transition(.opacity)
-                } else {
-                    // List of QRs
-                    List {
-                        ForEach(generatedQRs) { qr in
-                            SecureQRCard(
-                                qrModel: qr,
-                                onEdit: {
-                                    // Trigger Edit
-                                },
-                                onDownload: {
-                                    // Trigger Download
-                                }
-                            )
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    selectedQR = qr
-                                    showDeleteSheet = true
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                Button {
-                                    selectedQR = qr
-                                    showDownloadSheet = true
-                                } label: {
-                                    Label("Download", systemImage: "square.and.arrow.down")
-                                }
-                                .tint(.blue)
-                                
-                                Button {
-                                    selectedQR = qr
-                                    showNewQRSheet = true
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.orange)
-                            }
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
+                            Text("Generate Secure QR")
+                                .fontWeight(.bold)
                         }
+                        .foregroundColor(.white)
+                        .frame(width: 260, height: 56)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.orange, Color.orange.opacity(0.8)]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(20)
+                        .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 5)
                     }
-                    .listStyle(PlainListStyle())
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
+                    .scaleEffect(hasAppeared ? 1 : 0.9)
+                    .opacity(hasAppeared ? 1 : 0)
+                    .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.4), value: hasAppeared)
                 }
+                Spacer()
             }
             .onAppear {
-                withAnimation {
-                    hasAppeared = true
-                }
+                hasAppeared = true
             }
+            .blur(radius: showAddQRSheet ? 3 : 0)
             
             // Add QR Sheet Overlay
             if showAddQRSheet {
+                Color.black.opacity(0.2)
+                    .edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        withAnimation { showAddQRSheet = false }
+                    }
+                
                 AddQRSheet(
                     isPresented: $showAddQRSheet,
                     documentsService: documentsService,
                     userId: userId
                 )
+                .transition(.move(edge: .bottom))
                 .zIndex(100)
             }
         }
