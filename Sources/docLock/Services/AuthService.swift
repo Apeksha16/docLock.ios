@@ -462,8 +462,8 @@ class AuthService: ObservableObject {
                             } else {
                                 // Update local user object manually to reflect changes immediately
                                 if let result = object as? [String: Any],
-                                   let newUrl = result["url"] as? String,
-                                   let newStorage = result["storage"] as? Int64 {
+                                   let _ = result["url"] as? String,
+                                   let _ = result["storage"] as? Int64 {
                                     
                                     // We need to construct a new User object since it's immutable (let properties)
                                     // Assuming we can re-decode or just partial update if we had a mutable model.
@@ -473,7 +473,7 @@ class AuthService: ObservableObject {
                                     // Actually, User struct has `let` properties.
                                     // We might need to make them `var` or create a new instance using the old values + new ones.
                                     // For now, let's try to create a new User instance.
-                                    if let currentUser = self.user {
+                                    if self.user != nil {
                                         // This is a bit hacky d/t Decodable usually init from JSON.
                                         // But we can't easily init 'User' if it doesn't have a public init.
                                         // Let's assume User has a memberwise init auto-generated internal.
@@ -794,12 +794,11 @@ class AuthService: ObservableObject {
                     completion(false, error.localizedDescription)
                 } else {
                     // Update local user object
-                    if let currentUser = self?.user {
+                    if self?.user != nil {
                         // Create a new User object with updated name
                         // We need to use the initializer we'll add extension for or just structural init if internal
                         // Assuming structural init is available since it's a simple struct
                         // We'll trust fetchUserProfile to eventually sync, but for immediate UI:
-                        // self?.user = User(uid: currentUser.uid, mobile: currentUser.mobile, name: name, profileImageUrl: currentUser.profileImageUrl, storageUsed: currentUser.storageUsed)
                         // Trigger fetch to be safe and clean
                         self?.fetchUserProfile(userId: userId)
                     }
@@ -841,7 +840,8 @@ class AuthService: ObservableObject {
                         profileImageUrl: profileImageUrl,
                         storageUsed: storageUsed,
                         addedAt: nil, // Self doesn't have an addedAt date
-                        sharedCardsCount: data["sharedCardsCount"] as? Int
+                        sharedCardsCount: (data["sharedCardsCount"] as? NSNumber)?.intValue,
+                        sharedDocsCount: (data["sharedDocsCount"] as? NSNumber)?.intValue
                     )
                     
                     self?.user = updatedUser
@@ -1233,7 +1233,8 @@ class FriendsService: ObservableObject {
             profileImageUrl: data["profileImageUrl"] as? String,
             storageUsed: data["storageUsed"] as? Int64,
             addedAt: date,
-            sharedCardsCount: data["sharedCardsCount"] as? Int
+            sharedCardsCount: (data["sharedCardsCount"] as? NSNumber)?.intValue,
+            sharedDocsCount: (data["sharedDocsCount"] as? NSNumber)?.intValue
         )
     }
 }
@@ -1295,7 +1296,7 @@ class DocumentsService: ObservableObject {
                 
                 // Calculate totals from folders (itemCounts) - this is approximate
                 // Real count will be updated by updateStorageSize
-                let folderItemCount = self?.folders.reduce(0) { $0 + $1.itemCount } ?? 0
+                // Note: folderItemCount calculation removed as it's not used
                 
                 // Update storage size in background (non-blocking) - this will also update totalDocuments accurately
                 DispatchQueue.global(qos: .utility).async {
@@ -1351,9 +1352,7 @@ class DocumentsService: ObservableObject {
                     return
                 }
                 
-                // Check if this is the initial load or an update
-                let isInitialLoad = snapshot.metadata.isFromCache && !snapshot.metadata.hasPendingWrites
-                let hasChanges = snapshot.documentChanges.count > 0
+                // Log snapshot information
                 print("📂 DocumentsService: Snapshot received - \(snapshot.documents.count) documents, \(snapshot.documentChanges.count) changes (fromCache: \(snapshot.metadata.isFromCache), hasPendingWrites: \(snapshot.metadata.hasPendingWrites))")
                 
                 // Log document changes for debugging
@@ -1794,6 +1793,59 @@ class DocumentsService: ObservableObject {
                         completion(true, nil)
                     }
                 }
+            }
+        }
+    }
+    
+    // MARK: - Share Document
+    func shareDocument(userId: String, document: DocumentFile, friendId: String, notificationService: NotificationService, completion: @escaping (Bool, String?) -> Void) {
+        
+        let data: [String: Any] = [
+            "name": document.name,
+            "type": document.type,
+            "url": document.url,
+            "size": document.size,
+            "createdAt": FieldValue.serverTimestamp(),
+            "isShared": true,
+            "sharedBy": userId,
+            "folderId": NSNull() // Shared documents go to root or special folder? keeping root for now
+        ]
+        
+        db.collection("users").document(friendId).collection("documents").addDocument(data: data) { [weak self] error in
+            if let error = error {
+                print("🔴 DocumentsService Share Error: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                print("🟢 DocumentsService: Document shared")
+                
+                // Update shared counts
+                let batch = self?.db.batch()
+                let senderRef = self?.db.collection("users").document(userId)
+                let receiverRef = self?.db.collection("users").document(friendId)
+                
+                if let senderRef = senderRef {
+                    batch?.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: senderRef)
+                }
+                if let receiverRef = receiverRef {
+                    batch?.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
+                }
+                
+                batch?.commit { error in
+                    if let error = error {
+                        print("🔴 DocumentsService Batch Error: \(error.localizedDescription)")
+                    } else {
+                        print("🟢 DocumentsService: Counts updated successfully")
+                    }
+                }
+                
+                // Send Notifications
+                // To Receiver
+                notificationService.addNotification(userId: friendId, title: "Document Shared", message: "A document '\(document.name)' was shared with you.", type: "alert")
+                
+                // To Sender
+                notificationService.addNotification(userId: userId, title: "Document Shared", message: "You successfully shared '\(document.name)' with your friend.", type: "alert")
+                
+                completion(true, nil)
             }
         }
     }
@@ -2313,8 +2365,12 @@ class CardsService: ObservableObject {
                     batch?.updateData(["sharedCardsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
                 }
                 
-                batch?.commit { _ in
-                    print("Counts updated")
+                batch?.commit { error in
+                    if let error = error {
+                        print("🔴 CardsService Batch Error: \(error.localizedDescription)")
+                    } else {
+                        print("🟢 CardsService: Counts updated successfully")
+                    }
                 }
                 
                 // Send Notifications
@@ -2388,7 +2444,7 @@ class CardsService: ObservableObject {
 class AppConfigService: ObservableObject {
     @Published var maxStorageLimit: Int = 200 // Default 200MB
     @Published var maxCreditCardsLimit: Int = 10 // Default 10
-    @Published var maxFolderDepth: Int = 5 // Default max nesting depth
+    @Published var maxFolderDepth: Int = 3 // Default max nesting depth
     @Published var error: String?
     
     private let db = Firestore.firestore()
@@ -2414,7 +2470,7 @@ class AppConfigService: ObservableObject {
                 let storageBytes = data["maxStorageLimit"] as? Int ?? 209715200
                 self?.maxStorageLimit = storageBytes / (1024 * 1024) // Convert to MB
                 self?.maxCreditCardsLimit = data["maxCreditCardsLimit"] as? Int ?? 5
-                self?.maxFolderDepth = data["maxFolderDepth"] as? Int ?? 5
+                self?.maxFolderDepth = data["maxFolderNestingAllowed"] as? Int ?? 3
                 
                 print("🟢 AppConfigService: Loaded config (Storage: \(self?.maxStorageLimit ?? 0)MB, Cards: \(self?.maxCreditCardsLimit ?? 0))")
                 completion(true) // Success

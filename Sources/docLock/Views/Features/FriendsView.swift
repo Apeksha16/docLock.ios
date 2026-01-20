@@ -173,7 +173,7 @@ struct FriendsView: View {
                     StatCard(
                         icon: "doc.fill",
                         title: "Shared Doc",
-                        count: 0,
+                        count: authService.user?.sharedDocsCount ?? 0,
                         color: .blue,
                         index: 0,
                         hasAppeared: hasAppeared

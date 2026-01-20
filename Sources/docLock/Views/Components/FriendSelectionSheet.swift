@@ -4,6 +4,7 @@ struct FriendSelectionSheet: View {
     let friends: [User]
     let onShare: (User) -> Void
     @Binding var isPresented: Bool
+    var sharingTitle: String = "Card" // Default for backward compatibility
     
     @State private var searchText = ""
     @State private var selectedFriendId: String? = nil
@@ -33,8 +34,10 @@ struct FriendSelectionSheet: View {
                     }
                 }
             
-            // Bottom Sheet
-            VStack(spacing: 0) {
+            // Bottom Sheet - Sticked to bottom
+            VStack {
+                Spacer()
+                VStack(spacing: 0) {
                  // Drag Handle
                  Capsule()
                      .fill(Color.gray.opacity(0.3))
@@ -43,7 +46,7 @@ struct FriendSelectionSheet: View {
                      .padding(.bottom, 20)
                 
                 // Header
-                Text("Share with Friend")
+                Text("Share \(sharingTitle) with")
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
@@ -137,7 +140,7 @@ struct FriendSelectionSheet: View {
                         withAnimation { isPresented = false }
                     }
                 }) {
-                    Text("Share Card")
+                    Text("Share \(sharingTitle)")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -148,37 +151,37 @@ struct FriendSelectionSheet: View {
                 .disabled(selectedFriendId == nil)
                 .padding(.horizontal)
                 .padding(.bottom, 40) // Bottom safe area padding
-            }
-            .background(
-                ZStack {
-                    Color(red: 0.98, green: 0.98, blue: 0.96)
-                    
-                    // Decorative Pops
-                    GeometryReader { proxy in
-                        Circle()
-                            .fill(Color.blue.opacity(0.05))
-                            .frame(width: 150, height: 150)
-                            .position(x: 50, y: 100)
-                            .blur(radius: 20)
+                }
+                .background(
+                    ZStack {
+                        Color(red: 0.98, green: 0.98, blue: 0.96)
                         
-                        Circle()
-                            .fill(Color.purple.opacity(0.05))
-                            .frame(width: 200, height: 200)
-                            .position(x: proxy.size.width - 20, y: 50)
-                            .blur(radius: 30)
+                        // Decorative Pops
+                        GeometryReader { proxy in
+                            Circle()
+                                .fill(Color.blue.opacity(0.05))
+                                .frame(width: 150, height: 150)
+                                .position(x: 50, y: 100)
+                                .blur(radius: 20)
+                            
+                            Circle()
+                                .fill(Color.purple.opacity(0.05))
+                                .frame(width: 200, height: 200)
+                                .position(x: proxy.size.width - 20, y: 50)
+                                .blur(radius: 30)
+                        }
+                    }
+                    .cornerRadius(30, corners: [.topLeft, .topRight])
+                    .edgesIgnoringSafeArea(.bottom)
+                )
+                .offset(y: sheetOffset)
+                .transition(.move(edge: .bottom))
+                .onAppear {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        sheetOffset = 0
                     }
                 }
-                .cornerRadius(30, corners: [.topLeft, .topRight])
-                .edgesIgnoringSafeArea(.bottom)
-            )
-            .offset(y: sheetOffset)
-            .onAppear {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    sheetOffset = 0
-                }
             }
-            // Align content to bottom
-            .frame(maxHeight: .infinity, alignment: .bottom)
         }
         .zIndex(100)
         .ignoresSafeArea(edges: .bottom)

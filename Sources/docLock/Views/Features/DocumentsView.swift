@@ -1,6 +1,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import FirebaseFirestore
+import PDFKit
+import CoreGraphics
 
 struct DocFolder: Identifiable {
     let id: String
@@ -23,6 +25,8 @@ struct DocumentFile: Identifiable {
 struct DocumentsView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var documentsService: DocumentsService
+    @ObservedObject var friendsService: FriendsService
+    @ObservedObject var notificationService: NotificationService
     let userId: String
     
     @State private var searchText: String = ""
@@ -47,6 +51,10 @@ struct DocumentsView: View {
     @State private var showDeleteDocumentConfirmation = false
     @State private var documentToDelete: DocumentFile?
     @State private var isDeletingDocument = false
+    @State private var showDocumentPreview = false
+    @State private var documentToPreview: DocumentFile?
+    @State private var showingFriendSelection = false
+    @State private var documentToShare: DocumentFile?
     
     // Toast messages
     @State private var toastMessage: String?
@@ -263,8 +271,6 @@ struct DocumentsView: View {
                                     selectedFolderDepth = max(0, selectedFolderDepth - 1)
                                     // Fetch with real-time listeners
                                     documentsService.fetchDocumentsInFolder(userId: userId, folderId: parentId)
-                                    // Parent of this folder is the one before it in hierarchy
-                                    let grandParentId = folderHierarchy.count > 1 ? folderHierarchy[folderHierarchy.count - 2] : nil
                                     documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: parentId)
                                 } else {
                                     // Go back to root
@@ -314,6 +320,14 @@ struct DocumentsView: View {
                         onDeleteDocument: { document in
                             documentToDelete = document
                             showDeleteDocumentConfirmation = true
+                        },
+                        onShareDocument: { document in
+                            documentToShare = document
+                            showingFriendSelection = true
+                        },
+                        onPreviewDocument: { document in
+                            documentToPreview = document
+                            showDocumentPreview = true
                         }
                     )
                 } else {
@@ -370,6 +384,7 @@ struct DocumentsView: View {
                 }
             }
             .blur(radius: (showFabMenu || showCreateFolderSheet || showUploadDocumentSheet || showUploadImageSheet) ? 2 : 0) // Blur background when modal is open
+            .allowsHitTesting(!(showUploadDocumentSheet || showUploadImageSheet || showCreateFolderSheet)) // Block interactions when sheets are open
             
             // Create Folder Sheet
             if showCreateFolderSheet {
@@ -457,8 +472,8 @@ struct DocumentsView: View {
             }
             
             // FAB Button (Center Bottom)
-            // Only show FAB if we can create folders at the current location
-            if (!documentsService.folders.isEmpty || selectedFolderId != nil) && canCreateFolderAtCurrentLocation {
+            // Show FAB if we have folders or are in a folder (even at max depth, we can still upload)
+            if !documentsService.folders.isEmpty || selectedFolderId != nil {
                 VStack {
                     Spacer()
                     HStack {
@@ -489,6 +504,58 @@ struct DocumentsView: View {
         .navigationBarHidden(true)
         .swipeToDismiss()
         .toast(message: $toastMessage, type: toastType)
+        .overlay(
+            Group {
+                // Friend Selection Sheet
+                if showingFriendSelection {
+                    FriendSelectionSheet(
+                        friends: friendsService.friends,
+                        onShare: { friend in
+                            if let document = documentToShare {
+                                documentsService.shareDocument(userId: userId, document: document, friendId: friend.id, notificationService: notificationService) { success, error in
+                                    DispatchQueue.main.async {
+                                        if success {
+                                            toastMessage = "Shared '\(document.name)' with \(friend.name)"
+                                            toastType = .success
+                                        } else {
+                                            toastMessage = error ?? "Failed to share document"
+                                            toastType = .error
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        isPresented: $showingFriendSelection,
+                        sharingTitle: documentToShare?.type == "image" ? "Image" : "Document"
+                    )
+                }
+                
+                // Document Preview
+                if showDocumentPreview, let document = documentToPreview {
+                    DocumentPreviewView(
+                        document: document,
+                        documentsService: documentsService,
+                        friendsService: friendsService,
+                        notificationService: notificationService,
+                        userId: userId,
+                        folderId: selectedFolderId,
+                        isPresented: $showDocumentPreview,
+                        onDelete: {
+                            documentToDelete = document
+                            showDeleteDocumentConfirmation = true
+                            showDocumentPreview = false
+                        },
+                        onShare: {
+                            documentToShare = document
+                            showingFriendSelection = true
+                            showDocumentPreview = false
+                        },
+                        toastMessage: $toastMessage,
+                        toastType: $toastType
+                    )
+                }
+            }
+        )
         .onAppear {
             documentsService.startListening(userId: userId, parentFolderId: nil)
             // Calculate storage size in background
@@ -685,9 +752,6 @@ struct DocumentsView: View {
         
         // Fetch data for this folder with real-time listeners
         documentsService.fetchDocumentsInFolder(userId: userId, folderId: folderId)
-        
-        // Determine parent folder ID for fetching subfolders (parent of current folder)
-        let parentFolderId = index > 0 ? pathFolderIds[index - 1] : nil
         documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: folderId)
     }
 }
@@ -1118,6 +1182,12 @@ struct UploadDocumentSheet: View {
     
     var body: some View {
         ZStack {
+            // Blocking overlay to prevent background interactions
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .edgesIgnoringSafeArea(.all)
+            
             // Modal Content
             VStack(spacing: 0) {
                 // Premium Drag Handle
@@ -1305,7 +1375,7 @@ struct UploadDocumentSheet: View {
                     }
                 }
                 .padding(.top, 4)
-                .padding(.bottom, 20) // Reduced bottom padding
+                .padding(.bottom, 34) // Adjusted for Home Indicator
             }
             .background(
                 ZStack {
@@ -1323,8 +1393,9 @@ struct UploadDocumentSheet: View {
                 }
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.7) // Limit content height
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom) // Align to screen bottom
             .offset(y: sheetOffset)
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.75, alignment: .bottom)
             .edgesIgnoringSafeArea(.bottom)
             .onAppear {
                 // Reset states when sheet appears
@@ -1425,6 +1496,12 @@ struct UploadImageSheet: View {
     
     var body: some View {
         ZStack {
+            // Blocking overlay to prevent background interactions
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .edgesIgnoringSafeArea(.all)
+            
             // Modal Content
             VStack(spacing: 0) {
                 // Premium Drag Handle
@@ -1612,7 +1689,7 @@ struct UploadImageSheet: View {
                     }
                 }
                 .padding(.top, 4)
-                .padding(.bottom, 20) // Reduced bottom padding
+                .padding(.bottom, 34) // Adjusted for Home Indicator
             }
             .background(
                 ZStack {
@@ -1630,8 +1707,9 @@ struct UploadImageSheet: View {
                 }
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.7) // Limit content height
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom) // Align to screen bottom
             .offset(y: sheetOffset)
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.75, alignment: .bottom)
             .edgesIgnoringSafeArea(.bottom)
             .onAppear {
                 // Reset states when sheet appears
@@ -1714,6 +1792,8 @@ struct FolderContentsView: View {
     let onDeleteFolder: (DocFolder) -> Void
     let onEditDocument: (DocumentFile) -> Void
     let onDeleteDocument: (DocumentFile) -> Void
+    let onShareDocument: (DocumentFile) -> Void
+    let onPreviewDocument: (DocumentFile) -> Void
     
     var body: some View {
         Group {
@@ -1787,6 +1867,9 @@ struct FolderContentsView: View {
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                                 .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                                .onTapGesture {
+                                    onPreviewDocument(document)
+                                }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     // Delete action
                                     Button(role: .destructive) {
@@ -2175,5 +2258,375 @@ struct EditDocumentSheet: View {
         }
         .zIndex(200)
         .edgesIgnoringSafeArea(.all)
+    }
+}
+
+// MARK: - Document Preview View
+struct DocumentPreviewView: View {
+    let document: DocumentFile
+    @ObservedObject var documentsService: DocumentsService
+    @ObservedObject var friendsService: FriendsService
+    @ObservedObject var notificationService: NotificationService
+    let userId: String
+    let folderId: String?
+    @Binding var isPresented: Bool
+    let onDelete: () -> Void
+    let onShare: () -> Void
+    @Binding var toastMessage: String?
+    @Binding var toastType: ToastType
+    
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+    @State private var pdfPages: [UIImage] = []
+    @State private var currentPageIndex: Int = 0
+    @State private var isLoading: Bool = true
+    @State private var loadError: String?
+    
+    var body: some View {
+        ZStack {
+            // Background
+            Color.black
+                .edgesIgnoringSafeArea(.all)
+            
+            // Content
+            VStack(spacing: 0) {
+                // Top Bar
+                HStack {
+                    Button(action: {
+                        withAnimation {
+                            isPresented = false
+                        }
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.2))
+                            .clipShape(Circle())
+                    }
+                    
+                    Spacer()
+                    
+                    Text(document.name)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    // Action buttons
+                    HStack(spacing: 12) {
+                        Button(action: onShare) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.white.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                        
+                        Button(action: onDelete) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.white.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.black.opacity(0.5))
+                
+                // Preview Content
+                ZStack {
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                    } else if let error = loadError {
+                        VStack(spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 48))
+                                .foregroundColor(.white.opacity(0.7))
+                            Text(error)
+                                .font(.headline)
+                                .foregroundColor(.white.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                    } else {
+                        if document.type == "image" {
+                            // Image Preview with Zoom
+                            AsyncImage(url: URL(string: document.url)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .scaleEffect(scale)
+                                        .offset(offset)
+                                        .gesture(
+                                            SimultaneousGesture(
+                                                MagnificationGesture()
+                                                    .onChanged { value in
+                                                        scale = lastScale * value
+                                                    }
+                                                    .onEnded { _ in
+                                                        lastScale = scale
+                                                        if scale < 1.0 {
+                                                            withAnimation {
+                                                                scale = 1.0
+                                                                lastScale = 1.0
+                                                                offset = .zero
+                                                                lastOffset = .zero
+                                                            }
+                                                        } else if scale > 5.0 {
+                                                            withAnimation {
+                                                                scale = 5.0
+                                                                lastScale = 5.0
+                                                            }
+                                                        }
+                                                    },
+                                                DragGesture()
+                                                    .onChanged { value in
+                                                        offset = CGSize(
+                                                            width: lastOffset.width + value.translation.width,
+                                                            height: lastOffset.height + value.translation.height
+                                                        )
+                                                    }
+                                                    .onEnded { _ in
+                                                        lastOffset = offset
+                                                    }
+                                            )
+                                        )
+                                        .onTapGesture(count: 2) {
+                                            withAnimation {
+                                                if scale > 1.0 {
+                                                    scale = 1.0
+                                                    lastScale = 1.0
+                                                    offset = .zero
+                                                    lastOffset = .zero
+                                                } else {
+                                                    scale = 2.0
+                                                    lastScale = 2.0
+                                                }
+                                            }
+                                        }
+                                case .failure:
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "photo")
+                                            .font(.system(size: 48))
+                                            .foregroundColor(.white.opacity(0.7))
+                                        Text("Failed to load image")
+                                            .font(.headline)
+                                            .foregroundColor(.white.opacity(0.7))
+                                    }
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        } else {
+                            // PDF Preview with Page Scrolling
+                            if !pdfPages.isEmpty {
+                                ScrollViewReader { proxy in
+                                    ScrollView(.vertical, showsIndicators: true) {
+                                        VStack(spacing: 20) {
+                                            ForEach(0..<pdfPages.count, id: \.self) { index in
+                                                Image(uiImage: pdfPages[index])
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .scaleEffect(scale)
+                                                    .gesture(
+                                                        SimultaneousGesture(
+                                                            MagnificationGesture()
+                                                                .onChanged { value in
+                                                                    scale = lastScale * value
+                                                                }
+                                                                .onEnded { _ in
+                                                                    lastScale = scale
+                                                                    if scale < 1.0 {
+                                                                        withAnimation {
+                                                                            scale = 1.0
+                                                                            lastScale = 1.0
+                                                                        }
+                                                                    } else if scale > 5.0 {
+                                                                        withAnimation {
+                                                                            scale = 5.0
+                                                                            lastScale = 5.0
+                                                                        }
+                                                                    }
+                                                                },
+                                                            DragGesture()
+                                                                .onChanged { value in
+                                                                    offset = CGSize(
+                                                                        width: lastOffset.width + value.translation.width,
+                                                                        height: lastOffset.height + value.translation.height
+                                                                    )
+                                                                }
+                                                                .onEnded { _ in
+                                                                    lastOffset = offset
+                                                                }
+                                                        )
+                                                    )
+                                                    .onTapGesture(count: 2) {
+                                                        withAnimation {
+                                                            if scale > 1.0 {
+                                                                scale = 1.0
+                                                                lastScale = 1.0
+                                                                offset = .zero
+                                                                lastOffset = .zero
+                                                            } else {
+                                                                scale = 2.0
+                                                                lastScale = 2.0
+                                                            }
+                                                        }
+                                                    }
+                                                    .padding(.horizontal)
+                                                    .id(index)
+                                            }
+                                        }
+                                        .padding(.vertical)
+                                    }
+                                    .onChange(of: currentPageIndex) { newIndex in
+                                        withAnimation {
+                                            proxy.scrollTo(newIndex, anchor: .top)
+                                        }
+                                    }
+                                }
+                            } else {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "doc")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.white.opacity(0.7))
+                                    Text("No pages to display")
+                                        .font(.headline)
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                // Bottom Controls (for PDF page indicator)
+                if document.type != "image" && !pdfPages.isEmpty {
+                    HStack {
+                        Button(action: {
+                            if currentPageIndex > 0 {
+                                withAnimation {
+                                    currentPageIndex -= 1
+                                }
+                            }
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(currentPageIndex > 0 ? .white : .white.opacity(0.3))
+                                .frame(width: 44, height: 44)
+                        }
+                        .disabled(currentPageIndex == 0)
+                        
+                        Spacer()
+                        
+                        Text("Page \(currentPageIndex + 1) of \(pdfPages.count)")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            if currentPageIndex < pdfPages.count - 1 {
+                                withAnimation {
+                                    currentPageIndex += 1
+                                }
+                            }
+                        }) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(currentPageIndex < pdfPages.count - 1 ? .white : .white.opacity(0.3))
+                                .frame(width: 44, height: 44)
+                        }
+                        .disabled(currentPageIndex == pdfPages.count - 1)
+                    }
+                    .padding()
+                    .background(Color.black.opacity(0.5))
+                }
+            }
+        }
+        .zIndex(1000)
+        .onAppear {
+            loadDocument()
+        }
+    }
+    
+    private func loadDocument() {
+        isLoading = true
+        loadError = nil
+        
+        guard let url = URL(string: document.url) else {
+            loadError = "Invalid document URL"
+            isLoading = false
+            return
+        }
+        
+        if document.type == "image" {
+            // Image loading is handled by AsyncImage
+            isLoading = false
+        } else {
+            // Load PDF
+            loadPDF(from: url)
+        }
+    }
+    
+    private func loadPDF(from url: URL) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let data = try Data(contentsOf: url)
+                guard let dataProvider = CGDataProvider(data: data as CFData),
+                      let pdfDocument = CGPDFDocument(dataProvider) else {
+                    DispatchQueue.main.async {
+                        loadError = "Failed to parse PDF"
+                        isLoading = false
+                    }
+                    return
+                }
+                
+                var pages: [UIImage] = []
+                let pageCount = pdfDocument.numberOfPages
+                
+                for pageNum in 1...pageCount {
+                    guard let page = pdfDocument.page(at: pageNum) else { continue }
+                    
+                    let pageRect = page.getBoxRect(.mediaBox)
+                    let renderer = UIGraphicsImageRenderer(size: pageRect.size)
+                    
+                    let image = renderer.image { ctx in
+                        ctx.cgContext.translateBy(x: 0, y: pageRect.size.height)
+                        ctx.cgContext.scaleBy(x: 1.0, y: -1.0)
+                        ctx.cgContext.drawPDFPage(page)
+                    }
+                    
+                    pages.append(image)
+                }
+                
+                DispatchQueue.main.async {
+                    pdfPages = pages
+                    isLoading = false
+                    if pages.isEmpty {
+                        loadError = "PDF has no pages"
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    loadError = "Failed to load PDF: \(error.localizedDescription)"
+                    isLoading = false
+                }
+            }
+        }
     }
 }

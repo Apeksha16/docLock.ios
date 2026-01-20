@@ -471,7 +471,7 @@ struct CardsView: View {
                 )
             }
             
-            // Friend Selection Sheet
+            // Friend Selection Sheet (Same sheet for both debit and credit cards)
             if showingFriendSelection {
                 FriendSelectionSheet(
                     friends: friendsService.friends,
@@ -490,7 +490,8 @@ struct CardsView: View {
                             }
                         }
                     },
-                    isPresented: $showingFriendSelection
+                    isPresented: $showingFriendSelection,
+                    sharingTitle: cardToShare.map { $0.type.rawValue } ?? "Card"
                 )
             }
         }
@@ -1064,9 +1065,8 @@ struct AddEditCardView: View {
                     if let exp = expiry {
                         self.expiry = exp
                     }
-                    if let name = name {
-                        // self.cardHolder = name
-                    }
+                    // Name extraction available but not used currently
+                    _ = name
                 }
             }
             #endif
@@ -1366,9 +1366,9 @@ struct CardScannerView: UIViewControllerRepresentable {
                     
                     // Try to extract cardholder name
                     if scannedName == nil {
-                        if let name = extractCardholderName(from: textContent) {
-                            scannedName = name
-                            print("📱 CardScanner: Found name: \(name)")
+                        if let extractedName = extractCardholderName(from: textContent) {
+                            scannedName = extractedName
+                            print("📱 CardScanner: Found name: \(extractedName)")
                         }
                     }
                     

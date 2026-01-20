@@ -35,7 +35,9 @@ struct CustomActionModal: View {
                 }
             }
             
-            VStack(spacing: 20) {
+            VStack {
+                Spacer()
+                VStack(spacing: 20) {
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
@@ -115,36 +117,36 @@ struct CustomActionModal: View {
                     .disabled(isLoading)
                     .padding(.bottom, 50)
                 }
-            }
-            .background(
-                ZStack {
-                    // Glass effect background with slight translucency
-                    Color.white.opacity(0.95)
-                    
-                    // Subtle decorative blur elements for depth
-                    GeometryReader { proxy in
-                        Circle()
-                            .fill(iconBgColor.opacity(0.1))
-                            .frame(width: 200, height: 200)
-                            .position(x: proxy.size.width * 0.8, y: -50)
-                            .blur(radius: 40)
-                        
-                        Circle()
-                            .fill(iconBgColor.opacity(0.05))
-                            .frame(width: 150, height: 150)
-                            .position(x: proxy.size.width * 0.2, y: proxy.size.height * 0.3)
-                            .blur(radius: 30)
-                    }
                 }
-                .edgesIgnoringSafeArea(.bottom) // Extend background to very bottom
-            )
-            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight])) // Clip top corners only
-            .offset(y: sheetOffset)
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.6, alignment: .bottom)
-            .transition(.move(edge: .bottom))
-            .onAppear {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    sheetOffset = 0
+                .background(
+                    ZStack {
+                        // Glass effect background with slight translucency
+                        Color.white.opacity(0.95)
+                        
+                        // Subtle decorative blur elements for depth
+                        GeometryReader { proxy in
+                            Circle()
+                                .fill(iconBgColor.opacity(0.1))
+                                .frame(width: 200, height: 200)
+                                .position(x: proxy.size.width * 0.8, y: -50)
+                                .blur(radius: 40)
+                            
+                            Circle()
+                                .fill(iconBgColor.opacity(0.05))
+                                .frame(width: 150, height: 150)
+                                .position(x: proxy.size.width * 0.2, y: proxy.size.height * 0.3)
+                                .blur(radius: 30)
+                        }
+                    }
+                    .edgesIgnoringSafeArea(.bottom) // Extend background to very bottom
+                )
+                .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight])) // Clip top corners only
+                .offset(y: sheetOffset)
+                .transition(.move(edge: .bottom))
+                .onAppear {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        sheetOffset = 0
+                    }
                 }
             }
         }

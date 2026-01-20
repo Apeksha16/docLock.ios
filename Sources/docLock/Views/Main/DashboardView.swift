@@ -400,7 +400,7 @@ struct HomeView: View {
                                 FeatureCard(icon: "doc.text.fill", title: "Documents", subtitle: "\(documentsService.totalDocuments) Files", iconColor: .blue, iconBgColor: Color.blue.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showDocuments) {
-                                DocumentsView(documentsService: documentsService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
+                                DocumentsView(documentsService: documentsService, friendsService: authService.friendsService, notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
                             }
                             
                             Button(action: { showCards = true }) {
