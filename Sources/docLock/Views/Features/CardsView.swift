@@ -140,8 +140,7 @@ struct CardsView: View {
                     }
                     Spacer()
                     Text("My Cards")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
                     
@@ -313,25 +312,41 @@ struct CardsView: View {
                             SectionHeader(title: "Debit Cards", count: debitCards.count)
                                 .padding(.horizontal)
                             
-                            TabView {
-                                ForEach(debitCards) { card in
-                                    CardView(card: card, onEdit: {
-                                        selectedCardToEdit = card
-                                    }, onDelete: {
-                                        cardToDeleteId = card.id
-                                        showingDeleteAlert = true
-                                    }, onShare: {
-                                        cardToShare = card
-                                        showingFriendSelection = true
-                                    }, onCopy: { message in
-                                        toastMessage = message
-                                        toastType = .success
-                                    })
-                                    .padding(.horizontal) // Add horizontal padding inside the page
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 0) { // Set spacing to 0, handle via padding in item
+                                    ForEach(debitCards) { card in
+                                        GeometryReader { geo in
+                                            let minX = geo.frame(in: .global).minX
+                                            let width = UIScreen.main.bounds.width
+                                            // Calculate blur: 0 at approx 20px (left padding), increasing as it moves right
+                                            let offset = minX - 20 
+                                            // If offset is < 0 (scrolled slightly left), we also blur.
+                                            // Normalize roughly: 0 -> 0 blur. Width -> 10 blur.
+                                            let blurAmount =  min(max(abs(offset) / (width * 0.4) * 5, 0), 6) // Cap at 6
+                                            
+                                            CardView(card: card, onEdit: {
+                                                selectedCardToEdit = card
+                                            }, onDelete: {
+                                                cardToDeleteId = card.id
+                                                showingDeleteAlert = true
+                                            }, onShare: {
+                                                cardToShare = card
+                                                showingFriendSelection = true
+                                            }, onCopy: { message in
+                                                toastMessage = message
+                                                toastType = .success
+                                            })
+                                            .blur(radius: blurAmount)
+                                            .scaleEffect(blurAmount > 1 ? 0.95 : 1.0) // Subtle scale down
+                                            .animation(.spring(), value: blurAmount)
+                                        }
+                                        .frame(width: UIScreen.main.bounds.width * 0.85, height: 210) // Fixed height including padding
+                                        .padding(.trailing, 15) // Spacing handled here
+                                    }
                                 }
+                                .padding(.horizontal, 20) // Initial padding
+                                .padding(.bottom, 10)
                             }
-                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                            .frame(height: 220) // Reduced height to save space
 
                         }
                         
@@ -340,26 +355,39 @@ struct CardsView: View {
                             SectionHeader(title: "Credit Cards", count: creditCards.count)
                                 .padding(.horizontal)
                             
-                            TabView {
-                                ForEach(creditCards) { card in
-                                    CardView(card: card, onEdit: {
-                                        selectedCardToEdit = card
-                                    }, onDelete: {
-                                        cardToDeleteId = card.id
-                                        showingDeleteAlert = true
-                                    }, onShare: {
-                                        let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
-                                        shareItems = [text]
-                                        showingShareSheet = true
-                                    }, onCopy: { message in
-                                        toastMessage = message
-                                        toastType = .success
-                                    })
-                                    .padding(.horizontal)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 0) {
+                                    ForEach(creditCards) { card in
+                                        GeometryReader { geo in
+                                            let minX = geo.frame(in: .global).minX
+                                            let width = UIScreen.main.bounds.width
+                                            let offset = minX - 20
+                                            let blurAmount = min(max(abs(offset) / (width * 0.4) * 5, 0), 6)
+                                            
+                                            CardView(card: card, onEdit: {
+                                                selectedCardToEdit = card
+                                            }, onDelete: {
+                                                cardToDeleteId = card.id
+                                                showingDeleteAlert = true
+                                            }, onShare: {
+                                                let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
+                                                shareItems = [text]
+                                                showingShareSheet = true
+                                            }, onCopy: { message in
+                                                toastMessage = message
+                                                toastType = .success
+                                            })
+                                            .blur(radius: blurAmount)
+                                            .scaleEffect(blurAmount > 1 ? 0.95 : 1.0)
+                                            .animation(.spring(), value: blurAmount)
+                                        }
+                                        .frame(width: UIScreen.main.bounds.width * 0.85, height: 210)
+                                        .padding(.trailing, 15)
+                                    }
                                 }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 10)
                             }
-                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                            .frame(height: 220) // Reduced height to save space
 
                         }
                         
@@ -390,7 +418,7 @@ struct CardsView: View {
                             showingAddCard = true
                         }
                     }) {
-                        FabMenuRow(title: "Credit Card", icon: "creditcard.fill", color: .purple)
+                        FabMenuRow(title: "Credit Card", icon: "creditcard.fill", colors: [Color(red: 0.29, green: 0.0, blue: 0.88), Color(red: 0.56, green: 0.18, blue: 0.89)])
                     }
                     
                     Button(action: {
@@ -400,7 +428,7 @@ struct CardsView: View {
                             showingAddCard = true
                         }
                     }) {
-                        FabMenuRow(title: "Debit Card", icon: "creditcard", color: .blue)
+                        FabMenuRow(title: "Debit Card", icon: "creditcard", colors: [Color(red: 0.0, green: 0.38, blue: 0.9), Color(red: 0.2, green: 0.68, blue: 1.0)])
                     }
                     
                     Spacer().frame(height: 80) // Space for close button
@@ -730,17 +758,21 @@ struct AddEditCardView: View {
     var onSuccess: ((String) -> Void)?
     @State private var isLoading = false
     
-    // Predefined vibrant card colors
-    let cardColors: [[Color]] = [
-        [Color(red: 0.95, green: 0.85, blue: 0.4), Color(red: 0.9, green: 0.7, blue: 0.2)], // Gold
-        [Color(red: 0.9, green: 0.4, blue: 0.6), Color(red: 0.95, green: 0.6, blue: 0.75)], // Pinkish
-        [Color(red: 0.2, green: 0.6, blue: 0.9), Color(red: 0.4, green: 0.8, blue: 1.0)], // Blue
-        [Color(red: 0.4, green: 0.8, blue: 0.6), Color(red: 0.6, green: 0.9, blue: 0.7)], // Green
-        [Color(red: 0.6, green: 0.4, blue: 0.9), Color(red: 0.7, green: 0.5, blue: 1.0)], // Purple
-        [Color(red: 1.0, green: 0.6, blue: 0.4), Color(red: 1.0, green: 0.7, blue: 0.5)], // Orange
-        [Color(red: 0.2, green: 0.2, blue: 0.2), Color(red: 0.3, green: 0.3, blue: 0.3)], // Dark/Black
-        [Color(red: 0.8, green: 0.2, blue: 0.2), Color(red: 1.0, green: 0.4, blue: 0.4)], // Red
-        [Color(red: 0.0, green: 0.5, blue: 0.5), Color(red: 0.0, green: 0.7, blue: 0.7)]  // Teal
+    // Distinct Palettes
+    let creditCardColors: [[Color]] = [
+        [Color(red: 0.9, green: 0.2, blue: 0.6), Color(red: 0.95, green: 0.4, blue: 0.7)], // Hot Pink
+        [Color(red: 0.6, green: 0.1, blue: 0.4), Color(red: 0.8, green: 0.2, blue: 0.5)], // Deep Berry
+        [Color(red: 1.0, green: 0.6, blue: 0.2), Color(red: 1.0, green: 0.8, blue: 0.4)], // Gold/Orange
+        [Color(red: 0.8, green: 0.1, blue: 0.1), Color(red: 1.0, green: 0.4, blue: 0.4)], // Red
+        [Color(red: 0.4, green: 0.1, blue: 0.6), Color(red: 0.6, green: 0.3, blue: 0.8)]  // Purple
+    ]
+    
+    let debitCardColors: [[Color]] = [
+        [Color(red: 0.1, green: 0.4, blue: 0.8), Color(red: 0.3, green: 0.6, blue: 1.0)], // Blue
+        [Color(red: 0.0, green: 0.6, blue: 0.6), Color(red: 0.2, green: 0.8, blue: 0.8)], // Teal
+        [Color(red: 0.1, green: 0.7, blue: 0.5), Color(red: 0.3, green: 0.9, blue: 0.6)], // Green
+        [Color(red: 0.05, green: 0.2, blue: 0.4), Color(red: 0.2, green: 0.4, blue: 0.6)], // Navy
+        [Color(red: 0.3, green: 0.5, blue: 0.9), Color(red: 0.5, green: 0.7, blue: 1.0)]  // Light Blue
     ]
     
     @State private var selectedColorIndex: Int = 0
@@ -762,15 +794,15 @@ struct AddEditCardView: View {
             _cardHolder = State(initialValue: existingCard.cardHolder)
             _expiry = State(initialValue: existingCard.expiry)
             _cvv = State(initialValue: existingCard.cvv)
-            // Try to find matching color index, default to 0
-            // Note: Exact color matching might be tricky with float comparison, relying on stored colors for display is fine.
-            // For editing, we might just keep the current color or allow re-selection.
-            // For now, we won't change color on edit unless we add a picker.
-            // For now, we won't change color on edit unless we add a picker.
+            // Keep existing colors for edits
         } else {
             _cardType = State(initialValue: cardType)
-            // Randomly select a color for new card
-            _selectedColorIndex = State(initialValue: Int.random(in: 0..<cardColors.count))
+            // Auto-select random color from appropriate palette
+            if cardType == .credit {
+                _selectedColorIndex = State(initialValue: Int.random(in: 0..<5))
+            } else {
+                _selectedColorIndex = State(initialValue: Int.random(in: 0..<5))
+            }
         }
     }
     
@@ -875,8 +907,7 @@ struct AddEditCardView: View {
                     }
                     Spacer()
                     Text(card == nil ? "Add Card" : "Edit Card")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
                     #if os(iOS)
@@ -914,7 +945,8 @@ struct AddEditCardView: View {
                 
                 // Card Preview
                 ZStack {
-                    LinearGradient(gradient: Gradient(colors: card != nil ? [card!.colorStart, card!.colorEnd] : cardColors[selectedColorIndex]), startPoint: .leading, endPoint: .trailing)
+                    let colors = card != nil ? [card!.colorStart, card!.colorEnd] : (cardType == .credit ? creditCardColors[selectedColorIndex] : debitCardColors[selectedColorIndex])
+                    LinearGradient(gradient: Gradient(colors: colors), startPoint: .leading, endPoint: .trailing)
                         .cornerRadius(20)
                         .frame(height: 200)
                         
@@ -1078,7 +1110,7 @@ struct AddEditCardView: View {
     func saveCard() {
         isLoading = true
         // If editing, keep original colors unless we add a picker. If adding, use selected random color.
-        let colors = card != nil ? [card!.colorStart, card!.colorEnd] : cardColors[selectedColorIndex]
+        let colors = card != nil ? [card!.colorStart, card!.colorEnd] : (cardType == .credit ? creditCardColors[selectedColorIndex] : debitCardColors[selectedColorIndex])
         
         let newCard = CardModel(
             id: card?.id ?? UUID().uuidString,
@@ -1137,7 +1169,7 @@ struct AddEditCardView: View {
 
     // Helper not strictly needed anymore given random selection, but kept for fallback or validation
     func getGradientColors(for type: CardType) -> [Color] {
-         return cardColors[0] // Default fallback
+         return type == .credit ? creditCardColors[0] : debitCardColors[0] // Default fallback
     }
     
     // MARK: - Validation Helpers

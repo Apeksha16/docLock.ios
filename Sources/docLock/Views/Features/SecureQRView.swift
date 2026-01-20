@@ -41,8 +41,7 @@ struct SecureQRView: View {
                     }
                     Spacer()
                     Text("Secure QR")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
                     Color.clear.frame(width: 44, height: 44)
@@ -227,7 +226,7 @@ struct NewQRSheet: View {
             
             // Premium Header
             Text("New Secure QR")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                 .padding(.bottom, 10)
             

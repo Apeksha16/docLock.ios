@@ -52,7 +52,7 @@ struct ContentView: View {
                                             }
                                         }
                                     )
-                                    .transition(.move(edge: .trailing))
+                                    .transition(.move(edge: .bottom))
                                     .gesture(
                                         DragGesture()
                                             .onEnded { value in

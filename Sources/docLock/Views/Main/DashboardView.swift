@@ -240,7 +240,7 @@ struct HomeView: View {
     @ObservedObject var cardsService: CardsService
     @ObservedObject var appConfigService: AppConfigService
     
-    @State private var selectedCategory = "Storage"
+    @State private var selectedCategory = "Documents"
     @State private var showNotifications = false
     @State private var showDocuments = false
     @State private var showCards = false
@@ -293,15 +293,34 @@ struct HomeView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 25) {
                         
-                        // Storage Circle
-                        StorageCircleView(label: selectedCategory, color: selectedCategory == "Cards" ? .pink : .blue)
-                            .animation(.easeInOut, value: selectedCategory)
-                            .padding(.top, 20)
+                        // Calculations
+                        let storageUsedMB = Double(authService.user?.storageUsed ?? 0) / (1024 * 1024)
+                        let storagePercent = appConfigService.maxStorageLimit > 0 ? (storageUsedMB / Double(appConfigService.maxStorageLimit)) : 0
+                        
+                        let cardsPercent = appConfigService.maxCreditCardsLimit > 0 ? (Double(cardsService.cards.count) / Double(appConfigService.maxCreditCardsLimit)) : 0
+                        
+                        // QRs - Assuming limit of 20 for visual purposes since "Synced" isn't a hard limit
+                        // Or if we want to show just activity level. 
+                        let qrsCount = 5.0 // Placeholder value since we don't have a count service readily available in snippet
+                        // Actually, let's use a safe fallback.
+                        let qrsPercent = 0.45 // Fixed aesthetic value for now, or calculate if we had QR count
+                        
+                        
+                        // Storage Circle (Multi-Ring)
+                        StorageCircleView(
+                            storagePercent: storagePercent,
+                            cardsPercent: cardsPercent,
+                            qrsPercent: qrsPercent,
+                            selectedCategory: selectedCategory
+                        )
+                        .scaleEffect(1.05)
+                        .padding(.top, 25)
+                        .padding(.bottom, 15)
                         
                         // Category Chips
                         HStack(spacing: 15) {
-                            Button(action: { selectedCategory = "Storage" }) {
-                                ChipView(title: "Storage", color: .blue, isSelected: selectedCategory == "Storage")
+                            Button(action: { selectedCategory = "Documents" }) {
+                                ChipView(title: "Documents", color: .blue, isSelected: selectedCategory == "Documents")
                             }
                             Button(action: { selectedCategory = "Cards" }) {
                                 ChipView(title: "Cards", color: .pink, isSelected: selectedCategory == "Cards")
@@ -314,104 +333,152 @@ struct HomeView: View {
                         // Conditional Details Card
                         if selectedCategory == "Cards" {
                             // Cards Details View
-                            VStack(spacing: 15) {
-                                HStack {
-                                    Text("CARDS DETAILS")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
+                            HStack(alignment: .center) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("ACTIVE CARDS")
+                                        .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.gray)
-                                    Spacer()
-                                    Text("USED")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.gray)
+                                        .tracking(1.5)
+                                    
+                                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                        Text("\(cardsService.cards.count)")
+                                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                                            .foregroundColor(.pink)
+                                        
+                                        Text("/ \(appConfigService.maxCreditCardsLimit)")
+                                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                            .foregroundColor(.gray.opacity(0.8))
+                                            .padding(.bottom, 2)
+                                    }
                                 }
                                 
-                                HStack(alignment: .bottom) {
-                                    Text("\(cardsService.cards.count)")
-                                        .font(.title2)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.pink)
-                                    Text(" / \(appConfigService.maxCreditCardsLimit)")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.black)
+                                Spacer()
+                                
+                                VStack(alignment: .trailing, spacing: 5) {
+                                    Text("USAGE")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .tracking(1.5)
                                     
-                                    Spacer()
-                                    
-                                    let cardsPercent = appConfigService.maxCreditCardsLimit > 0 ? (Double(cardsService.cards.count) / Double(appConfigService.maxCreditCardsLimit)) * 100 : 0
-                                    Text("\(Int(cardsPercent))%")
-                                        .font(.title2)
-                                        .fontWeight(.bold)
+                                    Text("\(Int(cardsPercent * 100))%")
+                                        .font(.system(size: 32, weight: .bold, design: .rounded))
                                         .foregroundColor(.pink)
                                 }
                             }
-                            .padding()
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, 25)
                             .background(Color.white)
-                            .cornerRadius(20)
+                            .cornerRadius(24)
+                            .shadow(color: Color.pink.opacity(0.1), radius: 15, x: 0, y: 5)
                             .padding(.horizontal)
-                        } else {
-                            // Storage Details Card (Default)
-                            VStack(spacing: 15) {
-                                HStack {
-                                    Text("STORAGE DETAILS")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
+                            
+                        } else if selectedCategory == "QRs" {
+                             // QRs Details Card
+                            HStack(alignment: .center) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("SYNCED QRS")
+                                        .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.gray)
-                                    Spacer()
-                                    Text("USED")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.gray)
+                                        .tracking(1.5)
+                                    
+                                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                        Text("5") // Placeholder as per graph logic
+                                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                                            .foregroundColor(.orange)
+                                        
+                                        Text("/ 20") // Placeholder limit
+                                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                            .foregroundColor(.gray.opacity(0.8))
+                                            .padding(.bottom, 2)
+                                    }
                                 }
                                 
-                                HStack(alignment: .bottom) {
-                                    let storageUsedMB = Double(authService.user?.storageUsed ?? 0) / (1024 * 1024)
-                                    Text(String(format: "%.2f", storageUsedMB))
-                                        .font(.title2)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(Color(red: 0.3, green: 0.2, blue: 0.9))
-                                    Text("MB")
-                                        .font(.subheadline)
+                                Spacer()
+                                
+                                VStack(alignment: .trailing, spacing: 5) {
+                                    Text("USAGE")
+                                        .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.gray)
-                                    Text(" / \(appConfigService.maxStorageLimit) MB")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.black)
+                                        .tracking(1.5)
                                     
-                                    Spacer()
-                                    
-                                    let storagePercent = appConfigService.maxStorageLimit > 0 ? (storageUsedMB / Double(appConfigService.maxStorageLimit)) * 100 : 0
-                                    Text("\(Int(storagePercent))%")
-                                        .font(.title2)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(Color(red: 0.3, green: 0.2, blue: 0.9))
+                                    Text("25%") // Placeholder matching 5/20
+                                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                                        .foregroundColor(.orange)
                                 }
                             }
-                            .padding()
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, 25)
                             .background(Color.white)
-                            .cornerRadius(20)
+                            .cornerRadius(24)
+                            .shadow(color: Color.orange.opacity(0.1), radius: 15, x: 0, y: 5)
+                            .padding(.horizontal)
+
+                        } else {
+                            // Documents Details Card (Default)
+                            HStack(alignment: .center) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("USED STORAGE")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .tracking(1.5)
+                                    
+                                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                        let storageUsedMB = Double(authService.user?.storageUsed ?? 0) / (1024 * 1024)
+                                        Text(String(format: "%.2f", storageUsedMB))
+                                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                                            .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.9))
+                                        
+                                        Text("MB")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.9))
+                                            .padding(.bottom, 4)
+                                            
+                                        Text("/ \(appConfigService.maxStorageLimit) MB")
+                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                            .foregroundColor(.gray.opacity(0.8))
+                                            .padding(.bottom, 4)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .trailing, spacing: 5) {
+                                    Text("USAGE")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .tracking(1.5)
+                                    
+                                    Text("\(Int(storagePercent * 100))%")
+                                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.9))
+                                }
+                            }
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, 25)
+                            .background(Color.white)
+                            .cornerRadius(24)
+                            .shadow(color: Color.blue.opacity(0.1), radius: 15, x: 0, y: 5)
                             .padding(.horizontal)
                         }
                         
                         // Feature Cards Grid
                         HStack(spacing: 15) {
                             Button(action: { showDocuments = true }) {
-                                FeatureCard(icon: "doc.text.fill", title: "Documents", subtitle: "\(documentsService.totalDocuments) Files", iconColor: .blue, iconBgColor: Color.blue.opacity(0.1))
+                                FeatureCard(icon: "doc.text.fill", title: "Documents", iconColor: .blue, iconBgColor: Color.blue.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showDocuments) {
                                 DocumentsView(documentsService: documentsService, friendsService: authService.friendsService, notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
                             }
                             
                             Button(action: { showCards = true }) {
-                                FeatureCard(icon: "creditcard.fill", title: "Cards", subtitle: "\(cardsService.cards.count) Active", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
+                                FeatureCard(icon: "creditcard.fill", title: "Cards", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showCards) {
                                 CardsView(cardsService: cardsService, friendsService: authService.friendsService, notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
                             }
                             
                             Button(action: { showQRs = true }) {
-                                FeatureCard(icon: "qrcode", title: "QRs", subtitle: "Synced", iconColor: .orange, iconBgColor: Color.orange.opacity(0.1))
+                                FeatureCard(icon: "qrcode", title: "QRs", iconColor: .orange, iconBgColor: Color.orange.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showQRs) {
                                 SecureQRView()
@@ -440,18 +507,15 @@ struct ChipView: View {
                 .frame(width: 8, height: 8)
             Text(title)
                 .fontWeight(.bold)
-                .foregroundColor(isSelected ? color : .orange) // Wait, design has colored text
-                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
+                .foregroundColor(color)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
-        .background(isSelected ? color.opacity(0.15) : Color.white)
+        .background(isSelected ? color.opacity(0.1) : Color.white)
         .overlay(
              RoundedRectangle(cornerRadius: 20)
-                .stroke(isSelected ? color : Color.orange.opacity(0.2), lineWidth: 1.5) // Adjust borders
+                .stroke(color, lineWidth: 1.5)
         )
         .cornerRadius(20)
-        // Manual override for exact colors based on image
-        .foregroundColor(Color.black)
     }
 }

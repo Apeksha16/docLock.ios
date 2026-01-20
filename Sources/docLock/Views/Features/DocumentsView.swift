@@ -125,8 +125,7 @@ struct DocumentsView: View {
                     }
                     Spacer()
                     Text("My Documents")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
                     Color.clear.frame(width: 44, height: 44)
@@ -444,7 +443,7 @@ struct DocumentsView: View {
                                 showCreateFolderSheet = true
                             }
                         }) {
-                            FabMenuRow(title: "Create Folder", icon: "folder.badge.plus", color: Color(red: 0.3, green: 0.35, blue: 0.4))
+                        FabMenuRow(title: "Create Folder", icon: "folder.badge.plus", colors: [Color(red: 0.2, green: 0.2, blue: 0.3), Color(red: 0.3, green: 0.3, blue: 0.45)])
                         }
                     }
                     
@@ -454,7 +453,7 @@ struct DocumentsView: View {
                             showUploadImageSheet = true
                         }
                     }) {
-                        FabMenuRow(title: "Upload Img", icon: "photo", color: .cyan)
+                        FabMenuRow(title: "Upload Img", icon: "photo", colors: [Color.cyan, Color.cyan.opacity(0.7)])
                     }
                     
                     Button(action: {
@@ -463,7 +462,7 @@ struct DocumentsView: View {
                             showUploadDocumentSheet = true
                         }
                     }) {
-                        FabMenuRow(title: "Upload Doc", icon: "doc.text", color: .blue)
+                        FabMenuRow(title: "Upload Doc", icon: "doc.text", colors: [Color.blue, Color(red: 0.2, green: 0.5, blue: 0.9)])
                     }
                     
                     Spacer().frame(height: 80) // Space for close button
@@ -947,7 +946,7 @@ struct EmptyStateActionButton: View {
 struct FabMenuRow: View {
     let title: String
     let icon: String
-    let color: Color
+    let colors: [Color]
     
     var body: some View {
         HStack {
@@ -958,9 +957,15 @@ struct FabMenuRow: View {
         }
         .foregroundColor(.white)
         .frame(width: 200, height: 50)
-        .background(color)
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: colors),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .cornerRadius(15)
-        .shadow(radius: 5)
+        .shadow(color: colors.first?.opacity(0.4) ?? .black.opacity(0.2), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -1025,8 +1030,7 @@ struct CreateFolderSheet: View {
                 // Title & Subtitle
                 VStack(spacing: 8) {
                     Text(folderToEdit != nil ? "Edit Folder" : "New Folder")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     
                     Text(folderToEdit != nil ? "Update your folder name." : "Organize your documents with ease.\nGive your new folder a name.")
@@ -1225,17 +1229,8 @@ struct UploadDocumentSheet: View {
                         
                         VStack(spacing: 8) {
                             Text(isUploading ? "Uploading..." : "Upload Document")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.05, green: 0.07, blue: 0.2),
-                                            Color(red: 0.1, green: 0.12, blue: 0.25)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                             
                             Text(isUploading ? "Please wait while we secure your document." : "Select a PDF file to securely upload\nto your documents.")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
@@ -1539,17 +1534,8 @@ struct UploadImageSheet: View {
                         
                         VStack(spacing: 8) {
                             Text(isUploading ? "Uploading..." : "Upload Image")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.05, green: 0.07, blue: 0.2),
-                                            Color(red: 0.1, green: 0.12, blue: 0.25)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                             
                             Text(isUploading ? "Please wait while we secure your image." : "Select an image from your gallery\nto upload securely.")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))

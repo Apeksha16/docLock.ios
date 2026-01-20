@@ -1,4 +1,4 @@
-# Team Setup Guide for DocLock Project
+![alt text](image.png)# Team Setup Guide for DocLock Project
 
 This guide explains how new team members can set up and run the DocLock project on their own machines with different configurations.
 

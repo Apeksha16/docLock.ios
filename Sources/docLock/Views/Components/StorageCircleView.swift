@@ -1,51 +1,102 @@
 import SwiftUI
 
 struct StorageCircleView: View {
-    var label: String = "STORAGE"
-    var color: Color = Color(red: 0.3, green: 0.2, blue: 0.9)
+    var storagePercent: Double
+    var cardsPercent: Double
+    var qrsPercent: Double
+    var selectedCategory: String // "Storage", "Cards", "QRs"
+    
+    // Fixed Colors (Clean, Vibrant yet Soft)
+    let storageColor = Color(red: 0.2, green: 0.4, blue: 0.9) // Blue
+    let cardsColor = Color(red: 0.85, green: 0.2, blue: 0.6)   // Pink
+    let qrsColor = Color.orange
 
     var body: some View {
         ZStack {
-            // Concentric Circles
-            Circle()
-                .fill(Color.white.opacity(0.5))
-                .frame(width: 280, height: 280)
-                .shadow(color: Color.gray.opacity(0.1), radius: 10, x: 0, y: 5)
+            // 1. OUTER RING - STORAGE
+            CleanRingView(
+                percent: storagePercent,
+                color: storageColor,
+                radius: 125, // Slightly tighter radius
+                isSelected: selectedCategory == "Documents"
+            )
             
-            Circle()
-                .stroke(Color.gray.opacity(0.05), lineWidth: 30)
-                .frame(width: 230, height: 230)
-
-            Circle()
-                .stroke(Color.gray.opacity(0.05), lineWidth: 170)
-                .frame(width: 170, height: 170)
-                .mask(Circle().stroke(lineWidth: 20)) // Fix stroke overlap if needed, or just keep simple for now
-            // Actually the previous implementation was fine, just keeping stroke circles
-             Circle()
-                .stroke(Color.gray.opacity(0.05), lineWidth: 20)
-                .frame(width: 170, height: 170)
+            // 2. MIDDLE RING - CARDS
+            CleanRingView(
+                percent: cardsPercent,
+                color: cardsColor,
+                radius: 100,
+                isSelected: selectedCategory == "Cards"
+            )
             
-            // Decorative dots stack
+            // 3. INNER RING - QRs
+            CleanRingView(
+                percent: qrsPercent,
+                color: qrsColor,
+                radius: 75,
+                isSelected: selectedCategory == "QRs"
+            )
+            
+            // Center Content
             VStack(spacing: 4) {
-                Circle().fill(Color.blue.opacity(0.5)).frame(width: 12, height: 12)
-                Circle().fill(Color.pink.opacity(0.3)).frame(width: 12, height: 12)
-                Circle().fill(Color.orange.opacity(0.3)).frame(width: 12, height: 12)
-                Spacer()
-            }
-            .frame(height: 100)
-            .offset(y: -40) // Positioned slightly up
-
-            // Center Text
-            VStack {
-                Text("0%")
-                    .font(.system(size: 40, weight: .heavy))
-                    .foregroundColor(color) // Dynamic color
-                Text(label.uppercased())
-                    .font(.caption)
-                    .fontWeight(.bold)
+                Text("\(Int(getSelectedPercent() * 100))%")
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundColor(getSelectedColor()) // Matches selected ring color for emphasis
+                    .contentTransition(.numericText())
+                
+                Text(selectedCategory.uppercased())
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.gray)
-                    .tracking(1)
+                    .tracking(2)
             }
+            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: selectedCategory)
+        }
+    }
+    
+    func getSelectedColor() -> Color {
+        switch selectedCategory {
+        case "Documents": return storageColor
+        case "Cards": return cardsColor
+        case "QRs": return qrsColor
+        default: return .gray
+        }
+    }
+    
+    func getSelectedPercent() -> Double {
+        switch selectedCategory {
+        case "Documents": return storagePercent
+        case "Cards": return cardsPercent
+        case "QRs": return qrsPercent
+        default: return 0
+        }
+    }
+}
+
+struct CleanRingView: View {
+    var percent: Double
+    var color: Color
+    var radius: CGFloat
+    var isSelected: Bool
+    
+    var body: some View {
+        ZStack {
+            // Track (Subtle & Clean)
+            Circle()
+                .stroke(color.opacity(0.08), lineWidth: 12)
+                .frame(width: radius * 2, height: radius * 2)
+            
+            // Progress
+            Circle()
+                .trim(from: 0, to: CGFloat(percent))
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                )
+                .frame(width: radius * 2, height: radius * 2)
+                .rotationEffect(.degrees(-90))
+                .opacity(isSelected ? 1.0 : 0.25) // Fade out unselected rings significantly for "clean" look
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: percent)
+                .animation(.easeInOut(duration: 0.3), value: isSelected)
         }
     }
 }

@@ -21,104 +21,106 @@ struct MPINView: View {
     var body: some View {
         VStack(spacing: 25) {
             
-            if authService.isLoading {
-                Spacer()
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .tint(Color(red: 0.55, green: 0.36, blue: 0.96))
-                Text("Verifying...")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                Spacer()
-            } else {
-                // Header Icon
-                ZStack {
-                    Circle()
-                        .fill(Color(red: 0.9, green: 0.9, blue: 1.0)) // Light lavender bg
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "lock.fill") // Simple lock icon
-                        .font(.system(size: 35))
-                        .foregroundColor(Color(red: 0.55, green: 0.36, blue: 0.96)) // Theme color
-                }
-                .padding(.top, 20)
-                
-                Text("Verify it's you")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
-                
-                Text("Enter the 4-digit code sent to \n\(maskedMobileNumber)")
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.gray)
+            // Header Icon
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.9, green: 0.9, blue: 1.0)) // Light lavender bg
+                    .frame(width: 80, height: 80)
+                Image(systemName: "lock.fill") // Simple lock icon
+                    .font(.system(size: 35))
+                    .foregroundColor(Color(red: 0.55, green: 0.36, blue: 0.96)) // Theme color
+            }
+            .padding(.top, 20)
+            
+            Text("Verify it's you")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.black)
+            
+            Text("Enter the 4-digit code sent to \n\(maskedMobileNumber)")
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.gray)
 
-                ZStack {
-                    // Visual representation - Rounded Squares
-                    HStack(spacing: 15) {
-                        ForEach(0..<4, id: \.self) { index in
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(red: 0.96, green: 0.96, blue: 0.98)) // Very light gray
-                                .frame(width: 50, height: 50)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(
-                                            (isFocused && index == mpin.count) ? Color(red: 0.55, green: 0.36, blue: 0.96) : // Active focus
-                                            (index < mpin.count ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.clear), // Filled
-                                            lineWidth: 2
-                                        )
-                                )
-                                .overlay(
-                                    Text(index < mpin.count ? String(mpin[mpin.index(mpin.startIndex, offsetBy: index)]) : "")
-                                        .font(.title)
-                                        .bold()
-                                        .foregroundColor(.black)
-                                )
-                        }
+            ZStack {
+                // Visual representation - Rounded Squares
+                HStack(spacing: 15) {
+                    ForEach(0..<4, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(red: 0.96, green: 0.96, blue: 0.98)) // Very light gray
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(
+                                        (isFocused && index == mpin.count) ? Color(red: 0.55, green: 0.36, blue: 0.96) : // Active focus
+                                        (index < mpin.count ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.clear), // Filled
+                                        lineWidth: 2
+                                    )
+                            )
+                            .overlay(
+                                Text(index < mpin.count ? "•" : "")
+                                    .font(.title)
+                                    .bold()
+                                    .foregroundColor(.black)
+                            )
                     }
-                    
-                    // Hidden text field to capture input
-                    TextField("", text: $mpin)
-                        .keyboardType(.numberPad)
-                        .focused($isFocused)
-                        .accentColor(.clear)
-                        .foregroundColor(.clear)
-                        .frame(width: 250, height: 50)
-                        .contentShape(Rectangle())
-                        .onChange(of: mpin) { newValue in
-                            // Filter out non-numeric characters
-                            let filtered = newValue.filter { $0.isNumber }
+                }
+                
+                // Hidden text field to capture input
+                TextField("", text: $mpin)
+                    .keyboardType(.numberPad)
+                    .focused($isFocused)
+                    .accentColor(.clear)
+                    .foregroundColor(.clear)
+                    .frame(width: 250, height: 50)
+                    .contentShape(Rectangle())
+                    .disabled(authService.isLoading) // Disable input while verifying
+                    .onChange(of: mpin) { newValue in
+                        // Filter out non-numeric characters
+                        let filtered = newValue.filter { $0.isNumber }
+                        
+                        if filtered != newValue {
+                            mpin = filtered
+                        }
+                        
+                        // Limit to 4 digits
+                        if mpin.count > 4 {
+                            mpin = String(mpin.prefix(4))
+                        }
+                        
+                        // Clear error when typing
+                        if errorMessage != nil {
+                            errorMessage = nil
+                        }
+                        
+                        // Auto submit when 4 digits entered with delay
+                        if mpin.count == 4 {
+                            // Close keyboard to show the full UI state
+                            isFocused = false 
                             
-                            if filtered != newValue {
-                                mpin = filtered
-                            }
-                            
-                            // Limit to 4 digits
-                            if mpin.count > 4 {
-                                mpin = String(mpin.prefix(4))
-                            }
-                            
-                            // Clear error when typing
-                            if errorMessage != nil {
-                                errorMessage = nil
-                            }
-                            
-                            // Auto submit when 4 digits entered with delay
-                            if mpin.count == 4 {
-                                // Close keyboard to show the full UI state
-                                isFocused = false 
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                    if isLoginFlow {
-                                        performLogin()
-                                    } else {
-                                        performSignup()
-                                    }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                if isLoginFlow {
+                                    performLogin()
+                                } else {
+                                    performSignup()
                                 }
                             }
                         }
+                    }
+            }
+            .padding(.vertical, 20)
+            
+            if authService.isLoading {
+                VStack(spacing: 15) {
+                    ProgressView()
+                        .scaleEffect(1.2) // Slightly smaller than before to match inline style
+                        .tint(Color(red: 0.55, green: 0.36, blue: 0.96))
+                    Text("Verifying...")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
-                .padding(.vertical, 20)
-                
+                .padding(.bottom, 20) // Add some bottom padding
+            } else {
                 // Error Message
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
@@ -138,7 +140,7 @@ struct MPINView: View {
             }
         }
         .padding(.horizontal)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
         .contentShape(Rectangle())
         .onTapGesture {
             isFocused = false

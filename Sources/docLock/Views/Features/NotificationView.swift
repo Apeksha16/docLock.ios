@@ -121,19 +121,25 @@ struct NotificationCell: View {
                     .fill(Color(red: 0.9, green: 0.9, blue: 0.98)) // Very light blue/purple
                     .frame(width: 50, height: 50)
                 
-                if let requestType = notification.requestType, requestType == "card" {
-                    Image(systemName: "creditcard.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0))
-                } else if let requestType = notification.requestType, requestType == "document" {
-                    Image(systemName: "doc.text.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0))
-                } else {
-                    Image(systemName: notification.type.icon)
-                        .font(.system(size: 22))
-                        .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0)) // Purple icon
+                Group {
+                    if let requestType = notification.requestType, requestType == "card" {
+                        Image(systemName: "creditcard.fill")
+                    } else if let requestType = notification.requestType, requestType == "document" {
+                        Image(systemName: "doc.text.fill")
+                    } else if notification.title.localizedCaseInsensitiveContains("Card") {
+                        Image(systemName: "creditcard.fill")
+                    } else if notification.title.localizedCaseInsensitiveContains("Request") {
+                        Image(systemName: "arrow.right.circle.fill")
+                    } else if notification.title.localizedCaseInsensitiveContains("Document") {
+                        Image(systemName: "doc.text.fill")
+                    } else if notification.title.localizedCaseInsensitiveContains("Security") {
+                        Image(systemName: "shield.fill")
+                    } else {
+                        Image(systemName: notification.type.icon)
+                    }
                 }
+                .font(.system(size: 22))
+                .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0))
             }
             
             VStack(alignment: .leading, spacing: 5) {
