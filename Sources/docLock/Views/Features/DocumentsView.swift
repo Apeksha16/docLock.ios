@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import FirebaseFirestore
 
 struct DocFolder: Identifiable {
     let id: String
@@ -40,10 +41,12 @@ struct DocumentsView: View {
     @State private var folderToEdit: DocFolder?
     @State private var showDeleteConfirmation = false
     @State private var folderToDelete: DocFolder?
+    @State private var isDeletingFolder = false
     @State private var showEditDocumentSheet = false
     @State private var documentToEdit: DocumentFile?
     @State private var showDeleteDocumentConfirmation = false
     @State private var documentToDelete: DocumentFile?
+    @State private var isDeletingDocument = false
     
     // Toast messages
     @State private var toastMessage: String?
@@ -67,9 +70,19 @@ struct DocumentsView: View {
     // Check if we can create a folder at the current location
     var canCreateFolderAtCurrentLocation: Bool {
         let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 3
+        let currentDepth = currentFolderDepth
+        
         // Can create if current depth + 1 < maxDepth
-        // e.g., if maxDepth is 3: can create at depth 0 or 1, but not at depth 2
-        return currentFolderDepth + 1 < maxDepth
+        // e.g., if maxDepth is 3: can create at depth 0 or 1, but not at depth 2 or higher
+        // At depth 2: 2 + 1 = 3, which equals maxDepth, so cannot create
+        // At depth 3: 3 + 1 = 4, which exceeds maxDepth, so cannot create
+        // At depth 4: 4 + 1 = 5, which exceeds maxDepth (if maxDepth is 3 or 4), so cannot create
+        let canCreate = currentDepth + 1 < maxDepth
+        
+        // Debug logging
+        print("🔍 canCreateFolderAtCurrentLocation: currentDepth=\(currentDepth), maxDepth=\(maxDepth), newDepthWouldBe=\(currentDepth + 1), canCreate=\(canCreate)")
+        
+        return canCreate
     }
     
     // Track folder hierarchy for navigation
@@ -522,8 +535,10 @@ struct DocumentsView: View {
                         primaryButtonText: "Delete",
                         primaryButtonColor: .red,
                         onPrimaryAction: {
+                            isDeletingFolder = true
                             documentsService.deleteFolder(userId: userId, folderId: folder.id) { success, error in
                                 DispatchQueue.main.async {
+                                    isDeletingFolder = false
                                     showDeleteConfirmation = false
                                     folderToDelete = nil
                                     if success {
@@ -537,9 +552,12 @@ struct DocumentsView: View {
                             }
                         },
                         onCancel: {
-                            showDeleteConfirmation = false
-                            folderToDelete = nil
-                        }
+                            if !isDeletingFolder {
+                                showDeleteConfirmation = false
+                                folderToDelete = nil
+                            }
+                        },
+                        isLoading: isDeletingFolder
                     )
                     .zIndex(300)
                 }
@@ -554,8 +572,10 @@ struct DocumentsView: View {
                         primaryButtonText: "Delete",
                         primaryButtonColor: .red,
                         onPrimaryAction: {
+                            isDeletingDocument = true
                             documentsService.deleteDocument(userId: userId, documentId: document.id, folderId: selectedFolderId) { success, error in
                                 DispatchQueue.main.async {
+                                    isDeletingDocument = false
                                     showDeleteDocumentConfirmation = false
                                     documentToDelete = nil
                                     if success {
@@ -569,9 +589,12 @@ struct DocumentsView: View {
                             }
                         },
                         onCancel: {
-                            showDeleteDocumentConfirmation = false
-                            documentToDelete = nil
-                        }
+                            if !isDeletingDocument {
+                                showDeleteDocumentConfirmation = false
+                                documentToDelete = nil
+                            }
+                        },
+                        isLoading: isDeletingDocument
                     )
                     .zIndex(300)
                 }
@@ -636,8 +659,22 @@ struct DocumentsView: View {
         // Navigate to this folder
         selectedFolderId = folderId
         selectedFolderName = currentPath[index]
-        // Breadcrumb index corresponds to depth: index 0 = HOME (depth 0), index 1 = depth 1, etc.
-        selectedFolderDepth = index - 1
+        
+        // Fetch the actual folder depth from Firestore instead of calculating from index
+        let db = Firestore.firestore()
+        db.collection("users").document(userId).collection("folders").document(folderId).getDocument { snapshot, error in
+            DispatchQueue.main.async {
+                if let data = snapshot?.data() {
+                    let actualDepth = data["depth"] as? Int ?? (index - 1)
+                    selectedFolderDepth = actualDepth
+                    print("📂 navigateToBreadcrumb: Fetched actual depth \(actualDepth) for folder \(folderId) at breadcrumb index \(index)")
+                } else {
+                    // Fallback to index-based calculation if fetch fails
+                    selectedFolderDepth = index - 1
+                    print("⚠️ navigateToBreadcrumb: Could not fetch depth, using index-based: \(index - 1)")
+                }
+            }
+        }
         
         // Update hierarchy and path to match the clicked breadcrumb
         folderHierarchy = Array(pathFolderIds[1...index].compactMap { $0 })
@@ -951,8 +988,12 @@ struct CreateFolderSheet: View {
                     .submitLabel(.done)
                     .onChange(of: folderName) { newValue in
                         // Only allow alphanumeric, space, hyphen, and underscore
-                        let filtered = newValue.filter { char in
+                        var filtered = newValue.filter { char in
                             char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                        }
+                        // Limit to 30 characters
+                        if filtered.count > 30 {
+                            filtered = String(filtered.prefix(30))
                         }
                         if folderName != filtered {
                             folderName = filtered
@@ -1077,15 +1118,6 @@ struct UploadDocumentSheet: View {
     
     var body: some View {
         ZStack {
-            // Dimmed background
-            Color.black.opacity(0.4)
-                .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
-            
             // Modal Content
             VStack(spacing: 0) {
                 // Premium Drag Handle
@@ -1273,7 +1305,7 @@ struct UploadDocumentSheet: View {
                     }
                 }
                 .padding(.top, 4)
-                .padding(.bottom, 30) // Consistent bottom padding for all states
+                .padding(.bottom, 20) // Reduced bottom padding
             }
             .background(
                 ZStack {
@@ -1292,7 +1324,7 @@ struct UploadDocumentSheet: View {
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.85, alignment: .bottom)
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.75, alignment: .bottom)
             .edgesIgnoringSafeArea(.bottom)
             .onAppear {
                 // Reset states when sheet appears
@@ -1580,7 +1612,7 @@ struct UploadImageSheet: View {
                     }
                 }
                 .padding(.top, 4)
-                .padding(.bottom, 30) // Consistent bottom padding for all states
+                .padding(.bottom, 20) // Reduced bottom padding
             }
             .background(
                 ZStack {
@@ -1599,7 +1631,7 @@ struct UploadImageSheet: View {
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.85, alignment: .bottom)
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.75, alignment: .bottom)
             .edgesIgnoringSafeArea(.bottom)
             .onAppear {
                 // Reset states when sheet appears
@@ -2053,8 +2085,12 @@ struct EditDocumentSheet: View {
                     .submitLabel(.done)
                     .onChange(of: documentName) { newValue in
                         // Only allow alphanumeric, space, hyphen, and underscore
-                        let filtered = newValue.filter { char in
+                        var filtered = newValue.filter { char in
                             char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                        }
+                        // Limit to 50 characters
+                        if filtered.count > 50 {
+                            filtered = String(filtered.prefix(50))
                         }
                         if documentName != filtered {
                             documentName = filtered

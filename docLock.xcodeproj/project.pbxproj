@@ -38,6 +38,7 @@
 		E2E2E2E2E2E2E2E2E2E2E2E2 /* SwipeToDismissModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */; };
 		E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */; };
 		E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */; };
+		E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */; };
 		M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */; };
 		M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */; };
 		M5M5M5M5M5M5M5M5M5M5M5M5 /* LoginResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6M6M6M6M6M6M6M6M6M6M6M6 /* LoginResponse.swift */; };
@@ -78,6 +79,7 @@
 		F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeToDismissModifier.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriterText.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendSelectionSheet.swift; sourceTree = "<group>"; };
 		M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginRequest.swift; sourceTree = "<group>"; };
 		M6M6M6M6M6M6M6M6M6M6M6M6 /* LoginResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginResponse.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 				F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */,
 				F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */,
 				F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */,
+				F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */,
 			);
 			name = Components;
 			path = Sources/docLock/Views/Components;
@@ -337,6 +340,7 @@
 				E2E2E2E2E2E2E2E2E2E2E2E2 /* SwipeToDismissModifier.swift in Sources */,
 				E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */,
 				E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */,
+				E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */,
 				M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */,
 				M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */,
 				M5M5M5M5M5M5M5M5M5M5M5M5 /* LoginResponse.swift in Sources */,

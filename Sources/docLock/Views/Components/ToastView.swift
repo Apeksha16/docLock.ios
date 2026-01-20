@@ -41,12 +41,12 @@ struct ToastView: View {
                     }
                     
                     Text(message)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.leading)
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
                 .background(Color.black.opacity(0.95))
                 .cornerRadius(40)
                 .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)

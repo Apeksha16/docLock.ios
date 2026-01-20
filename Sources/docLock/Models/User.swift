@@ -7,6 +7,7 @@ struct User: Decodable, Identifiable {
     let profileImageUrl: String?
     let storageUsed: Int64? // In bytes
     let addedAt: Date? // Timestamp when friend was added
+    let sharedCardsCount: Int?
     
     var id: String { return uid }
 }

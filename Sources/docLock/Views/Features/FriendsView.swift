@@ -181,7 +181,7 @@ struct FriendsView: View {
                     StatCard(
                         icon: "creditcard.fill",
                         title: "Shared Card",
-                        count: 0,
+                        count: authService.user?.sharedCardsCount ?? 0,
                         color: .pink,
                         index: 1,
                         hasAppeared: hasAppeared

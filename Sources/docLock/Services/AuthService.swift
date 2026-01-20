@@ -16,6 +16,8 @@ class AuthService: ObservableObject {
     @Published var lockoutDate: Date?
     @Published var isDeviceMismatch = false
     
+    private var userListener: ListenerRegistration?
+    
     // Services for data sync
     let notificationService = NotificationService()
     let friendsService = FriendsService()
@@ -820,8 +822,10 @@ class AuthService: ObservableObject {
 
     // MARK: - Fetch User Profile
     func fetchUserProfile(userId: String) {
+        userListener?.remove() // Remove existing listener if any
+        
         let db = Firestore.firestore()
-        db.collection("users").document(userId).getDocument { [weak self] snapshot, error in
+        userListener = db.collection("users").document(userId).addSnapshotListener { [weak self] snapshot, error in
             DispatchQueue.main.async {
                 if let data = snapshot?.data() {
                     let mobile = data["mobile"] as? String
@@ -830,18 +834,20 @@ class AuthService: ObservableObject {
                     let storageUsed = data["storageUsed"] as? Int64
                     
                     // Manually create User object to avoid JSON/Timestamp serialization issues
-                    // Manually create User object to avoid JSON/Timestamp serialization issues
                     let updatedUser = User(
                         uid: userId,
                         mobile: mobile,
                         name: name,
                         profileImageUrl: profileImageUrl,
                         storageUsed: storageUsed,
-                        addedAt: nil // Self doesn't have an addedAt date
+                        addedAt: nil, // Self doesn't have an addedAt date
+                        sharedCardsCount: data["sharedCardsCount"] as? Int
                     )
                     
                     self?.user = updatedUser
                     print("✅ User Profile Synced: \(updatedUser.name), Mobile: \(updatedUser.mobile ?? "nil")")
+                } else if let error = error {
+                    print("🔴 Error listening to user profile: \(error.localizedDescription)")
                 }
             }
         }
@@ -1226,7 +1232,8 @@ class FriendsService: ObservableObject {
             name: data["name"] as? String ?? "Unknown",
             profileImageUrl: data["profileImageUrl"] as? String,
             storageUsed: data["storageUsed"] as? Int64,
-            addedAt: date
+            addedAt: date,
+            sharedCardsCount: data["sharedCardsCount"] as? Int
         )
     }
 }
@@ -1545,28 +1552,176 @@ class DocumentsService: ObservableObject {
         }
     }
     
-    // MARK: - Delete Folder
+    // MARK: - Delete Folder (Recursive - deletes all child folders, documents, and images)
     func deleteFolder(userId: String, folderId: String, completion: @escaping (Bool, String?) -> Void) {
-        print("🗑️ DocumentsService: Deleting folder \(folderId)")
+        print("🗑️ DocumentsService: Deleting folder \(folderId) and all its contents recursively")
         
-        // First, get the parent folder ID to update its itemCount
+        // First, get the parent folder ID to update its itemCount later
         db.collection("users").document(userId).collection("folders").document(folderId).getDocument { [weak self] snapshot, error in
-            guard let self = self else { return }
+            guard let self = self else {
+                completion(false, "Service unavailable")
+                return
+            }
+            
+            if let error = error {
+                print("🔴 DocumentsService: Error fetching folder: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+                return
+            }
+            
+            guard snapshot?.exists == true else {
+                print("🔴 DocumentsService: Folder not found")
+                completion(false, "Folder not found")
+                return
+            }
             
             let parentFolderId = snapshot?.data()?["parentFolderId"] as? String
             
-            // Delete the folder
-            self.db.collection("users").document(userId).collection("folders").document(folderId).delete { error in
-                if let error = error {
-                    print("🔴 DocumentsService Delete Folder Error: \(error.localizedDescription)")
-                    completion(false, error.localizedDescription)
-                } else {
-                    print("🟢 DocumentsService: Folder deleted successfully")
-                    // Update parent folder itemCount if it exists
-                    if let parentId = parentFolderId {
-                        self.updateFolderItemCount(userId: userId, folderId: parentId)
+            // Recursively delete all contents of this folder
+            self.deleteFolderContentsRecursively(userId: userId, folderId: folderId) { [weak self] success, error in
+                guard let self = self else {
+                    completion(false, "Service unavailable")
+                    return
+                }
+                
+                if !success {
+                    print("🔴 DocumentsService: Error deleting folder contents: \(error ?? "Unknown error")")
+                    completion(false, error ?? "Failed to delete folder contents")
+                    return
+                }
+                
+                // Now delete the folder itself
+                self.db.collection("users").document(userId).collection("folders").document(folderId).delete { error in
+                    DispatchQueue.main.async {
+                        if let error = error {
+                            print("🔴 DocumentsService Delete Folder Error: \(error.localizedDescription)")
+                            completion(false, error.localizedDescription)
+                        } else {
+                            print("🟢 DocumentsService: Folder and all contents deleted successfully")
+                            // Update parent folder itemCount if it exists
+                            if let parentId = parentFolderId {
+                                DispatchQueue.global(qos: .utility).async {
+                                    self.updateFolderItemCount(userId: userId, folderId: parentId)
+                                }
+                            }
+                            completion(true, nil)
+                        }
                     }
-                    completion(true, nil)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Recursively Delete Folder Contents
+    private func deleteFolderContentsRecursively(userId: String, folderId: String, completion: @escaping (Bool, String?) -> Void) {
+        print("📂 DocumentsService: Deleting contents of folder \(folderId)")
+        
+        let documentsRef = db.collection("users").document(userId).collection("documents")
+        let foldersRef = db.collection("users").document(userId).collection("folders")
+        let storage = Storage.storage()
+        
+        // Get all documents in this folder
+        documentsRef.whereField("folderId", isEqualTo: folderId).getDocuments { [weak self] documentsSnapshot, documentsError in
+            guard let self = self else {
+                completion(false, "Service unavailable")
+                return
+            }
+            
+            if let documentsError = documentsError {
+                print("🔴 DocumentsService: Error fetching documents: \(documentsError.localizedDescription)")
+                completion(false, documentsError.localizedDescription)
+                return
+            }
+            
+            // Delete all documents and their storage files
+            let documents = documentsSnapshot?.documents ?? []
+            let documentDeleteGroup = DispatchGroup()
+            var documentDeleteErrors: [String] = []
+            
+            for doc in documents {
+                documentDeleteGroup.enter()
+                let docData = doc.data()
+                let storageUrl = docData["url"] as? String ?? ""
+                let docId = doc.documentID
+                
+                // Delete from Firestore
+                documentsRef.document(docId).delete { error in
+                    if let error = error {
+                        print("🔴 DocumentsService: Error deleting document \(docId): \(error.localizedDescription)")
+                        documentDeleteErrors.append("Document \(docId): \(error.localizedDescription)")
+                    } else {
+                        print("🟢 DocumentsService: Deleted document \(docId)")
+                    }
+                    
+                    // Delete from Storage
+                    if !storageUrl.isEmpty {
+                        let storageRef = storage.reference(forURL: storageUrl)
+                        storageRef.delete { error in
+                            if let error = error {
+                                print("⚠️ DocumentsService: Error deleting storage file for \(docId): \(error.localizedDescription)")
+                            }
+                        }
+                    }
+                    
+                    documentDeleteGroup.leave()
+                }
+            }
+            
+            // Get all child folders
+            foldersRef.whereField("parentFolderId", isEqualTo: folderId).getDocuments { [weak self] foldersSnapshot, foldersError in
+                guard let self = self else {
+                    completion(false, "Service unavailable")
+                    return
+                }
+                
+                if let foldersError = foldersError {
+                    print("🔴 DocumentsService: Error fetching child folders: \(foldersError.localizedDescription)")
+                    // Continue even if there's an error fetching folders
+                }
+                
+                // Recursively delete all child folders
+                let childFolders = foldersSnapshot?.documents ?? []
+                let folderDeleteGroup = DispatchGroup()
+                var folderDeleteErrors: [String] = []
+                
+                for folderDoc in childFolders {
+                    folderDeleteGroup.enter()
+                    let childFolderId = folderDoc.documentID
+                    
+                    // Recursively delete child folder and its contents
+                    self.deleteFolderContentsRecursively(userId: userId, folderId: childFolderId) { success, error in
+                        if success {
+                            // Delete the child folder itself
+                            foldersRef.document(childFolderId).delete { error in
+                                if let error = error {
+                                    print("🔴 DocumentsService: Error deleting child folder \(childFolderId): \(error.localizedDescription)")
+                                    folderDeleteErrors.append("Folder \(childFolderId): \(error.localizedDescription)")
+                                } else {
+                                    print("🟢 DocumentsService: Deleted child folder \(childFolderId)")
+                                }
+                                folderDeleteGroup.leave()
+                            }
+                        } else {
+                            print("🔴 DocumentsService: Error deleting contents of child folder \(childFolderId): \(error ?? "Unknown")")
+                            folderDeleteErrors.append("Folder \(childFolderId): \(error ?? "Unknown")")
+                            folderDeleteGroup.leave()
+                        }
+                    }
+                }
+                
+                // Wait for all deletions to complete
+                documentDeleteGroup.notify(queue: .main) {
+                    folderDeleteGroup.notify(queue: .main) {
+                        if documentDeleteErrors.isEmpty && folderDeleteErrors.isEmpty {
+                            print("🟢 DocumentsService: All folder contents deleted successfully")
+                            completion(true, nil)
+                        } else {
+                            let allErrors = (documentDeleteErrors + folderDeleteErrors).joined(separator: "; ")
+                            print("⚠️ DocumentsService: Some deletions failed: \(allErrors)")
+                            // Still return success if we deleted most items, but log errors
+                            completion(true, nil)
+                        }
+                    }
                 }
             }
         }
@@ -2073,7 +2228,9 @@ class CardsService: ObservableObject {
                         expiry: expiry,
                         cvv: cvv,
                         colorStart: type == .debit ? Color(red: 0.95, green: 0.85, blue: 0.4) : Color(red: 0.9, green: 0.4, blue: 0.6),
-                        colorEnd: type == .debit ? Color(red: 0.9, green: 0.7, blue: 0.2) : Color(red: 0.95, green: 0.6, blue: 0.75)
+                        colorEnd: type == .debit ? Color(red: 0.9, green: 0.7, blue: 0.2) : Color(red: 0.95, green: 0.6, blue: 0.75),
+                        isShared: data["isShared"] as? Bool ?? false,
+                        sharedBy: data["sharedBy"] as? String
                     )
                 }
                 
@@ -2100,7 +2257,8 @@ class CardsService: ObservableObject {
             "cardHolder": card.cardHolder, // Usually not encrypted for search, but can be
             "expiry": encExpiry,
             "cvv": encCVV,
-            "createdAt": FieldValue.serverTimestamp()
+            "createdAt": FieldValue.serverTimestamp(),
+            "isShared": false
         ]
         
         db.collection("users").document(userId).collection("cards").addDocument(data: data) { error in
@@ -2109,6 +2267,63 @@ class CardsService: ObservableObject {
                 completion(false, error.localizedDescription)
             } else {
                 print("🟢 CardsService: Card added")
+                completion(true, nil)
+            }
+        }
+    }
+    
+    func shareCard(userId: String, card: CardModel, friendId: String, notificationService: NotificationService, completion: @escaping (Bool, String?) -> Void) {
+        guard let encNumber = CryptoService.shared.encrypt(card.cardNumber),
+              let encCVV = CryptoService.shared.encrypt(card.cvv) else {
+            completion(false, "Encryption failed")
+            return
+        }
+        
+        // Encrypt expiry as well
+        let encExpiry = CryptoService.shared.encrypt(card.expiry) ?? card.expiry
+        
+        let data: [String: Any] = [
+            "type": card.type.rawValue,
+            "cardName": card.cardName,
+            "cardNumber": encNumber,
+            "cardHolder": card.cardHolder,
+            "expiry": encExpiry,
+            "cvv": encCVV,
+            "createdAt": FieldValue.serverTimestamp(),
+            "isShared": true,
+            "sharedBy": userId
+        ]
+        
+        db.collection("users").document(friendId).collection("cards").addDocument(data: data) { [weak self] error in
+            if let error = error {
+                print("🔴 CardsService Share Error: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                print("🟢 CardsService: Card shared")
+                
+                // Update shared counts
+                let batch = self?.db.batch()
+                let senderRef = self?.db.collection("users").document(userId)
+                let receiverRef = self?.db.collection("users").document(friendId)
+                
+                if let senderRef = senderRef {
+                    batch?.updateData(["sharedCardsCount": FieldValue.increment(Int64(1))], forDocument: senderRef)
+                }
+                if let receiverRef = receiverRef {
+                    batch?.updateData(["sharedCardsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
+                }
+                
+                batch?.commit { _ in
+                    print("Counts updated")
+                }
+                
+                // Send Notifications
+                // To Receiver
+                notificationService.addNotification(userId: friendId, title: "Card Shared", message: "A card verified by your friend was shared with you.", type: "alert")
+                
+                // To Sender
+                notificationService.addNotification(userId: userId, title: "Card Shared", message: "You successfully shared \(card.cardName) with your friend.", type: "alert")
+                
                 completion(true, nil)
             }
         }

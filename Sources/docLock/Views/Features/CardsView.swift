@@ -23,12 +23,15 @@ struct CardModel: Identifiable {
     var cvv: String
     var colorStart: Color
     var colorEnd: Color
+    var isShared: Bool = false
+    var sharedBy: String? = nil
 }
 
 // MARK: - Main Cards View
 struct CardsView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var cardsService: CardsService
+    @ObservedObject var friendsService: FriendsService
     @ObservedObject var notificationService: NotificationService
     let userId: String
     
@@ -38,6 +41,8 @@ struct CardsView: View {
     @State private var cardToDeleteId: String?
     @State private var hasAppeared = false
     @State private var showingShareSheet = false
+    @State private var showingFriendSelection = false
+    @State private var cardToShare: CardModel?
     @State private var shareItems: [Any] = []
     
     // Toast State
@@ -316,9 +321,8 @@ struct CardsView: View {
                                         cardToDeleteId = card.id
                                         showingDeleteAlert = true
                                     }, onShare: {
-                                        let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
-                                        shareItems = [text]
-                                        showingShareSheet = true
+                                        cardToShare = card
+                                        showingFriendSelection = true
                                     }, onCopy: { message in
                                         toastMessage = message
                                         toastType = .success
@@ -467,6 +471,28 @@ struct CardsView: View {
                 )
             }
             
+            // Friend Selection Sheet
+            if showingFriendSelection {
+                FriendSelectionSheet(
+                    friends: friendsService.friends,
+                    onShare: { friend in
+                        if let card = cardToShare {
+                            cardsService.shareCard(userId: userId, card: card, friendId: friend.id, notificationService: notificationService) { success, error in
+                                DispatchQueue.main.async {
+                                    if success {
+                                        toastMessage = "Card shared with \(friend.name)"
+                                        toastType = .success
+                                    } else {
+                                        toastMessage = "Failed to share: \(error ?? "Unknown")"
+                                        toastType = .error
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    isPresented: $showingFriendSelection
+                )
+            }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
@@ -558,19 +584,33 @@ struct CardView: View {
             VStack(alignment: .leading) {
                 // Top Row: Actions + VISA
                 HStack {
-                    HStack(spacing: 10) {
-                        CircleButton(icon: "pencil", action: onEdit)
-                        CircleButton(icon: "trash", action: onDelete)
-                        CircleButton(icon: "square.and.arrow.up", action: onShare)
+                    if card.isShared {
+                        Text("SHARED")
+                           .font(.caption2)
+                           .fontWeight(.bold)
+                           .foregroundColor(.white)
+                           .padding(4)
+                           .background(Color.black.opacity(0.3))
+                           .cornerRadius(4)
+                    } else {
+                        HStack(spacing: 10) {
+                            CircleButton(icon: "pencil", action: onEdit)
+                            CircleButton(icon: "trash", action: onDelete)
+                            CircleButton(icon: "square.and.arrow.up", action: onShare)
+                        }
                     }
+                    
                     Spacer()
-                    Text(getCardBrand(number: card.cardNumber))
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white.opacity(0.8))
-                        .padding(5)
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(5)
+                    
+                    if !getCardBrand(number: card.cardNumber).isEmpty {
+                        Text(getCardBrand(number: card.cardNumber))
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(5)
+                            .background(Color.white.opacity(0.2))
+                            .cornerRadius(5)
+                    }
                 }
                 
                 Spacer()

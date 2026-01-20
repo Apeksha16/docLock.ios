@@ -407,7 +407,7 @@ struct HomeView: View {
                                 FeatureCard(icon: "creditcard.fill", title: "Cards", subtitle: "\(cardsService.cards.count) Active", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showCards) {
-                                CardsView(cardsService: cardsService, notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
+                                CardsView(cardsService: cardsService, friendsService: authService.friendsService, notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
                             }
                             
                             Button(action: { showQRs = true }) {
