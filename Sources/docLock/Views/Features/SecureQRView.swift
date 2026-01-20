@@ -213,6 +213,10 @@ struct NewQRSheet: View {
         DocumentItem(name: "Contract_Final.pdf", type: "pdf")
     ]
     
+    var isFormValid: Bool {
+        return !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && documents.contains { $0.isSelected }
+    }
+    
     var body: some View {
         VStack(spacing: 24) {
             // Drag Handle
@@ -320,6 +324,7 @@ struct NewQRSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(
+                        isFormValid ?
                         LinearGradient(
                             gradient: Gradient(colors: [
                                 Color.orange,
@@ -327,11 +332,17 @@ struct NewQRSheet: View {
                             ]),
                             startPoint: .leading,
                             endPoint: .trailing
+                        ) :
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.gray.opacity(0.5)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
                     )
                     .cornerRadius(24)
-                    .shadow(color: Color.orange.opacity(0.4), radius: 10, x: 0, y: 5)
+                    .shadow(color: isFormValid ? Color.orange.opacity(0.4) : Color.clear, radius: 10, x: 0, y: 5)
             }
+            .disabled(!isFormValid)
             .padding(.horizontal, 24)
             .padding(.bottom, 34)
         }
