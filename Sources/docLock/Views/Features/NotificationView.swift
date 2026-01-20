@@ -113,24 +113,24 @@ struct NotificationView: View {
                 .scrollIndicators(.hidden)
             }
             
-            // Content Selection Sheet
-            if showContentSelection, let notification = selectedNotification, let requestType = notification.requestType, let senderId = notification.senderId {
-                ContentSelectionSheet(
-                    cards: requestType == "card" ? cardsService.cards : [],
-                    documents: requestType == "document" ? getAllDocuments() : [],
-                    requestType: requestType,
-                    onShare: { content in
-                        handleShare(content: content, senderId: senderId, requestType: requestType)
-                    },
-                    isPresented: $showContentSelection
-                )
-                .onAppear {
-                    // Fetch documents from root when showing document selection
-                    if requestType == "document" {
-                        documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
-                    }
-                }
-            }
+            // Content Selection Sheet - Temporarily removed
+            // if showContentSelection, let notification = selectedNotification, let requestType = notification.requestType, let senderId = notification.senderId {
+            //     ContentSelectionSheet(
+            //         cards: requestType == "card" ? cardsService.cards : [],
+            //         documents: requestType == "document" ? getAllDocuments() : [],
+            //         requestType: requestType,
+            //         onShare: { content in
+            //             handleShare(content: content, senderId: senderId, requestType: requestType)
+            //         },
+            //         isPresented: $showContentSelection
+            //     )
+            //     .onAppear {
+            //         // Fetch documents from root when showing document selection
+            //         if requestType == "document" {
+            //             documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
+            //         }
+            //     }
+            // }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()

@@ -29,11 +29,69 @@ struct LoginView: View {
     let typewriterPhrases = ["GO PAPERLESS", "ONE SCAN ACCESS", "STAY SECURE"]
 
     var body: some View {
+        ScrollViewReader { scrollProxy in // START ScrollViewReader
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    headerView
+                    
+                    inputView
+            
+                    verifyButton
+                        .padding(.top, 10)
+
+                    if let lockoutDate = authService.lockoutDate, lockoutDate > Date() {
+                        lockoutView(lockoutDate: lockoutDate)
+                    }
+
+                    footerView
+                    
+                    Spacer().frame(height: 20)
+                    
+                    encryptionBadge
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 20) // Add bottom padding for better spacing
+            } // End of ScrollView
+            .onChange(of: isTextFieldFocused) { focused in
+                if !focused {
+                    withAnimation {
+                        scrollProxy.scrollTo("Top", anchor: .top)
+                    }
+                }
+            }
+        } // End of ScrollViewReader
+        .background(
+            Color.white
+                .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    isTextFieldFocused = false
+                }
+        )
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isTextFieldFocused = false
+                }
+            }
+        }
+        .onAppear {
+            // Auto focus when view appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isTextFieldFocused = true
+            }
+        }
+    }
+    
+    // MARK: - Subviews
+    
+    private var headerView: some View {
         VStack(spacing: 20) {
             Image(systemName: "lock.shield.fill")
                 .font(.system(size: 50))
                 .foregroundColor(themeColor) // Updated Logo Color
                 .padding(.top, 20)
+                .id("Top") // Tag top element
             
             TypewriterCycleView(phrases: typewriterPhrases)
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2)) // Dark Navy Text
@@ -41,114 +99,113 @@ struct LoginView: View {
             
             Text("Sign in to your secure vault")
                 .foregroundColor(.gray)
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Mobile Number")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
-                
-                TextField("Enter 10-digit number", text: $phoneNumber)
-                    .keyboardType(.numberPad)
-                    .focused($isTextFieldFocused)
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke((isTextFieldFocused || !phoneNumber.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                    .onChange(of: phoneNumber) { newValue in
-                        // Filter out non-numeric characters
-                        phoneNumber = newValue.filter { $0.isNumber }
-                        
-                        // Limit to 10 digits
-                        if phoneNumber.count > 10 {
-                            phoneNumber = String(phoneNumber.prefix(10))
-                        }
-                    }
-
-            }
-            .padding(.top, 20)
-
-            Button(action: {
-                verifyMobile()
-            }) {
-                HStack {
-                    if isVerifying {
-                        ProgressView()
-                            .tint(.white)
-                            .padding(.trailing, 8)
-                    }
-                    Text(isVerifying ? "Verifying..." : "Get OTP")
-                        .fontWeight(.bold)
-                }
-                .frame(maxWidth: .infinity)
+        }
+    }
+    
+    private var inputView: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("Mobile Number")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
+            
+            TextField("Enter 10-digit number", text: $phoneNumber)
+                .keyboardType(.numberPad)
+                .focused($isTextFieldFocused)
                 .padding()
-                .background(isValidNumber && !isVerifying ? themeColor : disabledThemeColor)
-                .foregroundColor(.white)
-                .cornerRadius(15)
+                .background(Color.white)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke((isTextFieldFocused || !phoneNumber.isEmpty) ? themeColor : Color.gray.opacity(0.3), lineWidth: 1)
+                )
+                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2)) // Ensure text is visible (Dark Navy)
+                .colorScheme(.light) // Force light mode for placeholder visibility
+                .onChange(of: phoneNumber) { newValue in
+                    // Filter out non-numeric characters
+                    phoneNumber = newValue.filter { $0.isNumber }
+                    
+                    // Limit to 10 digits
+                    if phoneNumber.count > 10 {
+                        phoneNumber = String(phoneNumber.prefix(10))
+                    }
+                }
+        }
+        .padding(.top, 20)
+    }
+    
+    private var verifyButton: some View {
+        Button(action: {
+            verifyMobile()
+        }) {
+            HStack {
+                if isVerifying {
+                    ProgressView()
+                        .tint(.white)
+                        .padding(.trailing, 8)
+                }
+                Text(isVerifying ? "Verifying..." : "Get OTP")
+                    .fontWeight(.bold)
             }
-            .disabled(!isValidNumber || isVerifying || (authService.lockoutDate != nil && authService.lockoutDate! > Date()))
-            .padding(.top, 10)
-
-            if let lockoutDate = authService.lockoutDate, lockoutDate > Date() {
-                VStack(spacing: 4) {
-                    Text("Your account is locked")
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(isValidNumber && !isVerifying ? themeColor : disabledThemeColor)
+            .foregroundColor(.white)
+            .cornerRadius(15)
+        }
+        .disabled(!isValidNumber || isVerifying || (authService.lockoutDate != nil && authService.lockoutDate! > Date()))
+    }
+    
+    private func lockoutView(lockoutDate: Date) -> some View {
+        VStack(spacing: 4) {
+            Text("Your account is locked")
+                .foregroundColor(.red)
+                .font(.caption)
+                .fontWeight(.bold)
+            
+            TimelineView(.periodic(from: .now, by: 1.0)) { context in
+                let remaining = Int(lockoutDate.timeIntervalSince(context.date))
+                if remaining > 0 {
+                    Text("Time remaining: \(remaining)s")
                         .foregroundColor(.red)
                         .font(.caption)
-                        .fontWeight(.bold)
-                    
-                    TimelineView(.periodic(from: .now, by: 1.0)) { context in
-                        let remaining = Int(lockoutDate.timeIntervalSince(context.date))
-                        if remaining > 0 {
-                            Text("Time remaining: \(remaining)s")
-                                .foregroundColor(.red)
-                                .font(.caption)
-                        } else {
-                            Text("Lockout expired")
-                                .foregroundColor(.green)
-                                .font(.caption)
-                        }
-                    }
+                } else {
+                    Text("Lockout expired")
+                        .foregroundColor(.green)
+                        .font(.caption)
                 }
-                .padding(.top, 5)
-            }
-
-            HStack {
-                Text("New to DocLock?")
-                    .foregroundColor(.gray)
-                Button("Create Account") {
-                    withAnimation {
-                        showSignup = true
-                    }
-                }
-                .fontWeight(.bold)
-                .foregroundColor(themeColor)
-            }
-            .font(.footnote)
-            
-            Spacer().frame(height: 20)
-            
-            HStack {
-                Image(systemName: "lock.fill")
-                Text("Secured with 256-bit encryption")
-            }
-            .font(.caption)
-            .foregroundColor(.gray)
-            .padding(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-            )
-        }
-        .padding(.horizontal)
-        .onAppear {
-            // Auto focus when view appears
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isTextFieldFocused = true
             }
         }
+        .padding(.top, 5)
+    }
+    
+    private var footerView: some View {
+        HStack {
+            Text("New to DocLock?")
+                .foregroundColor(.gray)
+            Button("Create Account") {
+                withAnimation {
+                    showSignup = true
+                }
+            }
+            .fontWeight(.bold)
+            .foregroundColor(themeColor)
+        }
+        .font(.footnote)
+    }
+    
+    private var encryptionBadge: some View {
+        HStack {
+            Image(systemName: "lock.fill")
+            Text("Secured with 256-bit encryption")
+        }
+        .font(.caption)
+        .foregroundColor(.gray)
+        .padding(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+        )
     }
     
     func verifyMobile() {

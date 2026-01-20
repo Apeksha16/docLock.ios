@@ -123,6 +123,8 @@ struct AddFriendView: View {
                         .foregroundColor(.gray)
                     
                     TextField("Paste Unique ID to connect...", text: $searchText)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .colorScheme(.light)
                         .padding()
                         .background(Color.white)
                         .cornerRadius(12)

@@ -24,6 +24,7 @@
 		A8A8A8A8A8A8A8A8A8A8A8A8 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */; };
 		A9A9A9A9A9A9A9A9A9A9A9A9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B9B9B9B9B9B9B9B9B9B9B9 /* DashboardView.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */; };
+		AQR1AQR1AQR1AQR1AQR1AQR1 /* AddQRSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */; };
 		BCC2A6089BBA43A8AAE01E40 /* docLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ABA508666E4CF898F1FC88 /* docLockApp.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* DocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */; };
 		C2C2C2C2C2C2C2C2C2C2C2C2 /* FeatureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */; };
@@ -39,7 +40,7 @@
 		E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */; };
 		E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */; };
 		E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */; };
-		CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2 /* ContentSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */; };
+		EIC1EIC1EIC1EIC1EIC1EIC1 /* IconGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */; };
 		H1H1H1H1H1H1H1H1H1H1H1H1 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */; };
 		M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */; };
 		M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */; };
@@ -68,6 +69,7 @@
 		B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
 		B9B9B9B9B9B9B9B9B9B9B9B9 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddQRSheet.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsView.swift; sourceTree = "<group>"; };
 		D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureCard.swift; sourceTree = "<group>"; };
 		D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
@@ -82,7 +84,7 @@
 		F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriterText.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendSelectionSheet.swift; sourceTree = "<group>"; };
-		CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentSelectionSheet.swift; sourceTree = "<group>"; };
+		FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconGeneratorView.swift; sourceTree = "<group>"; };
 		H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginRequest.swift; sourceTree = "<group>"; };
@@ -147,6 +149,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		EXEXEXEXEXEXEXEXEXEX /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */,
+			);
+			name = Extensions;
+			path = Sources/docLock/Extensions;
+			sourceTree = "<group>";
+		};
 		MHMHMHMHMHMHMHMHMHMH /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -183,15 +194,6 @@
 			path = Sources/docLock/Services;
 			sourceTree = "<group>";
 		};
-		EXEXEXEXEXEXEXEXEXEX /* Extensions */ = {
-			isa = PBXGroup;
-			children = (
-				H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */,
-			);
-			name = Extensions;
-			path = Sources/docLock/Extensions;
-			sourceTree = "<group>";
-		};
 		VAVAVAVAVAVAVAVAVAVA /* Auth */ = {
 			isa = PBXGroup;
 			children = (
@@ -211,14 +213,13 @@
 				B6B6B6B6B6B6B6B6B6B6B6B6 /* CustomActionModal.swift */,
 				B7B7B7B7B7B7B7B7B7B7B7B7 /* CustomTabBar.swift */,
 				B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */,
-				CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */,
 				D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */,
 				F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */,
 				F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */,
 				F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */,
 				F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */,
-				CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */,
+				FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */,
 			);
 			name = Components;
 			path = Sources/docLock/Views/Components;
@@ -235,6 +236,7 @@
 				D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */,
 				D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */,
 				D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */,
+				BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */,
 			);
 			name = Features;
 			path = Sources/docLock/Views/Features;
@@ -336,6 +338,7 @@
 				777777777777777777777778 /* Sources/docLock/Components.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* AboutView.swift in Sources */,
 				A2A2A2A2A2A2A2A2A2A2A2A2 /* AddFriendView.swift in Sources */,
+				AQR1AQR1AQR1AQR1AQR1AQR1 /* AddQRSheet.swift in Sources */,
 				A3A3A3A3A3A3A3A3A3A3A3A3 /* BottomSheetView.swift in Sources */,
 				A4A4A4A4A4A4A4A4A4A4A4A4 /* CardsView.swift in Sources */,
 				A5A5A5A5A5A5A5A5A5A5A5A5 /* CreatePINView.swift in Sources */,
@@ -357,7 +360,7 @@
 				E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */,
 				E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */,
 				E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */,
-				CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2 /* ContentSelectionSheet.swift in Sources */,
+				EIC1EIC1EIC1EIC1EIC1EIC1 /* IconGeneratorView.swift in Sources */,
 				H1H1H1H1H1H1H1H1H1H1H1H1 /* Color+Hex.swift in Sources */,
 				M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */,
 				M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */,

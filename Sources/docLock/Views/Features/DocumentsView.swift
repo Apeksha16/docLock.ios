@@ -150,12 +150,14 @@ struct DocumentsView: View {
                 }
                 .padding()
                 
-                // Search Bar (Only show if documents exist)
-                if !documentsService.folders.isEmpty {
+                // Search Bar (Only show if items exist)
+                if !documentsService.folders.isEmpty || !documentsService.currentFolderDocuments.isEmpty {
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
                         TextField("Search docs...", text: $searchText)
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                            .colorScheme(.light)
                             .onChange(of: searchText) { newValue in
                                 let filtered = newValue.filter { "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-".contains($0) }
                                 if filtered != newValue {
@@ -170,8 +172,8 @@ struct DocumentsView: View {
                     .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
                 }
                 
-                // Breadcrumbs (Show if we have folders or are in a folder)
-                if !documentsService.folders.isEmpty || selectedFolderId != nil {
+                // Breadcrumbs (Show if we have items or are in a folder)
+                if !documentsService.folders.isEmpty || !documentsService.currentFolderDocuments.isEmpty || selectedFolderId != nil {
                     ScrollViewReader { proxy in
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 5) {
@@ -205,7 +207,7 @@ struct DocumentsView: View {
                             }
                             .padding(.leading, 16)
                             .padding(.trailing, 16)
-                            .padding(.top, 20)
+                            .padding(.vertical, 30) // Increased top and bottom padding
                         }
                         .onChange(of: currentPath.count) { count in
                             // Auto-scroll to show the last breadcrumb item with proper trailing padding
@@ -233,14 +235,9 @@ struct DocumentsView: View {
                 }
                 
                 // Content
-                if !hasFoldersToDisplay {
-                    DocumentsEmptyState(
-                        showCreateFolderSheet: $showCreateFolderSheet,
-                        showUploadDocumentSheet: $showUploadDocumentSheet,
-                        showUploadImageSheet: $showUploadImageSheet
-                    )
-                } else if let folderId = selectedFolderId {
-                    // Show folder contents
+                // Content
+                if let folderId = selectedFolderId {
+                    // Show folder contents (Priority: specific folder view)
                     FolderContentsView(
                         documentsService: documentsService,
                         userId: userId,
@@ -296,17 +293,20 @@ struct DocumentsView: View {
                                     selectedFolderDepth = 0
                                     folderHierarchy = []
                                     pathFolderIds = [nil]
-                                    documentsService.startListening(userId: userId, parentFolderId: nil)
-                                }
-                                } else {
-                                    // Go back to root
-                                    selectedFolderId = nil
-                                    selectedFolderName = nil
-                                    selectedFolderDepth = 0
-                                    folderHierarchy = []
                                     pathFolderIds = [nil]
                                     documentsService.startListening(userId: userId, parentFolderId: nil)
+                                    documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
                                 }
+                            } else {
+                                // Go back to root
+                                selectedFolderId = nil
+                                selectedFolderName = nil
+                                selectedFolderDepth = 0
+                                folderHierarchy = []
+                                pathFolderIds = [nil]
+                                documentsService.startListening(userId: userId, parentFolderId: nil)
+                                documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
+                            }
                             withAnimation {
                                 if currentPath.count > 1 {
                                     currentPath.removeLast()
@@ -346,6 +346,12 @@ struct DocumentsView: View {
                             documentToPreview = document
                             showDocumentPreview = true
                         }
+                    )
+                } else if !hasFoldersToDisplay && documentsService.currentFolderDocuments.isEmpty {
+                    DocumentsEmptyState(
+                        showCreateFolderSheet: $showCreateFolderSheet,
+                        showUploadDocumentSheet: $showUploadDocumentSheet,
+                        showUploadImageSheet: $showUploadImageSheet
                     )
                 } else {
                     // Show folders in list view with swipe actions
@@ -395,6 +401,49 @@ struct DocumentsView: View {
                                 }
                                 .tint(.blue)
                                 .disabled(folder.id == "SHARED_ROOT") // Cannot edit Shared folder
+                            }
+                        }
+                        }
+                        
+                        // Documents section (Root)
+                        if !documentsService.currentFolderDocuments.isEmpty {
+                            ForEach(documentsService.currentFolderDocuments) { document in
+                                DocumentListItem(document: document)
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                                    .onTapGesture {
+                                        documentToPreview = document
+                                        showDocumentPreview = true
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        // Delete action
+                                        Button(role: .destructive) {
+                                            documentToDelete = document
+                                            showDeleteDocumentConfirmation = true
+                                        } label: {
+                                            Image(systemName: "trash")
+                                        }
+                                        .tint(.red)
+                                        
+                                        // Edit name action
+                                        Button {
+                                            documentToEdit = document
+                                            showEditDocumentSheet = true
+                                        } label: {
+                                            Image(systemName: "pencil")
+                                        }
+                                        .tint(.blue)
+                                        
+                                        // Share action
+                                        Button {
+                                            documentToShare = document
+                                            showingFriendSelection = true
+                                        } label: {
+                                            Image(systemName: "square.and.arrow.up")
+                                        }
+                                        .tint(.orange)
+                                    }
                             }
                         }
                     }
@@ -492,7 +541,7 @@ struct DocumentsView: View {
             
             // FAB Button (Center Bottom)
             // Show FAB if we have folders or are in a folder (even at max depth, we can still upload)
-            if !documentsService.folders.isEmpty || selectedFolderId != nil {
+            if (!documentsService.folders.isEmpty || selectedFolderId != nil) && selectedFolderId != "SHARED_ROOT" {
                 VStack {
                     Spacer()
                     HStack {
@@ -577,6 +626,7 @@ struct DocumentsView: View {
         )
         .onAppear {
             documentsService.startListening(userId: userId, parentFolderId: nil)
+            documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
             // Calculate storage size in background
             DispatchQueue.global(qos: .utility).async {
                 documentsService.updateStorageSize(userId: userId, fileSize: 0, isAdd: false)
@@ -1017,7 +1067,11 @@ struct CreateFolderSheet: View {
                 }
             
             // Modal Content (Centered)
-            VStack(spacing: 20) {
+            ScrollViewReader { scrollProxy in // START ScrollViewReader
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // ID for scrolling
+                        Color.clear.frame(height: 1).id("Top")
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
@@ -1151,10 +1205,30 @@ struct CreateFolderSheet: View {
                         .fontWeight(.medium)
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     }
+                    }
+                    .padding(.horizontal, 25)
+                    .padding(.bottom, 20)
+                    
                 }
-                .padding(.horizontal, 25)
                 .padding(.bottom, 20)
-                
+                } // End ScrollView
+                .onChange(of: isFocused) { focused in
+                    if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
+                }
+            } // End ScrollViewReader
+            .background(
+                Color.white.edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        isFocused = false
+                    }
+            )
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isFocused = false
+                    }
+                }
             }
             .padding(.bottom, 20)
             .background(
@@ -1836,6 +1910,30 @@ struct FolderContentsView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
                     
+                    if folderId != "SHARED_ROOT" {
+                        // Action Buttons
+                        VStack(spacing: 15) {
+                            // Upload Document
+                            EmptyStateActionButton(title: "Upload Document", icon: "doc.text.fill", color: .blue) {
+                                onUploadDocument()
+                            }
+                            
+                            // Upload Image
+                            EmptyStateActionButton(title: "Upload Image", icon: "photo.fill", color: .cyan) {
+                                onUploadImage()
+                            }
+                            
+                            // Create Folder (only if allowed depth)
+                            if appConfigService.canCreateFolder(currentDepth: 0) { // Should pass actual depth if available
+                                EmptyStateActionButton(title: "Create Folder", icon: "folder.badge.plus", color: Color(red: 0.3, green: 0.35, blue: 0.4)) {
+                                    onCreateFolder()
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.top, 20)
+                    }
+                    
                     Spacer()
                 }
             }
@@ -2129,7 +2227,11 @@ struct EditDocumentSheet: View {
             // No dimmed background - keep background visible
             
             // Modal Content
-            VStack(spacing: 20) {
+            ScrollViewReader { scrollProxy in // START ScrollViewReader
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // ID for scrolling
+                        Color.clear.frame(height: 1).id("Top")
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
@@ -2246,6 +2348,27 @@ struct EditDocumentSheet: View {
                 }
                 .padding(.horizontal, 25)
                 .padding(.bottom, 30)
+                }
+                .padding(.horizontal, 25)
+                .padding(.bottom, 30)
+                } // End ScrollView
+                .onChange(of: isFocused) { focused in
+                    if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
+                }
+            } // End ScrollViewReader
+            .background(
+                Color.white.edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        isFocused = false
+                    }
+            )
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isFocused = false
+                    }
+                }
             }
             .background(
                 ZStack {
@@ -2301,7 +2424,6 @@ struct DocumentPreviewView: View {
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
     @State private var pdfPages: [UIImage] = []
-    @State private var currentPageIndex: Int = 0
     @State private var isLoading: Bool = true
     @State private var loadError: String?
     
@@ -2313,7 +2435,7 @@ struct DocumentPreviewView: View {
             
             // Content
             VStack(spacing: 0) {
-                // Top Bar
+                // Top Bar (Only close button and title)
                 HStack {
                     Button(action: {
                         withAnimation {
@@ -2337,28 +2459,12 @@ struct DocumentPreviewView: View {
                     
                     Spacer()
                     
-                    // Action buttons
-                    HStack(spacing: 12) {
-                        Button(action: onShare) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
-                        }
-                        
-                        Button(action: onDelete) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
-                        }
-                    }
+                    // Spacer to balance the close button
+                    Color.clear.frame(width: 44, height: 44)
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
                 .background(Color.black.opacity(0.5))
                 
                 // Preview Content
@@ -2416,13 +2522,24 @@ struct DocumentPreviewView: View {
                                                     },
                                                 DragGesture()
                                                     .onChanged { value in
-                                                        offset = CGSize(
-                                                            width: lastOffset.width + value.translation.width,
-                                                            height: lastOffset.height + value.translation.height
-                                                        )
+                                                        // Only allow dragging if zoomed in
+                                                        if scale > 1.0 {
+                                                            offset = CGSize(
+                                                                width: lastOffset.width + value.translation.width,
+                                                                height: lastOffset.height + value.translation.height
+                                                            )
+                                                        }
                                                     }
                                                     .onEnded { _ in
-                                                        lastOffset = offset
+                                                        // Auto-center if not zoomed, otherwise keep position
+                                                        if scale <= 1.0 {
+                                                            withAnimation {
+                                                                offset = .zero
+                                                                lastOffset = .zero
+                                                            }
+                                                        } else {
+                                                            lastOffset = offset
+                                                        }
                                                     }
                                             )
                                         )
@@ -2453,72 +2570,50 @@ struct DocumentPreviewView: View {
                                 }
                             }
                         } else {
-                            // PDF Preview with Page Scrolling
+                            // PDF Preview with Continuous Scrolling and Zoom
                             if !pdfPages.isEmpty {
-                                ScrollViewReader { proxy in
-                                    ScrollView(.vertical, showsIndicators: true) {
-                                        VStack(spacing: 20) {
-                                            ForEach(0..<pdfPages.count, id: \.self) { index in
-                                                Image(uiImage: pdfPages[index])
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .scaleEffect(scale)
-                                                    .gesture(
-                                                        SimultaneousGesture(
-                                                            MagnificationGesture()
-                                                                .onChanged { value in
-                                                                    scale = lastScale * value
+                                ScrollView(.vertical, showsIndicators: true) {
+                                    VStack(spacing: 12) {
+                                        ForEach(0..<pdfPages.count, id: \.self) { index in
+                                            Image(uiImage: pdfPages[index])
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .scaleEffect(scale)
+                                                .simultaneousGesture(
+                                                    MagnificationGesture()
+                                                        .onChanged { value in
+                                                            scale = lastScale * value
+                                                        }
+                                                        .onEnded { _ in
+                                                            lastScale = scale
+                                                            if scale < 1.0 {
+                                                                withAnimation {
+                                                                    scale = 1.0
+                                                                    lastScale = 1.0
                                                                 }
-                                                                .onEnded { _ in
-                                                                    lastScale = scale
-                                                                    if scale < 1.0 {
-                                                                        withAnimation {
-                                                                            scale = 1.0
-                                                                            lastScale = 1.0
-                                                                        }
-                                                                    } else if scale > 5.0 {
-                                                                        withAnimation {
-                                                                            scale = 5.0
-                                                                            lastScale = 5.0
-                                                                        }
-                                                                    }
-                                                                },
-                                                            DragGesture()
-                                                                .onChanged { value in
-                                                                    offset = CGSize(
-                                                                        width: lastOffset.width + value.translation.width,
-                                                                        height: lastOffset.height + value.translation.height
-                                                                    )
+                                                            } else if scale > 5.0 {
+                                                                withAnimation {
+                                                                    scale = 5.0
+                                                                    lastScale = 5.0
                                                                 }
-                                                                .onEnded { _ in
-                                                                    lastOffset = offset
-                                                                }
-                                                        )
-                                                    )
-                                                    .onTapGesture(count: 2) {
-                                                        withAnimation {
-                                                            if scale > 1.0 {
-                                                                scale = 1.0
-                                                                lastScale = 1.0
-                                                                offset = .zero
-                                                                lastOffset = .zero
-                                                            } else {
-                                                                scale = 2.0
-                                                                lastScale = 2.0
                                                             }
                                                         }
+                                                )
+                                                .onTapGesture(count: 2) {
+                                                    withAnimation {
+                                                        if scale > 1.0 {
+                                                            scale = 1.0
+                                                            lastScale = 1.0
+                                                        } else {
+                                                            scale = 2.0
+                                                            lastScale = 2.0
+                                                        }
                                                     }
-                                                    .padding(.horizontal)
-                                                    .id(index)
-                                            }
-                                        }
-                                        .padding(.vertical)
-                                    }
-                                    .onChange(of: currentPageIndex) { newIndex in
-                                        withAnimation {
-                                            proxy.scrollTo(newIndex, anchor: .top)
+                                                }
+                                                .padding(.horizontal, 8)
                                         }
                                     }
+                                    .padding(.vertical, 8)
                                 }
                             } else {
                                 VStack(spacing: 16) {
@@ -2535,48 +2630,46 @@ struct DocumentPreviewView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                // Bottom Controls (for PDF page indicator)
-                if document.type != "image" && !pdfPages.isEmpty {
-                    HStack {
-                        Button(action: {
-                            if currentPageIndex > 0 {
-                                withAnimation {
-                                    currentPageIndex -= 1
-                                }
-                            }
-                        }) {
-                            Image(systemName: "chevron.left")
+                // Bottom Bar with Share and Delete buttons
+                HStack(spacing: 20) {
+                    Spacer()
+                    
+                    // Share Button
+                    Button(action: onShare) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(currentPageIndex > 0 ? .white : .white.opacity(0.3))
-                                .frame(width: 44, height: 44)
+                            Text("Share")
+                                .font(.headline)
                         }
-                        .disabled(currentPageIndex == 0)
-                        
-                        Spacer()
-                        
-                        Text("Page \(currentPageIndex + 1) of \(pdfPages.count)")
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            if currentPageIndex < pdfPages.count - 1 {
-                                withAnimation {
-                                    currentPageIndex += 1
-                                }
-                            }
-                        }) {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(currentPageIndex < pdfPages.count - 1 ? .white : .white.opacity(0.3))
-                                .frame(width: 44, height: 44)
-                        }
-                        .disabled(currentPageIndex == pdfPages.count - 1)
+                        .foregroundColor(.white)
+                        .frame(height: 50)
+                        .padding(.horizontal, 24)
+                        .background(Color.blue)
+                        .cornerRadius(25)
                     }
-                    .padding()
-                    .background(Color.black.opacity(0.5))
+                    
+                    // Delete Button
+                    Button(action: onDelete) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 18, weight: .semibold))
+                            Text("Delete")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(height: 50)
+                        .padding(.horizontal, 24)
+                        .background(Color.red)
+                        .cornerRadius(25)
+                    }
+                    
+                    Spacer()
                 }
+                .padding(.horizontal)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+                .background(Color.black.opacity(0.7))
             }
         }
         .zIndex(1000)

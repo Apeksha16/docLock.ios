@@ -541,6 +541,7 @@ struct EditNameView: View {
     @State private var newName: String = ""
     @State private var isSaving = false
     @State private var sheetOffset: CGFloat = 800
+    @FocusState private var isFocused: Bool
     
     var body: some View {
         ZStack {
@@ -554,7 +555,11 @@ struct EditNameView: View {
                 }
             
             // Modal Content (Centered)
-            VStack(spacing: 20) {
+            ScrollViewReader { scrollProxy in // START ScrollViewReader
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // ID for scrolling
+                        Color.clear.frame(height: 1).id("Top")
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
@@ -598,6 +603,7 @@ struct EditNameView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                     )
+                    .focused($isFocused)
                     .padding(.horizontal, 25)
                 
                 // Action Buttons
@@ -641,6 +647,26 @@ struct EditNameView: View {
                 .padding(.horizontal, 25)
                 .padding(.bottom, 20)
                 
+            }
+            .padding(.bottom, 20)
+            } // End ScrollView
+            .onChange(of: isFocused) { focused in
+                if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
+            }
+            } // End ScrollViewReader
+            .background(
+                Color.white.edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        isFocused = false
+                    }
+            )
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isFocused = false
+                    }
+                }
             }
             .padding(.bottom, 20)
             .background(

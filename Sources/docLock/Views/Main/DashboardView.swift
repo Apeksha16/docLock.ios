@@ -307,7 +307,7 @@ struct HomeView: View {
                         
                         // QRs - Assuming limit of 20 for visual purposes since "Synced" isn't a hard limit
                         // Or if we want to show just activity level. 
-                        let qrsCount = 5.0 // Placeholder value since we don't have a count service readily available in snippet
+                        // let qrsCount = 5.0 // Placeholder value since we don't have a count service readily available in snippet
                         // Actually, let's use a safe fallback.
                         let qrsPercent = 0.45 // Fixed aesthetic value for now, or calculate if we had QR count
                         
@@ -487,7 +487,10 @@ struct HomeView: View {
                                 FeatureCard(icon: "qrcode", title: "QRs", iconColor: .orange, iconBgColor: Color.orange.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showQRs) {
-                                SecureQRView()
+                                SecureQRView(
+                                    documentsService: documentsService,
+                                    userId: authService.user?.id ?? authService.user?.mobile ?? "unknown"
+                                )
                             }
                         }
                         .padding(.horizontal)

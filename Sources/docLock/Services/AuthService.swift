@@ -918,7 +918,7 @@ class NotificationService: ObservableObject {
         print("🔔 NotificationService: Starting listener for user \(userId)")
         
         listener = db.collection("users").document(userId).collection("notifications")
-            .order(by: "date", descending: true)
+            .order(by: "createdAt", descending: true)
             .addSnapshotListener { [weak self] snapshot, error in
                 if let error = error {
                     print("🔴 NotificationService Error: \(error.localizedDescription)")
@@ -950,29 +950,8 @@ class NotificationService: ObservableObject {
             }
     }
     
-    func addNotification(userId: String, title: String, message: String, type: String = "alert", completion: ((Error?) -> Void)? = nil) {
-        // Simple date formatter for display sorting if needed, or use timestamp
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "MMM d, h:mm a"
-        let dateString = dateFormatter.string(from: Date())
-        
-        let data: [String: Any] = [
-            "title": title,
-            "message": message,
-            "type": type,
-            "date": dateString,
-            "isRead": false,
-            "createdAt": FieldValue.serverTimestamp()
-        ]
-        
-        db.collection("users").document(userId).collection("notifications").addDocument(data: data) { error in
-            if let error = error {
-                print("🔴 NotificationService: Error adding notification: \(error.localizedDescription)")
-            } else {
-                print("🟢 NotificationService: Notification added")
-            }
-            completion?(error)
-        }
+    func addNotification(userId: String, title: String, message: String, type: String = "alert", requestType: String? = nil, senderId: String? = nil) {
+        NotificationService.send(to: userId, title: title, message: message, type: type, senderId: senderId, requestType: requestType)
     }
     
     func stopListening() {
@@ -1007,7 +986,7 @@ class NotificationService: ObservableObject {
     }
     
     // MARK: - Sending Notifications
-    static func send(to userId: String, title: String, message: String, type: String, senderId: String? = nil, senderName: String? = nil, requestType: String? = nil) {
+    static func send(to userId: String, title: String, message: String, type: String, senderId: String? = nil, senderName: String? = nil, requestType: String? = nil, completion: ((Error?) -> Void)? = nil) {
         let db = Firestore.firestore()
         let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short)
         
@@ -1027,7 +1006,10 @@ class NotificationService: ObservableObject {
         db.collection("users").document(userId).collection("notifications").addDocument(data: data) { error in
             if let error = error {
                 print("🔴 NotificationService Send Error: \(error.localizedDescription)")
+            } else {
+                print("✅ NotificationService Sent to \(userId)")
             }
+            completion?(error)
         }
     }
 }
@@ -1131,7 +1113,10 @@ class FriendsService: ObservableObject {
     // MARK: - Request Feature
     func sendRequest(fromUser: User, toFriend friend: User, requestType: String, message: String, completion: @escaping (Bool) -> Void) {
         
-        // Notify Friend
+        print("📨 FriendsService: Sending request from \(fromUser.name) to \(friend.name)")
+        
+        // Notify Friend (The Receiver)
+        // We wait for this one to ensure the "Share" button will be available for them
         NotificationService.send(
             to: friend.uid,
             title: "Request from \(fromUser.name)",
@@ -1139,22 +1124,24 @@ class FriendsService: ObservableObject {
             type: "alert",
             senderId: fromUser.uid,
             requestType: requestType
-        )
-        
-        // Notify Sender
-        NotificationService.send(
-            to: fromUser.uid,
-            title: "Request Sent",
-            message: "You requested \(requestType == "card" ? "a card" : "a document") from \(friend.name).",
-            type: "security"
-        )
-        
-        // Assuming success for async "fire and forget" notification or should we wait?
-        // Original code waited for friend's notification addDocument callback.
-        // NotificationService.send is fire-and-forget (void return).
-        // I will just complete(true) for UX speed.
-        print("✅ Requests queued for notifications")
-        completion(true)
+        ) { error in
+            if let error = error {
+                print("🔴 FriendsService: Failed to send request notification to friend: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+            
+            // Notify Sender (Confirmation) - Fire and forget
+            NotificationService.send(
+                to: fromUser.uid,
+                title: "Request Sent",
+                message: "You requested \(requestType == "card" ? "a card" : "a document") from \(friend.name).",
+                type: "security"
+            )
+            
+            print("✅ Requests queued for notifications")
+            completion(true)
+        }
     }
     
     // ... addFriend ... (keep existing)
@@ -1895,10 +1882,8 @@ class DocumentsService: ObservableObject {
                     
                     // Update shared counts
                     let batch = self.db.batch()
-                    let senderRef = self.db.collection("users").document(userId)
                     let receiverRef = self.db.collection("users").document(friendId)
                     
-                    batch.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: senderRef)
                     batch.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
                     
                     batch.commit { error in
@@ -2399,23 +2384,19 @@ class CardsService: ObservableObject {
     }
     
     func shareCard(userId: String, card: CardModel, friendId: String, notificationService: NotificationService, completion: @escaping (Bool, String?) -> Void) {
-        guard let encNumber = CryptoService.shared.encrypt(card.cardNumber),
-              let encCVV = CryptoService.shared.encrypt(card.cvv) else {
-            completion(false, "Encryption failed")
-            return
-        }
-        
-        // Encrypt expiry as well
-        let encExpiry = CryptoService.shared.encrypt(card.expiry) ?? card.expiry
+        // We do NOT encrypt when sharing, because the friend cannot decrypt with our key.
+        // We rely on Firestore security rules and the friend's app to treat it as "raw" if decryption fails.
+        // This is a direct share to the friend's private collection.
         
         let data: [String: Any] = [
             "type": card.type.rawValue,
             "cardName": card.cardName,
-            "cardNumber": encNumber,
+            "cardNumber": card.cardNumber, // Raw
             "cardHolder": card.cardHolder,
-            "expiry": encExpiry,
-            "cvv": encCVV,
-            "colorIndex": card.colorIndex ?? 0,
+            "expiry": card.expiry,         // Raw
+            "cvv": card.cvv,               // Raw
+            "colorStartHex": card.colorStart.toHex() ?? "",
+            "colorEndHex": card.colorEnd.toHex() ?? "",
             "createdAt": FieldValue.serverTimestamp(),
             "isShared": true,
             "sharedBy": userId
@@ -2551,5 +2532,9 @@ class AppConfigService: ObservableObject {
                 completion(true) // Success
             }
         }
+    }
+    
+    func canCreateFolder(currentDepth: Int) -> Bool {
+        return currentDepth < maxFolderDepth
     }
 }

@@ -394,9 +394,8 @@ struct CardsView: View {
                                                 cardToDeleteId = card.id
                                                 showingDeleteAlert = true
                                             }, onShare: {
-                                                let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
-                                                shareItems = [text]
-                                                showingShareSheet = true
+                                                cardToShare = card
+                                                showingFriendSelection = true
                                             }, onCopy: { message in
                                                 toastMessage = message
                                                 toastType = .success
@@ -895,8 +894,11 @@ struct AddEditCardView: View {
                  }
             }
             
+            ScrollViewReader { scrollProxy in // START ScrollViewReader
             ScrollView {
                 VStack(spacing: 20) {
+                // ID for scrolling
+                Color.clear.frame(height: 1).id("Top")
                 // Header
                 HStack {
                     Button(action: { isPresented = false }) {
@@ -1119,7 +1121,23 @@ struct AddEditCardView: View {
             }
             #endif
         }
-        .background(Color.clear)
+        .background(
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+        )
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    withAnimation { scrollProxy.scrollTo("Top", anchor: .top) }
+                }
+            }
+        }
+        } // End ScrollViewReader
         }
     }
     

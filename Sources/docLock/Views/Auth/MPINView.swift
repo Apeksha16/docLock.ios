@@ -19,7 +19,11 @@ struct MPINView: View {
     }
     
     var body: some View {
-        VStack(spacing: 25) {
+        ScrollViewReader { scrollProxy in // START ScrollViewReader
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 25) {
+                    // ID for scrolling
+                    Color.clear.frame(height: 1).id("Top")
             
             // Header Icon
             ZStack {
@@ -140,6 +144,26 @@ struct MPINView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.bottom, 20)
+        } // End ScrollView
+        .onChange(of: isFocused) { focused in
+            if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
+        }
+        } // End ScrollViewReader
+        .background(
+            Color.white.edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    isFocused = false
+                }
+        )
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isFocused = false
+                }
+            }
+        }
 
         .contentShape(Rectangle())
         .onTapGesture {

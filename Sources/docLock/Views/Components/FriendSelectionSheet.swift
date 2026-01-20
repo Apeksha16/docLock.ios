@@ -54,6 +54,8 @@ struct FriendSelectionSheet: View {
                 
                 if friends.count > 6 {
                     TextField("Search friends...", text: $searchText)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .colorScheme(.light)
                         .padding(12)
                         .background(Color.white)
                         .cornerRadius(12)

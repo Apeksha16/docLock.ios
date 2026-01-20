@@ -32,11 +32,14 @@ struct SignupView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 50))
-                .foregroundColor(themeColor)
-                .padding(.top, 20)
+        ScrollViewReader { scrollProxy in
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(themeColor)
+                        .padding(.top, 20)
+                        .id("Top")
             
             Text("Create Account")
                 .font(.title)
@@ -64,6 +67,8 @@ struct SignupView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke((isNameFieldFocused || !fullName.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
                         )
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .colorScheme(.light)
 
                 }
                 
@@ -83,6 +88,8 @@ struct SignupView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke((!phoneNumber.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
                         )
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .colorScheme(.light)
                         .onChange(of: phoneNumber) { newValue in
                             // Filter out non-numeric characters
                             phoneNumber = newValue.filter { $0.isNumber }
@@ -139,6 +146,30 @@ struct SignupView: View {
             )
         }
         .padding(.horizontal)
+        .padding(.bottom, 20)
+        } // End ScrollView
+        .onChange(of: isNameFieldFocused) { focused in
+            if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
+        }
+        } // End ScrollViewReader
+        .background(
+            Color.white
+                .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    isNameFieldFocused = false
+                    // Also dismiss generic keyboard if any
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+        )
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isNameFieldFocused = false
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+            }
+        }
         .onAppear {
             // Prefill mobile number if provided
             if !prefilledMobile.isEmpty {
