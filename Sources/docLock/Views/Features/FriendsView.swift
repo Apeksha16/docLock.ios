@@ -360,6 +360,12 @@ struct FriendsView: View {
                                 .tint(.red)
                             }
                         }
+                        
+                        // Spacer to ensure last item is visible above bottom bar
+                        Color.clear
+                            .frame(height: 100)
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
@@ -785,7 +791,7 @@ struct RequestActionSheet: View {
                     } else {
                         // Premium Input Area
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("PERSONAL NOTE (OPTIONAL)")
+                            Text("PERSONAL NOTE")
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundColor(.gray.opacity(0.8))
                                 .tracking(1)
@@ -844,7 +850,7 @@ struct RequestActionSheet: View {
                                 title: "Ask for Card",
                                 color: .pink,
                                 isLoading: isLoading,
-                                isDisabled: message.count > 0 && message.count < 3,
+                                isDisabled: message.count < 3,
                                 action: { sendRequest(type: "card") }
                             )
                             
@@ -854,7 +860,7 @@ struct RequestActionSheet: View {
                                 title: "Ask for Doc",
                                 color: .blue,
                                 isLoading: isLoading,
-                                isDisabled: message.count > 0 && message.count < 3,
+                                isDisabled: message.count < 3,
                                 action: { sendRequest(type: "document") }
                             )
                         }
@@ -917,13 +923,13 @@ struct RequestActionSheet: View {
     }
     
     func sendRequest(type: String) {
-        // Disable if input exists and is less than 3 characters (but allow empty)
-        guard message.isEmpty || message.count >= 3 else {
+        // Disable if input is less than 3 characters
+        guard message.count >= 3 else {
             return
         }
         
         isLoading = true
-        let msg = message.isEmpty ? "Requested \(type == "card" ? "a card" : "a document")" : message
+        let msg = message
         
         friendsService.sendRequest(fromUser: currentUser, toFriend: friend, requestType: type, message: msg) { success in
             DispatchQueue.main.async {

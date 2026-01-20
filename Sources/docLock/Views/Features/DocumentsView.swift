@@ -54,11 +54,12 @@ struct DocumentsView: View {
     }
     
     var currentLocationDepth: Int {
-        if let folderId = selectedFolderId {
-            // Get depth from current folder folders or use folder depth
-            return documentsService.currentFolderFolders.first(where: { $0.id == folderId })?.depth ?? 0
-        }
-        return 0
+        // Depth is based on how many levels deep we are in the folder hierarchy
+        // folderHierarchy contains folder IDs from root to current folder
+        // Empty array = root (depth 0)
+        // 1 folder = depth 1
+        // 2 folders = depth 2, etc.
+        return folderHierarchy.count
     }
     
     // Track folder hierarchy for navigation
@@ -149,24 +150,33 @@ struct DocumentsView: View {
                                         navigateToBreadcrumb(index: index)
                                     }
                                 }
+                                // Add spacer to ensure trailing padding is visible when scrolled
+                                Spacer()
+                                    .frame(width: 1)
+                                    .id("trailing-spacer")
                             }
-                            .padding(.horizontal)
+                            .padding(.leading, 16)
+                            .padding(.trailing, 16)
                             .padding(.top, 20)
                         }
-                        .onChange(of: currentPath.count) { _ in
-                            // Auto-scroll to show the last breadcrumb item
+                        .onChange(of: currentPath.count) { count in
+                            // Auto-scroll to show the last breadcrumb item with proper trailing padding
                             if currentPath.count > 0 {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    proxy.scrollTo(currentPath.count - 1, anchor: .trailing)
+                                // Increased delay to ensure layout is ready
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        // Scroll to the trailing spacer to ensure full visibility of last item
+                                        proxy.scrollTo("trailing-spacer", anchor: .trailing)
+                                    }
                                 }
                             }
                         }
                         .onAppear {
                             // Scroll to last item on appear
                             if currentPath.count > 0 {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                     withAnimation(.easeInOut(duration: 0.3)) {
-                                        proxy.scrollTo(currentPath.count - 1, anchor: .trailing)
+                                        proxy.scrollTo("trailing-spacer", anchor: .trailing)
                                     }
                                 }
                             }
@@ -312,7 +322,7 @@ struct DocumentsView: View {
                                 Button(role: .destructive) {
                                     deleteFolder(folderId: folder.id, folderName: folder.name)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Image(systemName: "trash")
                                 }
                                 .tint(.red)
                                 
@@ -320,7 +330,7 @@ struct DocumentsView: View {
                                 Button {
                                     editFolder(folder: folder)
                                 } label: {
-                                    Label("Edit", systemImage: "pencil")
+                                    Image(systemName: "pencil")
                                 }
                                 .tint(.blue)
                             }
@@ -382,13 +392,15 @@ struct DocumentsView: View {
                 VStack(spacing: 20) {
                      Spacer()
                     
-                    Button(action: {
-                        withAnimation {
-                            showFabMenu = false
-                            showCreateFolderSheet = true
+                    if currentLocationDepth < (documentsService.appConfigService?.maxFolderDepth ?? 3) {
+                        Button(action: {
+                            withAnimation {
+                                showFabMenu = false
+                                showCreateFolderSheet = true
+                            }
+                        }) {
+                            FabMenuRow(title: "Create Folder", icon: "folder.badge.plus", color: Color(red: 0.3, green: 0.35, blue: 0.4))
                         }
-                    }) {
-                        FabMenuRow(title: "Create Folder", icon: "folder.badge.plus", color: Color(red: 0.3, green: 0.35, blue: 0.4))
                     }
                     
                     Button(action: {
@@ -455,13 +467,15 @@ struct DocumentsView: View {
         }
         .sheet(isPresented: $showEditFolderSheet) {
             if let folder = folderToEdit {
-                EditFolderSheet(
+                CreateFolderSheet(
                     documentsService: documentsService,
                     userId: userId,
-                    folder: folder,
+                    parentFolderId: currentLocationFolderId, // Not used for edit
+                    parentDepth: currentLocationDepth,   // Not used for edit
                     isPresented: $showEditFolderSheet,
                     toastMessage: $toastMessage,
-                    toastType: $toastType
+                    toastType: $toastType,
+                    folderToEdit: folder
                 )
             }
         }
@@ -836,6 +850,8 @@ struct CreateFolderSheet: View {
     @Binding var isPresented: Bool
     @Binding var toastMessage: String?
     @Binding var toastType: ToastType
+    var folderToEdit: DocFolder? = nil // Optional folder to edit
+    
     @State private var folderName: String = ""
     @State private var sheetOffset: CGFloat = 800
     @State private var iconScale: CGFloat = 0.5
@@ -876,7 +892,7 @@ struct CreateFolderSheet: View {
                         )
                         .frame(width: 60, height: 60)
                     
-                    Image(systemName: "folder.badge.plus")
+                    Image(systemName: folderToEdit != nil ? "pencil" : "folder.badge.plus")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(.blue)
                 }
@@ -886,12 +902,12 @@ struct CreateFolderSheet: View {
                 
                 // Title & Subtitle
                 VStack(spacing: 8) {
-                    Text("New Folder")
+                    Text(folderToEdit != nil ? "Edit Folder" : "New Folder")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     
-                    Text("Organize your documents with ease.\nGive your new folder a name.")
+                    Text(folderToEdit != nil ? "Update your folder name." : "Organize your documents with ease.\nGive your new folder a name.")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -925,44 +941,64 @@ struct CreateFolderSheet: View {
                 // Action Buttons
                 VStack(spacing: 15) {
                     Button(action: {
-                        // Create folder in background (no loader)
-                        let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
-                        documentsService.createFolder(userId: userId, folderName: folderName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
-                            DispatchQueue.main.async {
-                                if success {
-                                    toastMessage = "Folder '\(folderName)' created successfully"
-                                    toastType = .success
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        isPresented = false
+                        if let folder = folderToEdit {
+                            // Update existing folder
+                            documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName) { success, error in
+                                DispatchQueue.main.async {
+                                    if success {
+                                        toastMessage = "Folder renamed to '\(folderName)'"
+                                        toastType = .success
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                            isPresented = false
+                                        }
+                                    } else {
+                                        toastMessage = error ?? "Failed to update folder"
+                                        toastType = .error
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                            isPresented = false
+                                        }
                                     }
-                                } else {
-                                    toastMessage = error ?? "Failed to create folder"
-                                    toastType = .error
-                                    print("Error creating folder: \(error ?? "Unknown error")")
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        isPresented = false
+                                }
+                            }
+                        } else {
+                            // Create folder in background (no loader)
+                            let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
+                            documentsService.createFolder(userId: userId, folderName: folderName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
+                                DispatchQueue.main.async {
+                                    if success {
+                                        toastMessage = "Folder '\(folderName)' created successfully"
+                                        toastType = .success
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                            isPresented = false
+                                        }
+                                    } else {
+                                        toastMessage = error ?? "Failed to create folder"
+                                        toastType = .error
+                                        print("Error creating folder: \(error ?? "Unknown error")")
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                            isPresented = false
+                                        }
                                     }
                                 }
                             }
                         }
                     }) {
-                        Text("Create Folder")
+                        Text(folderToEdit != nil ? "Update Folder" : "Create Folder")
                             .font(.headline)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(folderName.isEmpty ? Color.gray.opacity(0.5) : Color.blue)
+                            .background(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name) ? Color.gray.opacity(0.5) : Color.blue)
                             .cornerRadius(15)
                     }
-                    .disabled(folderName.isEmpty)
+                    .disabled(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name))
                     
                     Button(action: {
                         withAnimation { isPresented = false }
                     }) {
                         Text("Cancel")
-                            .font(.headline)
-                            .fontWeight(.medium)
+                        .fontWeight(.medium)
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     }
                 }
@@ -980,6 +1016,9 @@ struct CreateFolderSheet: View {
             .frame(maxHeight: .infinity, alignment: .bottom)
             .transition(.move(edge: .bottom))
             .onAppear {
+                if let folder = folderToEdit {
+                    folderName = folder.name
+                }
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     sheetOffset = 0
                 }
@@ -1036,86 +1075,77 @@ struct UploadDocumentSheet: View {
                     .padding(.bottom, 8)
                 
                 VStack(spacing: 24) {
-                    // Premium Animated Header - Hide during upload
-                    if !isUploading {
-                        VStack(spacing: 18) {
-                            // Premium Animated Icon
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 35)
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.blue,
-                                                Color.blue.opacity(0.8)
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
+                    // Header (Always visible, changes content based on state)
+                    VStack(spacing: 18) {
+                        // Premium Animated Icon
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 35)
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.blue,
+                                            Color.blue.opacity(0.8)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
                                     )
-                                    .frame(width: 90, height: 90)
-                                
-                                Image(systemName: "doc.text.fill")
-                                    .font(.system(size: 38, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                            .scaleEffect(iconScale)
-                            .rotationEffect(.degrees(iconRotation))
-                            .padding(.top, 8)
+                                )
+                                .frame(width: 90, height: 90)
                             
-                            VStack(spacing: 8) {
-                                Text("Upload Document")
-                                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color(red: 0.05, green: 0.07, blue: 0.2),
-                                                Color(red: 0.1, green: 0.12, blue: 0.25)
-                                            ]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                
-                                Text("Select a PDF file to securely upload\nto your documents.")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.gray.opacity(0.9),
-                                                Color.gray.opacity(0.7)
-                                            ]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .multilineTextAlignment(.center)
-                            }
+                            Image(systemName: "doc.text.fill")
+                                .font(.system(size: 38, weight: .semibold))
+                                .foregroundColor(.white)
                         }
-                        .padding(.bottom, 8)
+                        .scaleEffect(iconScale)
+                        .rotationEffect(.degrees(iconRotation))
+                        .padding(.top, 8)
+                        
+                        VStack(spacing: 8) {
+                            Text(isUploading ? "Uploading..." : "Upload Document")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.05, green: 0.07, blue: 0.2),
+                                            Color(red: 0.1, green: 0.12, blue: 0.25)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                            
+                            Text(isUploading ? "Please wait while we secure your document." : "Select a PDF file to securely upload\nto your documents.")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.gray.opacity(0.9),
+                                            Color.gray.opacity(0.7)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .multilineTextAlignment(.center)
+                        }
                     }
+                    .padding(.bottom, 8)
                     
                     if isUploading {
-                        // Loading State - Show within sheet
+                        // Loading State
                         VStack(spacing: 20) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                                 .scaleEffect(1.5)
-                                .padding(.top, 40)
-                            
-                            Text("Uploading Document...")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.gray.opacity(0.8))
-                                .padding(.top, 10)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 10)
                     } else if let error = errorMessage {
                         // Error State
                         VStack(spacing: 20) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 48))
                                 .foregroundColor(.red.opacity(0.7))
-                                .padding(.top, 40)
                             
                             Text("Upload Failed")
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -1142,7 +1172,6 @@ struct UploadDocumentSheet: View {
                             .padding(.top, 10)
                         }
                         .frame(minHeight: 200)
-                        .padding(.bottom, 40)
                     } else {
                         // Upload Options
                         VStack(spacing: 16) {
@@ -1209,7 +1238,6 @@ struct UploadDocumentSheet: View {
                             }
                             .padding(.horizontal, 24)
                         }
-                        .padding(.bottom, 30)
                         
                         // Cancel Button
                         Button(action: {
@@ -1221,10 +1249,10 @@ struct UploadDocumentSheet: View {
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                         }
-                        .padding(.bottom, 30)
                     }
                 }
                 .padding(.top, 4)
+                .padding(.bottom, 30) // Consistent bottom padding for all states
             }
             .background(
                 ZStack {
@@ -1354,86 +1382,77 @@ struct UploadImageSheet: View {
                     .padding(.bottom, 8)
                 
                 VStack(spacing: 24) {
-                    // Premium Animated Header - Hide during upload
-                    if !isUploading {
-                        VStack(spacing: 18) {
-                            // Premium Animated Icon
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 35)
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.cyan,
-                                                Color.cyan.opacity(0.8)
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
+                    // Header (Always visible, changes content based on state)
+                    VStack(spacing: 18) {
+                        // Premium Animated Icon
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 35)
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.cyan,
+                                            Color.cyan.opacity(0.8)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
                                     )
-                                    .frame(width: 90, height: 90)
-                                
-                                Image(systemName: "photo.fill")
-                                    .font(.system(size: 38, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                            .scaleEffect(iconScale)
-                            .rotationEffect(.degrees(iconRotation))
-                            .padding(.top, 8)
+                                )
+                                .frame(width: 90, height: 90)
                             
-                            VStack(spacing: 8) {
-                                Text("Upload Image")
-                                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color(red: 0.05, green: 0.07, blue: 0.2),
-                                                Color(red: 0.1, green: 0.12, blue: 0.25)
-                                            ]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                
-                                Text("Select an image from your gallery\nto upload securely.")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.gray.opacity(0.9),
-                                                Color.gray.opacity(0.7)
-                                            ]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .multilineTextAlignment(.center)
-                            }
+                            Image(systemName: "photo.on.rectangle.fill")
+                                .font(.system(size: 38, weight: .semibold))
+                                .foregroundColor(.white)
                         }
-                        .padding(.bottom, 8)
+                        .scaleEffect(iconScale)
+                        .rotationEffect(.degrees(iconRotation))
+                        .padding(.top, 8)
+                        
+                        VStack(spacing: 8) {
+                            Text(isUploading ? "Uploading..." : "Upload Image")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.05, green: 0.07, blue: 0.2),
+                                            Color(red: 0.1, green: 0.12, blue: 0.25)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                            
+                            Text(isUploading ? "Please wait while we secure your image." : "Select an image from your gallery\nto upload securely.")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.gray.opacity(0.9),
+                                            Color.gray.opacity(0.7)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .multilineTextAlignment(.center)
+                        }
                     }
+                    .padding(.bottom, 8)
                     
                     if isUploading {
-                        // Loading State - Show within sheet
+                        // Loading State
                         VStack(spacing: 20) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .cyan))
                                 .scaleEffect(1.5)
-                                .padding(.top, 40)
-                            
-                            Text("Uploading Image...")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.gray.opacity(0.8))
-                                .padding(.top, 10)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 10)
                     } else if let error = errorMessage {
                         // Error State
                         VStack(spacing: 20) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 48))
                                 .foregroundColor(.red.opacity(0.7))
-                                .padding(.top, 40)
                             
                             Text("Upload Failed")
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -1460,7 +1479,6 @@ struct UploadImageSheet: View {
                             .padding(.top, 10)
                         }
                         .frame(minHeight: 200)
-                        .padding(.bottom, 40)
                     } else {
                         // Upload Options
                         VStack(spacing: 16) {
@@ -1527,7 +1545,6 @@ struct UploadImageSheet: View {
                             }
                             .padding(.horizontal, 24)
                         }
-                        .padding(.bottom, 30)
                         
                         // Cancel Button
                         Button(action: {
@@ -1539,10 +1556,10 @@ struct UploadImageSheet: View {
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                         }
-                        .padding(.bottom, 30)
                     }
                 }
                 .padding(.top, 4)
+                .padding(.bottom, 30) // Consistent bottom padding for all states
             }
             .background(
                 ZStack {
@@ -1648,6 +1665,15 @@ struct FolderContentsView: View {
     var body: some View {
         Group {
             if documentsService.currentFolderFolders.isEmpty && documentsService.currentFolderDocuments.isEmpty {
+                if documentsService.isLoading {
+                    VStack {
+                        Spacer()
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                            .scaleEffect(1.5)
+                        Spacer()
+                    }
+                } else {
                 // Empty folder state
                 VStack(spacing: 30) {
                     Spacer().frame(height: 100)
@@ -1668,6 +1694,7 @@ struct FolderContentsView: View {
                     
                     Spacer()
                 }
+            }
             } else {
                 // Show folders and documents together in list
                 List {
@@ -1685,7 +1712,7 @@ struct FolderContentsView: View {
                                 Button(role: .destructive) {
                                     onDeleteFolder(folder)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Image(systemName: "trash")
                                 }
                                 .tint(.red)
                                 
@@ -1693,7 +1720,7 @@ struct FolderContentsView: View {
                                 Button {
                                     onEditFolder(folder)
                                 } label: {
-                                    Label("Edit", systemImage: "pencil")
+                                    Image(systemName: "pencil")
                                 }
                                 .tint(.blue)
                             }
@@ -1712,7 +1739,7 @@ struct FolderContentsView: View {
                                     Button(role: .destructive) {
                                         onDeleteDocument(document)
                                     } label: {
-                                        Label("Delete", systemImage: "trash")
+                                        Image(systemName: "trash")
                                     }
                                     .tint(.red)
                                     
@@ -1720,7 +1747,7 @@ struct FolderContentsView: View {
                                     Button {
                                         onEditDocument(document)
                                     } label: {
-                                        Label("Edit Name", systemImage: "pencil")
+                                        Image(systemName: "pencil")
                                     }
                                     .tint(.blue)
                                 }
@@ -1861,10 +1888,6 @@ struct FolderListRow: View {
                 }
                 
                 Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.gray.opacity(0.4))
             }
             .padding(20)
             .background(Color.white)
@@ -1910,166 +1933,7 @@ struct DocumentGridItem: View {
     }
 }
 
-// MARK: - Edit Folder Sheet
-struct EditFolderSheet: View {
-    @ObservedObject var documentsService: DocumentsService
-    let userId: String
-    let folder: DocFolder
-    @Binding var isPresented: Bool
-    @Binding var toastMessage: String?
-    @Binding var toastType: ToastType
-    @State private var folderName: String = ""
-    @State private var sheetOffset: CGFloat = 800
-    @State private var iconScale: CGFloat = 0.5
-    @State private var iconRotation: Double = -180
-    @FocusState private var isFocused: Bool
-    
-    var body: some View {
-        ZStack {
-            // No dimmed background - keep background visible
-            
-            // Modal Content
-            VStack(spacing: 20) {
-                // Drag Handle
-                Capsule()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 4)
-                    .padding(.top, 10)
-                
-                // Premium Animated Header Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.blue.opacity(0.15),
-                                    Color.blue.opacity(0.08)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-                    
-                    Image(systemName: "folder.badge.plus")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(.blue)
-                }
-                .scaleEffect(iconScale)
-                .rotationEffect(.degrees(iconRotation))
-                .padding(.top, 5)
-                
-                // Title & Subtitle
-                VStack(spacing: 8) {
-                    Text("Edit Folder")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    
-                    Text("Update your folder name.")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal)
-                }
-                
-                // Input Field
-                TextField("Folder Name", text: $folderName)
-                    .font(.headline)
-                    .padding()
-                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .focused($isFocused)
-                    .padding(.horizontal, 25)
-                    .submitLabel(.done)
-                    .onChange(of: folderName) { newValue in
-                        // Only allow alphanumeric, space, hyphen, and underscore
-                        let filtered = newValue.filter { char in
-                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
-                        }
-                        if folderName != filtered {
-                            folderName = filtered
-                        }
-                    }
-                
-                // Action Buttons
-                VStack(spacing: 15) {
-                    Button(action: {
-                        documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName) { success, error in
-                            DispatchQueue.main.async {
-                                if success {
-                                    toastMessage = "Folder renamed to '\(folderName)'"
-                                    toastType = .success
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        isPresented = false
-                                    }
-                                } else {
-                                    toastMessage = error ?? "Failed to update folder"
-                                    toastType = .error
-                                }
-                            }
-                        }
-                    }) {
-                        Text("Save Changes")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(folderName.isEmpty || folderName == folder.name ? Color.gray.opacity(0.5) : Color.blue)
-                            .cornerRadius(15)
-                    }
-                    .disabled(folderName.isEmpty || folderName == folder.name)
-                    
-                    Button(action: {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            isPresented = false
-                        }
-                    }) {
-                        Text("Cancel")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    }
-                }
-                .padding(.horizontal, 25)
-                .padding(.bottom, 30)
-            }
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(Color.white)
-                }
-            )
-            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
-            .offset(y: sheetOffset)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .edgesIgnoringSafeArea(.bottom)
-            .onAppear {
-                folderName = folder.name
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    sheetOffset = 0
-                }
-                withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
-                    iconScale = 1.0
-                    iconRotation = 0
-                }
-                // Auto focus
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    isFocused = true
-                }
-            }
-            .transition(.move(edge: .bottom))
-        }
-        .zIndex(200)
-        .edgesIgnoringSafeArea(.all)
-    }
-}
+
 
 // MARK: - Edit Document Sheet
 struct EditDocumentSheet: View {

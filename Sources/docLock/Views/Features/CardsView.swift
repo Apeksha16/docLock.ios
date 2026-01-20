@@ -41,8 +41,12 @@ struct CardsView: View {
     @State private var shareItems: [Any] = []
     
     // Toast State
-    @State private var showToast = false
-    @State private var toastMessage = ""
+    @State private var toastMessage: String?
+    @State private var toastType: ToastType = .success
+    
+    // FAB State
+    @State private var showFabMenu = false
+    @State private var selectedNewCardType: CardType = .debit
 
     var body: some View {
         ZStack {
@@ -136,24 +140,7 @@ struct CardsView: View {
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     Spacer()
                     
-                    if !cardsService.cards.isEmpty {
-                        Button(action: {
-                            showingAddCard = true
-                        }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color(red: 1.0, green: 0.2, blue: 0.5))
-                                    .frame(width: 56, height: 56)
-                                    
-                                Image(systemName: "plus")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(.white)
-                            }
-                            .shadow(color: Color.pink.opacity(0.3), radius: 5, x: 0, y: 2)
-                        }
-                    } else {
-                        Color.clear.frame(width: 56, height: 56)
-                    }
+
                 }
                 .padding()
                 
@@ -277,7 +264,10 @@ struct CardsView: View {
                         
                         // Action Button
                         Button(action: {
-                            showingAddCard = true
+                             // Use FAB logic for empty state too
+                             withAnimation(.spring()) {
+                                 showFabMenu = true
+                             }
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
@@ -311,151 +301,176 @@ struct CardsView: View {
                         }
                     }
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 25) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        
+                        let debitCards = cardsService.cards.filter { $0.type == .debit }
+                        if !debitCards.isEmpty {
+                            SectionHeader(title: "Debit Cards", count: debitCards.count)
+                                .padding(.horizontal)
                             
-                            let debitCards = cardsService.cards.filter { $0.type == .debit }
-                            if !debitCards.isEmpty {
-                                SectionHeader(title: "Debit Cards", count: debitCards.count)
-                                    .padding(.horizontal)
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 20) {
-                                        ForEach(debitCards) { card in
-                                            CardView(card: card, onEdit: {
-                                                selectedCardToEdit = card
-                                            }, onDelete: {
-                                                cardToDeleteId = card.id
-                                                showingDeleteAlert = true
-                                            }, onShare: {
-                                                let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
-                                                shareItems = [text]
-                                                showingShareSheet = true
-                                            })
-                                            .frame(width: 300)
-                                            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                        }
-                                    }
-                                    .padding(.horizontal, 20)
-                                    .padding(.bottom, 20)
+                            TabView {
+                                ForEach(debitCards) { card in
+                                    CardView(card: card, onEdit: {
+                                        selectedCardToEdit = card
+                                    }, onDelete: {
+                                        cardToDeleteId = card.id
+                                        showingDeleteAlert = true
+                                    }, onShare: {
+                                        let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
+                                        shareItems = [text]
+                                        showingShareSheet = true
+                                    }, onCopy: { message in
+                                        toastMessage = message
+                                        toastType = .success
+                                    })
+                                    .padding(.horizontal) // Add horizontal padding inside the page
                                 }
                             }
+                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                            .frame(height: 220) // Reduced height to save space
+
+                        }
+                        
+                        let creditCards = cardsService.cards.filter { $0.type == .credit }
+                        if !creditCards.isEmpty {
+                            SectionHeader(title: "Credit Cards", count: creditCards.count)
+                                .padding(.horizontal)
                             
-                            let creditCards = cardsService.cards.filter { $0.type == .credit }
-                            if !creditCards.isEmpty {
-                                SectionHeader(title: "Credit Cards", count: creditCards.count)
+                            TabView {
+                                ForEach(creditCards) { card in
+                                    CardView(card: card, onEdit: {
+                                        selectedCardToEdit = card
+                                    }, onDelete: {
+                                        cardToDeleteId = card.id
+                                        showingDeleteAlert = true
+                                    }, onShare: {
+                                        let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
+                                        shareItems = [text]
+                                        showingShareSheet = true
+                                    }, onCopy: { message in
+                                        toastMessage = message
+                                        toastType = .success
+                                    })
                                     .padding(.horizontal)
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 20) {
-                                        ForEach(creditCards) { card in
-                                            CardView(card: card, onEdit: {
-                                                selectedCardToEdit = card
-                                            }, onDelete: {
-                                                cardToDeleteId = card.id
-                                                showingDeleteAlert = true
-                                            }, onShare: {
-                                                let text = "Card Name: \(card.cardName)\nNumber: \(card.cardNumber)\nHolder: \(card.cardHolder)\nExpiry: \(card.expiry)"
-                                                shareItems = [text]
-                                                showingShareSheet = true
-                                            })
-                                            .frame(width: 300)
-                                            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                        }
-                                    }
-                                    .padding(.horizontal, 20)
-                                    .padding(.bottom, 20)
                                 }
+                            }
+                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                            .frame(height: 220) // Reduced height to save space
+
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
+                }
+            }
+            .blur(radius: (showFabMenu || showingAddCard) ? 2 : 0) // Blur background when modal is open
+            
+            // FAB Menu Overlay
+            if showFabMenu {
+                Color.white.opacity(0.8)
+                    .edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        withAnimation {
+                            showFabMenu = false
+                        }
+                    }
+                
+                VStack(spacing: 20) {
+                     Spacer()
+                    
+                    Button(action: {
+                        withAnimation {
+                            showFabMenu = false
+                            selectedNewCardType = .credit
+                            showingAddCard = true
+                        }
+                    }) {
+                        FabMenuRow(title: "Credit Card", icon: "creditcard.fill", color: .purple)
+                    }
+                    
+                    Button(action: {
+                        withAnimation {
+                            showFabMenu = false
+                            selectedNewCardType = .debit
+                            showingAddCard = true
+                        }
+                    }) {
+                        FabMenuRow(title: "Debit Card", icon: "creditcard", color: .blue)
+                    }
+                    
+                    Spacer().frame(height: 80) // Space for close button
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            
+            // FAB Button (Center Bottom)
+            if !cardsService.cards.isEmpty {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                showFabMenu.toggle()
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(showFabMenu ? Color(red: 1.0, green: 0.2, blue: 0.5).opacity(0.8) : Color(red: 1.0, green: 0.2, blue: 0.5))
+                                    .frame(width: 60, height: 60)
+                                    .shadow(color: Color(red: 1.0, green: 0.2, blue: 0.5).opacity(0.4), radius: 10, x: 0, y: 5)
+                                
+                                Image(systemName: "plus")
+                                    .font(.system(size: 30, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .rotationEffect(.degrees(showFabMenu ? 135 : 0))
                             }
                         }
-                        .padding(.vertical, 20)
+                        Spacer()
                     }
+                    .padding(.bottom, 30)
                 }
             }
             
-            // FAB Removed as per requirement
-            
+            // Delete Alert Modal Overlay
             // Delete Alert Modal Overlay
             if showingDeleteAlert {
-                Color.black.opacity(0.4)
-                    .edgesIgnoringSafeArea(.all)
-                    .onTapGesture { showingDeleteAlert = false }
-                
-                VStack(spacing: 20) {
-                    Circle()
-                        .fill(Color.red.opacity(0.1))
-                        .frame(width: 60, height: 60)
-                        .overlay(Image(systemName: "trash").foregroundColor(.red))
-                    
-                    Text("Delete Card?")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                    
-                    Text("Are you sure you want to delete?\nThis action cannot be undone.")
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.gray)
-                    
-                    Button(action: {
+                CustomActionModal(
+                    icon: "trash.fill",
+                    iconBgColor: .red,
+                    title: "Delete Card?",
+                    subtitle: nil,
+                    message: "Are you sure you want to delete this card?\nThis action cannot be undone.",
+                    primaryButtonText: "Yes, Delete",
+                    primaryButtonColor: .red,
+                    onPrimaryAction: {
                         if let id = cardToDeleteId {
                            cardsService.deleteCard(userId: userId, cardId: id) { success, error in
-                               if !success {
-                                   print("Error deleting card: \(error ?? "Unknown")")
+                               DispatchQueue.main.async {
+                                   if success {
+                                       toastMessage = "Card deleted successfully"
+                                       toastType = .success
+                                   } else {
+                                       print("Error deleting card: \(error ?? "Unknown")")
+                                       toastMessage = "Failed to delete card"
+                                       toastType = .error
+                                   }
                                }
                            }
                         }
                         showingDeleteAlert = false
-                    }) {
-                        Text("Yes, Delete")
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
-                            .cornerRadius(12)
-                    }
-                    
-                    Button("Cancel") {
+                    },
+                    onCancel: {
                         showingDeleteAlert = false
                     }
-                    .foregroundColor(.gray)
-                }
-                .padding(30)
-                .background(Color.white)
-                .cornerRadius(20)
-                .padding(.horizontal, 40)
+                )
             }
             
-            // Toast Overlay
-            if showToast {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(toastMessage)
-                            .foregroundColor(.black)
-                            .fontWeight(.medium)
-                    }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(25)
-                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
-                    .padding(.bottom, 50)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                            withAnimation {
-                                showToast = false
-                            }
-                        }
-                    }
-                }
-                .zIndex(100)
-            }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
+        .toast(message: $toastMessage, type: toastType)
         .onAppear {
             cardsService.retry(userId: userId)
             withAnimation(.easeOut(duration: 1.0)) {
@@ -463,11 +478,10 @@ struct CardsView: View {
             }
         }
         .sheet(isPresented: $showingAddCard) {
-            AddEditCardView(isPresented: $showingAddCard, card: nil as CardModel?, userId: userId, cardsService: cardsService, notificationService: notificationService) { message in
+
+            AddEditCardView(isPresented: $showingAddCard, cardType: selectedNewCardType, card: nil as CardModel?, userId: userId, cardsService: cardsService, notificationService: notificationService) { message in
                 toastMessage = message
-                withAnimation {
-                    showToast = true
-                }
+                toastType = .success
             }
         }
         .sheet(item: $selectedCardToEdit) { card in
@@ -476,9 +490,7 @@ struct CardsView: View {
                 set: { if !$0 { selectedCardToEdit = nil } }
             ), card: card, userId: userId, cardsService: cardsService, notificationService: notificationService) { message in
                 toastMessage = message
-                withAnimation {
-                    showToast = true
-                }
+                toastType = .success
             }
         }
         .sheet(isPresented: $showingShareSheet) {
@@ -490,6 +502,9 @@ struct CardsView: View {
         }
     }
 }
+
+
+
 
 // MARK: - Subviews
 struct SectionHeader: View {
@@ -518,6 +533,7 @@ struct CardView: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
     let onShare: () -> Void
+    let onCopy: (String) -> Void
     
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -562,12 +578,20 @@ struct CardView: View {
                 Text(card.cardName.uppercased())
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
+                    .onTapGesture {
+                        UIPasteboard.general.string = card.cardName
+                        onCopy("Card Name copied")
+                    }
                 
-                Text(card.cardNumber)
+                Text(maskCardNumber(card.cardNumber))
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .padding(.bottom, 20)
+                    .onTapGesture {
+                        UIPasteboard.general.string = card.cardNumber
+                        onCopy("Card Number copied")
+                    }
                 
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading) {
@@ -578,6 +602,10 @@ struct CardView: View {
                             .font(.footnote)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
+                            .onTapGesture {
+                                UIPasteboard.general.string = card.cardHolder
+                                onCopy("Card Holder copied")
+                            }
                     }
                     Spacer()
                     VStack(alignment: .leading) {
@@ -588,22 +616,42 @@ struct CardView: View {
                             .font(.footnote)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
+                            .onTapGesture {
+                                UIPasteboard.general.string = card.expiry
+                                onCopy("Expiry Date copied")
+                            }
                     }
                     Spacer()
                     VStack(alignment: .leading) {
                         Text("CVV")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.7))
-                        Text("***")
+                        Text("***") // Should we copy real CVV or masked? User asked to copy detail. Usually real CVV.
                             .font(.footnote)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
+                            .onTapGesture {
+                                UIPasteboard.general.string = card.cvv
+                                onCopy("CVV copied")
+                            }
                     }
                 }
             }
             .padding(20)
         }
         .frame(height: 200)
+    }
+    
+    private func maskCardNumber(_ number: String) -> String {
+        let parts = number.components(separatedBy: " ")
+        if parts.count == 4 {
+            return "\(parts[0]) **** **** \(parts[3])"
+        } else if number.count > 8 {
+             let prefix = number.prefix(4)
+             let suffix = number.suffix(4)
+             return "\(prefix) **** **** \(suffix)"
+        }
+        return number
     }
 }
 
@@ -626,7 +674,7 @@ struct CircleButton: View {
 // MARK: - Add/Edit Sheet
 struct AddEditCardView: View {
     @Binding var isPresented: Bool
-    @State var cardType: CardType = .debit
+    @State var cardType: CardType
     @State var cardName: String = ""
     @State var cardNumber: String = ""
     @State var cardHolder: String = ""
@@ -641,7 +689,23 @@ struct AddEditCardView: View {
     var onSuccess: ((String) -> Void)?
     @State private var isLoading = false
     
-    init(isPresented: Binding<Bool>, card: CardModel?, userId: String, cardsService: CardsService, notificationService: NotificationService, onSuccess: ((String) -> Void)? = nil) {
+    // Predefined vibrant card colors
+    let cardColors: [[Color]] = [
+        [Color(red: 0.95, green: 0.85, blue: 0.4), Color(red: 0.9, green: 0.7, blue: 0.2)], // Gold
+        [Color(red: 0.9, green: 0.4, blue: 0.6), Color(red: 0.95, green: 0.6, blue: 0.75)], // Pinkish
+        [Color(red: 0.2, green: 0.6, blue: 0.9), Color(red: 0.4, green: 0.8, blue: 1.0)], // Blue
+        [Color(red: 0.4, green: 0.8, blue: 0.6), Color(red: 0.6, green: 0.9, blue: 0.7)], // Green
+        [Color(red: 0.6, green: 0.4, blue: 0.9), Color(red: 0.7, green: 0.5, blue: 1.0)], // Purple
+        [Color(red: 1.0, green: 0.6, blue: 0.4), Color(red: 1.0, green: 0.7, blue: 0.5)], // Orange
+        [Color(red: 0.2, green: 0.2, blue: 0.2), Color(red: 0.3, green: 0.3, blue: 0.3)], // Dark/Black
+        [Color(red: 0.8, green: 0.2, blue: 0.2), Color(red: 1.0, green: 0.4, blue: 0.4)], // Red
+        [Color(red: 0.0, green: 0.5, blue: 0.5), Color(red: 0.0, green: 0.7, blue: 0.7)]  // Teal
+    ]
+    
+    @State private var selectedColorIndex: Int = 0
+    @State private var hasAppeared = false
+
+    init(isPresented: Binding<Bool>, cardType: CardType = .debit, card: CardModel?, userId: String, cardsService: CardsService, notificationService: NotificationService, onSuccess: ((String) -> Void)? = nil) {
         self._isPresented = isPresented
         self.card = card
         self.userId = userId
@@ -657,37 +721,99 @@ struct AddEditCardView: View {
             _cardHolder = State(initialValue: existingCard.cardHolder)
             _expiry = State(initialValue: existingCard.expiry)
             _cvv = State(initialValue: existingCard.cvv)
+            // Try to find matching color index, default to 0
+            // Note: Exact color matching might be tricky with float comparison, relying on stored colors for display is fine.
+            // For editing, we might just keep the current color or allow re-selection.
+            // For now, we won't change color on edit unless we add a picker.
+            // For now, we won't change color on edit unless we add a picker.
+        } else {
+            _cardType = State(initialValue: cardType)
+            // Randomly select a color for new card
+            _selectedColorIndex = State(initialValue: Int.random(in: 0..<cardColors.count))
         }
     }
     
     var body: some View {
         ZStack {
-            // Background
-            Color(red: 0.98, green: 0.96, blue: 0.98).edgesIgnoringSafeArea(.all)
-            
-            GeometryReader { proxy in
-                Circle()
-                    .fill(Color(red: 1.0, green: 0.2, blue: 0.5).opacity(0.1))
-                    .frame(width: 150, height: 150)
-                    .position(x: 50, y: 100)
-                    .blur(radius: 20)
+            // Premium Animated Background Theme
+            ZStack {
+                // Base Background with gradient
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(red: 0.99, green: 0.99, blue: 0.99),
+                        Color(red: 0.98, green: 0.98, blue: 0.99)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .edgesIgnoringSafeArea(.all)
                 
-                Circle()
-                    .fill(Color(red: 0.3, green: 0.2, blue: 0.9).opacity(0.05))
-                    .frame(width: 200, height: 200)
-                    .position(x: proxy.size.width - 20, y: 50)
-                    .blur(radius: 30)
+                // Animated Ambient Gradients
+                GeometryReader { proxy in
+                    // Top Right - Animated Warm Glow
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.orange.opacity(hasAppeared ? 0.15 : 0.05),
+                                    Color.orange.opacity(hasAppeared ? 0.08 : 0.03),
+                                    Color.clear
+                                ]),
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: hasAppeared ? 180 : 150
+                            )
+                        )
+                        .frame(width: 450, height: 450)
+                        .position(x: proxy.size.width * 0.9, y: hasAppeared ? -50 : -100)
+                        .blur(radius: 50)
+                        .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: hasAppeared)
                     
-                Circle()
-                    .fill(Color(red: 1.0, green: 0.2, blue: 0.5).opacity(0.08))
-                    .frame(width: 120, height: 120)
-                    .position(x: proxy.size.width * 0.8, y: proxy.size.height * 0.6)
-                    .blur(radius: 40)
+                    // Top Left - Animated Blue Haze
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.blue.opacity(hasAppeared ? 0.06 : 0.02),
+                                    Color.blue.opacity(0.03),
+                                    Color.clear
+                                ]),
+                                center: .center,
+                                startRadius: 20,
+                                endRadius: 200
+                            )
+                        )
+                        .frame(width: 350, height: 350)
+                        .position(x: -50, y: hasAppeared ? 80 : 50)
+                        .blur(radius: 60)
+                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: hasAppeared)
+                    
+                    // Bottom - Subtle Animated Depth
+                    Ellipse()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.gray.opacity(hasAppeared ? 0.04 : 0.01),
+                                    Color.clear
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: proxy.size.width * 1.3, height: 400)
+                        .position(x: proxy.size.width / 2, y: proxy.size.height * 1.1)
+                        .blur(radius: 70)
+                        .animation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true), value: hasAppeared)
+                }
+            }
+            .onAppear {
+                 withAnimation {
+                     hasAppeared = true
+                 }
             }
             
             ScrollView {
                 VStack(spacing: 20) {
-                // Header
                 // Header
                 HStack {
                     Button(action: { isPresented = false }) {
@@ -747,7 +873,7 @@ struct AddEditCardView: View {
                 
                 // Card Preview
                 ZStack {
-                    LinearGradient(gradient: Gradient(colors: getGradientColors(for: cardType)), startPoint: .leading, endPoint: .trailing)
+                    LinearGradient(gradient: Gradient(colors: card != nil ? [card!.colorStart, card!.colorEnd] : cardColors[selectedColorIndex]), startPoint: .leading, endPoint: .trailing)
                         .cornerRadius(20)
                         .frame(height: 200)
                         
@@ -815,39 +941,10 @@ struct AddEditCardView: View {
                 }
                 .padding(.horizontal)
                 
+                    // Card Type selection removed as it is now handled by FAB menu
+
                 // Form
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Card Type")
-                         .fontWeight(.bold)
-                    
-                    HStack(spacing: 15) {
-                        Button(action: { cardType = .debit }) {
-                            HStack {
-                                Image(systemName: "building.columns.fill")
-                                Text("Debit Card")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                            .background(cardType == .debit ? Color(red: 1.0, green: 0.2, blue: 0.5) : Color.white)
-                            .foregroundColor(cardType == .debit ? .white : .gray)
-                            .cornerRadius(10)
-                            .shadow(radius: 2)
-                        }
-                        
-                        Button(action: { cardType = .credit }) {
-                            HStack {
-                                Image(systemName: "creditcard.fill")
-                                Text("Credit Card")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                            .background(cardType == .credit ? Color(red: 1.0, green: 0.2, blue: 0.5) : Color.white)
-                            .foregroundColor(cardType == .credit ? .white : .gray)
-                            .cornerRadius(10)
-                            .shadow(radius: 2)
-                        }
-                    }
-                    
                     Group {
                         CustomFormTextField(title: "Card Name", placeholder: "e.g., Personal Visa", text: $cardName)
                             .onChange(of: cardName) { newValue in
@@ -938,7 +1035,9 @@ struct AddEditCardView: View {
     
     func saveCard() {
         isLoading = true
-        let colors = getGradientColors(for: cardType)
+        // If editing, keep original colors unless we add a picker. If adding, use selected random color.
+        let colors = card != nil ? [card!.colorStart, card!.colorEnd] : cardColors[selectedColorIndex]
+        
         let newCard = CardModel(
             id: card?.id ?? UUID().uuidString,
             type: cardType,
@@ -994,17 +1093,13 @@ struct AddEditCardView: View {
         }
     }
 
+    // Helper not strictly needed anymore given random selection, but kept for fallback or validation
     func getGradientColors(for type: CardType) -> [Color] {
-        switch type {
-        case .debit:
-            return [Color(red: 0.95, green: 0.85, blue: 0.4), Color(red: 0.9, green: 0.7, blue: 0.2)] // Gold/Yellow
-        case .credit:
-            return [Color(red: 0.9, green: 0.4, blue: 0.6), Color(red: 0.95, green: 0.6, blue: 0.75)] // Pinkish
-        }
+         return cardColors[0] // Default fallback
     }
     
     // MARK: - Validation Helpers
-    private func formatCardNumber(_ value: String) {
+    func formatCardNumber(_ value: String) {
         let clean = value.filter { "0123456789".contains($0) }
         let trimmed = String(clean.prefix(16))
         
@@ -1021,7 +1116,7 @@ struct AddEditCardView: View {
         }
     }
     
-    private func formatExpiry(_ value: String) {
+    func formatExpiry(_ value: String) {
         var clean = value.replacingOccurrences(of: "/", with: "")
         clean = clean.filter { "0123456789".contains($0) }
         
@@ -1049,7 +1144,7 @@ struct AddEditCardView: View {
         }
     }
     
-    private func formatCVV(_ value: String) {
+    func formatCVV(_ value: String) {
         let clean = value.filter { "0123456789".contains($0) }
         let limit = 4
         let trimmed = String(clean.prefix(limit))

@@ -56,6 +56,37 @@ class AuthService: ObservableObject {
         return "An error occurred"
     }
 
+    // Helper to propagate profile updates to friends' lists
+    private func updateFriendRecords(userId: String, data: [String: Any]) {
+        let db = Firestore.firestore()
+        // Query all 'friends' collections where this user is stored
+        db.collectionGroup("friends").whereField("uid", isEqualTo: userId).getDocuments { (snapshot, error) in
+            if let error = error {
+                print("⚠️ Error finding friend records to update: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let documents = snapshot?.documents, !documents.isEmpty else {
+                print("ℹ️ No friend records found to update for user \(userId)")
+                return
+            }
+            
+            let batch = db.batch()
+            // Note: Firestore batch limit is 500.
+            for doc in documents {
+                batch.updateData(data, forDocument: doc.reference)
+            }
+            
+            batch.commit { error in
+                if let error = error {
+                    print("🔴 Error propagating profile updates to friends: \(error.localizedDescription)")
+                } else {
+                    print("🟢 Successfully propagated profile updates to \(documents.count) friends")
+                }
+            }
+        }
+    }
+
     func login(mobile: String, mpin: String) {
         print("AuthService: login called with mobile: \(mobile)")
         isLoading = true
@@ -476,6 +507,9 @@ class AuthService: ObservableObject {
                                 )
                                 
                                 completion(true, downloadURL)
+                                
+                                // Propagate changes to friends' lists
+                                self.updateFriendRecords(userId: userId, data: ["profileImageUrl": downloadURL])
                             }
                         }
                     }
@@ -768,6 +802,9 @@ class AuthService: ObservableObject {
                         self?.fetchUserProfile(userId: userId)
                     }
                     completion(true, nil)
+                    
+                    // Propagate changes to friends' lists
+                    self?.updateFriendRecords(userId: userId, data: ["name": name])
                     
                     // Trigger Notification
                     NotificationService.send(
@@ -1199,6 +1236,12 @@ class DocumentsService: ObservableObject {
     @Published var folders: [DocFolder] = []
     @Published var currentFolderDocuments: [DocumentFile] = []
     @Published var currentFolderFolders: [DocFolder] = []
+    @Published var isFetchingDocuments = false
+    @Published var isFetchingFolders = false
+    
+    var isLoading: Bool {
+        return isFetchingDocuments || isFetchingFolders
+    }
     @Published var totalDocuments: Int = 0
     @Published var usedStorageMB: Double = 0.0
     @Published var error: String?
@@ -1283,8 +1326,10 @@ class DocumentsService: ObservableObject {
             query = collectionRef.whereField("folderId", isEqualTo: NSNull())
         }
         
+        isFetchingDocuments = true
         folderDocumentsListener = query.order(by: "createdAt", descending: true)
             .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, error in
+                self?.isFetchingDocuments = false
                 if let error = error {
                     print("🔴 DocumentsService Folder Documents Error: \(error.localizedDescription)")
                     self?.error = error.localizedDescription
@@ -1359,7 +1404,9 @@ class DocumentsService: ObservableObject {
             query = collectionRef.whereField("parentFolderId", isEqualTo: NSNull())
         }
         
+        isFetchingFolders = true
         folderFoldersListener = query.addSnapshotListener { [weak self] snapshot, error in
+            self?.isFetchingFolders = false
             if let error = error {
                 print("🔴 DocumentsService Folder Folders Error: \(error.localizedDescription)")
                 self?.error = error.localizedDescription
