@@ -9,10 +9,10 @@
 /* Begin PBXBuildFile section */
 		333333333333333333333333 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444444444444444444444444 /* LoginView.swift */; };
 		555555555555555555555555 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 666666666666666666666666 /* AuthService.swift */; };
-		655C2FFA2F1E93F600627CD9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */; };
 		60E674392F1BCE1900EAC547 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674382F1BCE1900EAC547 /* FirebaseFirestore */; };
 		60E6743B2F1BCE1900EAC547 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 60E6743A2F1BCE1900EAC547 /* FirebaseStorage */; };
 		60E674462F1C286900EAC547 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674452F1C286900EAC547 /* FirebaseAuth */; };
+		655C2FFA2F1E93F600627CD9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */; };
 		777777777777777777777778 /* Sources/docLock/Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777777777777777777777777 /* Sources/docLock/Components.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */; };
 		A2A2A2A2A2A2A2A2A2A2A2A2 /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */; };
@@ -470,7 +470,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NPYN6F2Y55;
+				DEVELOPMENT_TEAM = 5JBKVVSQ4Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
@@ -499,7 +499,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NPYN6F2Y55;
+				DEVELOPMENT_TEAM = 5JBKVVSQ4Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
