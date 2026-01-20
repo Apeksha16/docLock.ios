@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import UIKit
 import FirebaseFirestore
 import FirebaseAuth
@@ -1289,7 +1290,6 @@ class DocumentsService: ObservableObject {
     var isLoading: Bool {
         return isFetchingDocuments || isFetchingFolders
     }
-    @Published var totalDocuments: Int = 0
     @Published var totalDocuments: Int = 0
     @Published var usedStorageMB: Double = 0.0
     @Published var sharedDocsCount: Int = 0

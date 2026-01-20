@@ -291,7 +291,7 @@ struct HomeView: View {
                         notificationService: notificationService,
                         cardsService: cardsService,
                         documentsService: documentsService,
-                        friendsService: friendsService,
+                        friendsService: authService.friendsService,
                         userId: authService.user?.id ?? authService.user?.mobile ?? "unknown"
                     )
                 }

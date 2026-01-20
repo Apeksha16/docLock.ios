@@ -235,7 +235,7 @@ struct NotificationCell: View {
                     .fixedSize(horizontal: false, vertical: true)
                 
                 // Share button for request notifications
-                if let requestType = notification.requestType, notification.senderId != nil, let onShare = onShare {
+                if notification.requestType != nil, notification.senderId != nil, let onShare = onShare {
                     Button(action: onShare) {
                         HStack {
                             Image(systemName: "square.and.arrow.up")
