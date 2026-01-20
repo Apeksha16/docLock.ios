@@ -1406,7 +1406,7 @@ struct CardScannerView: UIViewControllerRepresentable {
                     
                 case .barcode(let barcode):
                     // Handle barcode if needed
-                    print("📱 CardScanner: Scanned barcode: \(barcode.payloadStringValue)")
+                    print("📱 CardScanner: Scanned barcode: \(barcode.payloadStringValue ?? "Unknown")")
                     
                 @unknown default:
                     break

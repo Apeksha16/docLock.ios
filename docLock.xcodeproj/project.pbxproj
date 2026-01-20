@@ -39,6 +39,8 @@
 		E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */; };
 		E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */; };
 		E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */; };
+		CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2 /* ContentSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */; };
+		H1H1H1H1H1H1H1H1H1H1H1H1 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */; };
 		M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */; };
 		M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */; };
 		M5M5M5M5M5M5M5M5M5M5M5M5 /* LoginResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6M6M6M6M6M6M6M6M6M6M6M6 /* LoginResponse.swift */; };
@@ -80,6 +82,8 @@
 		F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriterText.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendSelectionSheet.swift; sourceTree = "<group>"; };
+		CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentSelectionSheet.swift; sourceTree = "<group>"; };
+		H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		M4M4M4M4M4M4M4M4M4M4M4M4 /* LoginRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginRequest.swift; sourceTree = "<group>"; };
 		M6M6M6M6M6M6M6M6M6M6M6M6 /* LoginResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginResponse.swift; sourceTree = "<group>"; };
@@ -121,6 +125,7 @@
 				MHMHMHMHMHMHMHMHMHMH /* Models */,
 				MSMSMSMSMSMSMSMSMSMS /* Services */,
 				MIMIMIMIMIMIMIMIMIMI /* Views */,
+				EXEXEXEXEXEXEXEXEXEX /* Extensions */,
 				777777777777777777777777 /* Sources/docLock/Components.swift */,
 				60E674442F1C286900EAC547 /* Frameworks */,
 				655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */,
@@ -178,6 +183,15 @@
 			path = Sources/docLock/Services;
 			sourceTree = "<group>";
 		};
+		EXEXEXEXEXEXEXEXEXEX /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */,
+			);
+			name = Extensions;
+			path = Sources/docLock/Extensions;
+			sourceTree = "<group>";
+		};
 		VAVAVAVAVAVAVAVAVAVA /* Auth */ = {
 			isa = PBXGroup;
 			children = (
@@ -197,12 +211,14 @@
 				B6B6B6B6B6B6B6B6B6B6B6B6 /* CustomActionModal.swift */,
 				B7B7B7B7B7B7B7B7B7B7B7B7 /* CustomTabBar.swift */,
 				B8B8B8B8B8B8B8B8B8B8B8B8 /* CustomTextField.swift */,
+				CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */,
 				D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */,
 				F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */,
 				F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */,
 				F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */,
 				F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */,
+				CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1CS1 /* ContentSelectionSheet.swift */,
 			);
 			name = Components;
 			path = Sources/docLock/Views/Components;
@@ -341,6 +357,8 @@
 				E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */,
 				E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */,
 				E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */,
+				CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2CS2 /* ContentSelectionSheet.swift in Sources */,
+				H1H1H1H1H1H1H1H1H1H1H1H1 /* Color+Hex.swift in Sources */,
 				M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */,
 				M3M3M3M3M3M3M3M3M3M3M3M3 /* LoginRequest.swift in Sources */,
 				M5M5M5M5M5M5M5M5M5M5M5M5 /* LoginResponse.swift in Sources */,
