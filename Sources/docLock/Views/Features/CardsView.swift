@@ -322,7 +322,7 @@ struct CardsView: View {
                                             let offset = minX - 20 
                                             // If offset is < 0 (scrolled slightly left), we also blur.
                                             // Normalize roughly: 0 -> 0 blur. Width -> 10 blur.
-                                            let blurAmount =  min(max(abs(offset) / (width * 0.4) * 5, 0), 6) // Cap at 6
+                                            let blurAmount =  min(max(abs(offset) / (width * 0.4) * 2.5, 0), 3) // Cap at 3 for subtler effect
                                             
                                             CardView(card: card, onEdit: {
                                                 selectedCardToEdit = card
@@ -362,7 +362,7 @@ struct CardsView: View {
                                             let minX = geo.frame(in: .global).minX
                                             let width = UIScreen.main.bounds.width
                                             let offset = minX - 20
-                                            let blurAmount = min(max(abs(offset) / (width * 0.4) * 5, 0), 6)
+                                            let blurAmount = min(max(abs(offset) / (width * 0.4) * 2.5, 0), 3) // Cap at 3
                                             
                                             CardView(card: card, onEdit: {
                                                 selectedCardToEdit = card

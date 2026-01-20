@@ -2309,6 +2309,8 @@ class CardsService: ObservableObject {
             "cardHolder": card.cardHolder, // Usually not encrypted for search, but can be
             "expiry": encExpiry,
             "cvv": encCVV,
+            "colorStartHex": card.colorStart.toHex() ?? "",
+            "colorEndHex": card.colorEnd.toHex() ?? "",
             "createdAt": FieldValue.serverTimestamp(),
             "isShared": false
         ]
@@ -2341,6 +2343,8 @@ class CardsService: ObservableObject {
             "cardHolder": card.cardHolder,
             "expiry": encExpiry,
             "cvv": encCVV,
+            "colorStartHex": card.colorStart.toHex() ?? "",
+            "colorEndHex": card.colorEnd.toHex() ?? "",
             "createdAt": FieldValue.serverTimestamp(),
             "isShared": true,
             "sharedBy": userId
