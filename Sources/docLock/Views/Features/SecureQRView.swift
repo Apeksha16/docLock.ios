@@ -161,7 +161,13 @@ struct SecureQRView: View {
                                     Button(role: .destructive) {
                                         deleteQR(qr)
                                     } label: {
-                                        Text("Delete")
+                                        Label {
+                                            Text("Delete")
+                                                .foregroundColor(.black)
+                                        } icon: {
+                                            Image(systemName: "trash")
+                                                .foregroundColor(.black)
+                                        }
                                     }
                                     .tint(.red)
                                 }
@@ -170,7 +176,13 @@ struct SecureQRView: View {
                                     Button {
                                         downloadQR(qr)
                                     } label: {
-                                        Text("Download")
+                                        Label {
+                                            Text("Download")
+                                                .foregroundColor(.black)
+                                        } icon: {
+                                            Image(systemName: "arrow.down.circle")
+                                                .foregroundColor(.black)
+                                        }
                                     }
                                     .tint(.blue)
                                     
@@ -178,7 +190,13 @@ struct SecureQRView: View {
                                     Button {
                                         editQR(qr)
                                     } label: {
-                                        Text("Edit")
+                                        Label {
+                                            Text("Edit")
+                                                .foregroundColor(.black)
+                                        } icon: {
+                                            Image(systemName: "pencil")
+                                                .foregroundColor(.black)
+                                        }
                                     }
                                     .tint(.orange)
                                 }
@@ -279,16 +297,19 @@ struct SecureQRView: View {
     // MARK: - Actions
     
     private func deleteQR(_ qr: SecureQR) {
+        print("DEBUG: Delete QR clicked for \(qr.label)")
         selectedQR = qr
         showDeleteConfirmation = true
     }
     
     private func editQR(_ qr: SecureQR) {
+        print("DEBUG: Edit QR clicked for \(qr.label)")
         selectedQR = qr
         showEditSheet = true
     }
     
     private func downloadQR(_ qr: SecureQR) {
+        print("DEBUG: Download QR clicked for \(qr.label)")
         selectedQRForDownload = qr
         showDownloadSheet = true
     }
@@ -372,6 +393,10 @@ struct QRDownloadSheet: View {
             
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(red: 0.98, green: 0.98, blue: 0.96))
+        .edgesIgnoringSafeArea(.all)
+        .presentationDetents([.medium, .large])
         .onAppear {
             loadQRImage()
         }
@@ -513,6 +538,9 @@ struct QRDeleteConfirmationSheet: View {
             
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(red: 0.98, green: 0.98, blue: 0.96))
+        .edgesIgnoringSafeArea(.all)
         .presentationDetents([.height(400)])
     }
 }
@@ -632,6 +660,10 @@ struct EditQRSheet: View {
             .padding(.horizontal, 30)
             .disabled(qrLabel.isEmpty || selectedDocuments.isEmpty || isUpdating)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(red: 0.98, green: 0.98, blue: 0.96))
+        .edgesIgnoringSafeArea(.all)
+        .presentationDetents([.medium, .large])
         .onAppear {
             documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
         }
@@ -639,24 +671,18 @@ struct EditQRSheet: View {
     
     private func updateQR() {
         isUpdating = true
-        // TODO: Implement actual update in SecureQRService
-        // For now, just delete and recreate
-        secureQRService.deleteQR(userId: userId, qrId: qr.id) { success, _ in
-            if success {
-                secureQRService.generateQR(
-                    userId: userId,
-                    label: qrLabel,
-                    documentIds: Array(selectedDocuments)
-                ) { success, _ in
-                    DispatchQueue.main.async {
-                        isUpdating = false
-                        if success {
-                            isPresented = false
-                        }
-                    }
-                }
-            } else {
+        secureQRService.updateQR(
+            userId: userId,
+            qrId: qr.id,
+            label: qrLabel,
+            documentIds: Array(selectedDocuments),
+            oldDocumentIds: qr.documentIds
+        ) { success, _ in
+            DispatchQueue.main.async {
                 isUpdating = false
+                if success {
+                    isPresented = false
+                }
             }
         }
     }

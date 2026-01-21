@@ -164,6 +164,78 @@ class SecureQRService: ObservableObject {
         }
     }
     
+    // Update QR code
+    func updateQR(userId: String, qrId: String, label: String, documentIds: [String], oldDocumentIds: [String], completion: @escaping (Bool, String?) -> Void) {
+        print("🔐 SecureQRService: Updating QR \(qrId)")
+        
+        isLoading = true
+        
+        // If documentIds changed, we need to regenerate and reupload the image
+        if Set(documentIds) != Set(oldDocumentIds) {
+            print("🔄 SecureQRService: Document IDs changed, regenerating image")
+            
+            // Create new QR data
+            let qrData = [
+                "qrId": qrId,
+                "userId": userId,
+                "documentIds": documentIds
+            ] as [String : Any]
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: qrData),
+                  let jsonString = String(data: jsonData, encoding: .utf8) else {
+                self.isLoading = false
+                completion(false, "Failed to encode QR data")
+                return
+            }
+            
+            let qrImage = generateQRCode(from: jsonString)
+            
+            uploadQRImage(userId: userId, qrId: qrId, image: qrImage) { [weak self] qrCodeUrl, uploadError in
+                guard let self = self else { return }
+                
+                if let uploadError = uploadError {
+                    self.isLoading = false
+                    completion(false, uploadError)
+                    return
+                }
+                
+                let updateData: [String: Any] = [
+                    "label": label,
+                    "documentIds": documentIds,
+                    "qrCodeUrl": qrCodeUrl ?? "",
+                    "updatedAt": FieldValue.serverTimestamp()
+                ]
+                
+                self.db.collection("users").document(userId).collection("secureQRs").document(qrId)
+                    .updateData(updateData) { error in
+                        self.isLoading = false
+                        if let error = error {
+                            completion(false, error.localizedDescription)
+                        } else {
+                            completion(true, nil)
+                        }
+                    }
+            }
+        } else {
+            // Only label changed, just update Firestore
+            print("📝 SecureQRService: Only label changed, updating document")
+            let updateData: [String: Any] = [
+                "label": label,
+                "updatedAt": FieldValue.serverTimestamp()
+            ]
+            
+            db.collection("users").document(userId).collection("secureQRs").document(qrId)
+                .updateData(updateData) { [weak self] error in
+                    self?.isLoading = false
+                    if let error = error {
+                        completion(false, error.localizedDescription)
+                    } else {
+                        completion(true, nil)
+                    }
+                }
+        }
+    }
+    
     // MARK: - Private Helpers
     
     private func generateQRCode(from string: String) -> UIImage {
