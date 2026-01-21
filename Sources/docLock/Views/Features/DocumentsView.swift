@@ -1066,170 +1066,148 @@ struct CreateFolderSheet: View {
                 }
             
             // Modal Content (Centered)
-            ScrollViewReader { scrollProxy in // START ScrollViewReader
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        // ID for scrolling
-                        Color.clear.frame(height: 1).id("Top")
+            VStack(spacing: 0) {
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
                     .frame(width: 40, height: 4)
                     .padding(.top, 10)
+                    .padding(.bottom, 15)
                 
-                // Premium Animated Header Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.blue.opacity(0.15),
-                                    Color.blue.opacity(0.08)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                VStack(spacing: 20) {
+                    // Premium Animated Header Icon
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.blue.opacity(0.15),
+                                        Color.blue.opacity(0.08)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 60, height: 60)
-                    
-                    Image(systemName: folderToEdit != nil ? "pencil" : "folder.badge.plus")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(.blue)
-                }
-                .scaleEffect(iconScale)
-                .rotationEffect(.degrees(iconRotation))
-                .padding(.top, 5)
-                
-                // Title & Subtitle
-                VStack(spacing: 8) {
-                    Text(folderToEdit != nil ? "Edit Folder" : "New Folder")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    
-                    Text(folderToEdit != nil ? "Update your folder name." : "Organize your documents with ease.\nGive your new folder a name.")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal)
-                }
-                
-                // Input Field
-                TextField("Folder Name", text: $folderName)
-                    .font(.headline)
-                    .padding()
-                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .focused($isFocused)
-                    .padding(.horizontal, 25)
-                    .submitLabel(.done)
-                    .onChange(of: folderName) { newValue in
-                        // Only allow alphanumeric, space, hyphen, and underscore
-                        var filtered = newValue.filter { char in
-                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
-                        }
-                        // Limit to 30 characters
-                        if filtered.count > 30 {
-                            filtered = String(filtered.prefix(30))
-                        }
-                        if folderName != filtered {
-                            folderName = filtered
-                        }
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: folderToEdit != nil ? "pencil" : "folder.badge.plus")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundColor(.blue)
                     }
-                
-                // Action Buttons
-                VStack(spacing: 15) {
-                    Button(action: {
-                        if let folder = folderToEdit {
-                            // Update existing folder
-                            documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName) { success, error in
-                                DispatchQueue.main.async {
-                                    if success {
-                                        toastMessage = "Folder renamed to '\(folderName)'"
-                                        toastType = .success
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                            isPresented = false
-                                        }
-                                    } else {
-                                        toastMessage = error ?? "Failed to update folder"
-                                        toastType = .error
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                            isPresented = false
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            // Create folder in background (no loader)
-                            let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
-                            documentsService.createFolder(userId: userId, folderName: folderName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
-                                DispatchQueue.main.async {
-                                    if success {
-                                        toastMessage = "Folder '\(folderName)' created successfully"
-                                        toastType = .success
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                            isPresented = false
-                                        }
-                                    } else {
-                                        toastMessage = error ?? "Failed to create folder"
-                                        toastType = .error
-                                        print("Error creating folder: \(error ?? "Unknown error")")
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                            isPresented = false
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }) {
-                        Text(folderToEdit != nil ? "Update Folder" : "Create Folder")
-                            .font(.headline)
+                    .scaleEffect(iconScale)
+                    .rotationEffect(.degrees(iconRotation))
+                    
+                    // Title & Subtitle
+                    VStack(spacing: 8) {
+                        Text(folderToEdit != nil ? "Edit Folder" : "New Folder")
+                            .font(.title2)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name) ? Color.gray.opacity(0.5) : Color.blue)
-                            .cornerRadius(15)
-                    }
-                    .disabled(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name))
-                    
-                    Button(action: {
-                        withAnimation { isPresented = false }
-                    }) {
-                        Text("Cancel")
-                        .fontWeight(.medium)
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        
+                        Text(folderToEdit != nil ? "Update your folder name." : "Organize your documents with ease.\nGive your new folder a name.")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal)
                     }
+                    
+                    // Input Field
+                    TextField("Folder Name", text: $folderName)
+                        .font(.headline)
+                        .padding()
+                        .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .focused($isFocused)
+                        .padding(.horizontal, 25)
+                        .submitLabel(.done)
+                        .onChange(of: folderName) { newValue in
+                            // Only allow alphanumeric, space, hyphen, and underscore
+                            var filtered = newValue.filter { char in
+                                char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                            }
+                            // Limit to 30 characters
+                            if filtered.count > 30 {
+                                filtered = String(filtered.prefix(30))
+                            }
+                            if folderName != filtered {
+                                folderName = filtered
+                            }
+                        }
+                    
+                    // Action Buttons
+                    VStack(spacing: 15) {
+                        Button(action: {
+                            if let folder = folderToEdit {
+                                // Update existing folder
+                                documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName) { success, error in
+                                    DispatchQueue.main.async {
+                                        if success {
+                                            toastMessage = "Folder renamed to '\(folderName)'"
+                                            toastType = .success
+                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                                isPresented = false
+                                            }
+                                        } else {
+                                            toastMessage = error ?? "Failed to update folder"
+                                            toastType = .error
+                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                                isPresented = false
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Create folder in background (no loader)
+                                let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
+                                documentsService.createFolder(userId: userId, folderName: folderName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
+                                    DispatchQueue.main.async {
+                                        if success {
+                                            toastMessage = "Folder '\(folderName)' created successfully"
+                                            toastType = .success
+                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                                isPresented = false
+                                            }
+                                        } else {
+                                            toastMessage = error ?? "Failed to create folder"
+                                            toastType = .error
+                                            print("Error creating folder: \(error ?? "Unknown error")")
+                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                                isPresented = false
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }) {
+                            Text(folderToEdit != nil ? "Update Folder" : "Create Folder")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name) ? Color.gray.opacity(0.5) : Color.blue)
+                                .cornerRadius(15)
+                        }
+                        .disabled(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name))
+                        
+                        Button(action: {
+                            withAnimation { isPresented = false }
+                        }) {
+                            Text("Cancel")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        }
                     }
                     .padding(.horizontal, 25)
                     .padding(.bottom, 20)
-                    
-                }
-                .padding(.bottom, 20)
-                } // End ScrollView
-                .onChange(of: isFocused) { focused in
-                    if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
-                }
-            } // End ScrollViewReader
-            .background(
-                Color.white.edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        isFocused = false
-                    }
-            )
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        isFocused = false
-                    }
                 }
             }
-            .padding(.bottom, 20)
             .background(
                 Color.white
                     .edgesIgnoringSafeArea(.bottom)

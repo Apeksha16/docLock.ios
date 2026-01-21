@@ -774,6 +774,12 @@ struct AddEditCardView: View {
     @State var cvv: String = ""
     @State private var showingScanner = false
     
+    // Focus State
+    enum Field: Hashable {
+        case name, number, holder, expiry, cvv
+    }
+    @FocusState private var focusedField: Field?
+    
     var card: CardModel? // If nil, adding mode
     let userId: String
     let cardsService: CardsService
@@ -1033,7 +1039,8 @@ struct AddEditCardView: View {
                 // Form
                 VStack(alignment: .leading, spacing: 10) {
                     Group {
-                        CustomFormTextField(title: "Card Name", placeholder: "e.g., Personal Visa", text: $cardName)
+                        // Card Name
+                        buildTextField(title: "Card Name", placeholder: "e.g., Personal Visa", text: $cardName, field: .name, nextField: .number)
                             .onChange(of: cardName) { newValue in
                                 var filtered = newValue.filter { $0.isLetter || $0.isWhitespace || $0 == "-" }
                                 if filtered.count > 30 {
@@ -1044,16 +1051,18 @@ struct AddEditCardView: View {
                                 }
                             }
                         
-                        CustomFormTextField(title: "Card Number", placeholder: "0000 0000 0000 0000", text: $cardNumber, keyboardType: .numberPad)
+                        // Card Number (Use numbersAndPunctuation to show Return/Next key)
+                        buildTextField(title: "Card Number", placeholder: "0000 0000 0000 0000", text: $cardNumber, field: .number, nextField: .holder, keyboardType: .numbersAndPunctuation)
                             .onChange(of: cardNumber) { newValue in
                                 formatCardNumber(newValue)
                             }
                             
-                        CustomFormTextField(title: "Card Holder Name", placeholder: "New User", text: $cardHolder)
+                        // Card Holder
+                        buildTextField(title: "Card Holder Name", placeholder: "New User", text: $cardHolder, field: .holder, nextField: .expiry)
                             .onChange(of: cardHolder) { newValue in
                                 var filtered = newValue.filter { $0.isLetter || $0.isWhitespace || $0 == "-" }
                                 if filtered.count > 25 {
-                                    filtered = String(filtered.prefix(25))
+                                     filtered = String(filtered.prefix(25))
                                 }
                                 if filtered != newValue {
                                     cardHolder = filtered
@@ -1061,12 +1070,14 @@ struct AddEditCardView: View {
                             }
                         
                         HStack {
-                             CustomFormTextField(title: "Expiry Date", placeholder: "MM/YY", text: $expiry, keyboardType: .numberPad)
+                             // Expiry
+                             buildTextField(title: "Expiry Date", placeholder: "MM/YY", text: $expiry, field: .expiry, nextField: .cvv, keyboardType: .numbersAndPunctuation)
                                 .onChange(of: expiry) { newValue in
                                     formatExpiry(newValue)
                                 }
                             Spacer()
-                             CustomFormTextField(title: "CVV", placeholder: "123", text: $cvv, isSecure: true, keyboardType: .numberPad)
+                             // CVV
+                             buildTextField(title: "CVV", placeholder: "123", text: $cvv, field: .cvv, nextField: nil, isSecure: true, keyboardType: .numbersAndPunctuation)
                                 .onChange(of: cvv) { newValue in
                                     formatCVV(newValue)
                                 }
@@ -1253,6 +1264,7 @@ struct AddEditCardView: View {
         }
     }
     
+
     func formatCVV(_ value: String) {
         let clean = value.filter { "0123456789".contains($0) }
         let limit = 4
@@ -1260,6 +1272,58 @@ struct AddEditCardView: View {
         
         if cvv != trimmed {
             cvv = trimmed
+        }
+    }
+    
+    // Check if we need to implement buildTextField logic
+    @ViewBuilder
+    private func buildTextField(
+        title: String,
+        placeholder: String,
+        text: Binding<String>,
+        field: Field,
+        nextField: Field?,
+        isSecure: Bool = false,
+        keyboardType: UIKeyboardType = .default
+    ) -> some View {
+        VStack(alignment: .leading) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+            
+            if isSecure {
+                SecureField(placeholder, text: text)
+                    .focused($focusedField, equals: field)
+                    .submitLabel(nextField == nil ? .done : .next)
+                    .onSubmit {
+                        if let next = nextField {
+                            focusedField = next
+                        } else {
+                            focusedField = nil
+                        }
+                    }
+                    .keyboardType(keyboardType)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+            } else {
+                TextField(placeholder, text: text)
+                    .focused($focusedField, equals: field)
+                    .submitLabel(nextField == nil ? .done : .next)
+                    .onSubmit {
+                        if let next = nextField {
+                            focusedField = next
+                        } else {
+                            focusedField = nil
+                        }
+                    }
+                    .keyboardType(keyboardType)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+            }
         }
     }
 }

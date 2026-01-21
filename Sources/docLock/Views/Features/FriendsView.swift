@@ -849,7 +849,7 @@ struct RequestActionSheet: View {
                     }
                 }
                 .padding(.top, sentSuccess ? 0 : 4)
-                .padding(.bottom, sentSuccess ? 0 : 30)
+                .padding(.bottom, sentSuccess ? 0 : 10) // Reduced from 30 to 10
             }
             .background(
                 ZStack {
@@ -878,11 +878,11 @@ struct RequestActionSheet: View {
                             )
                     }
                 }
+                .edgesIgnoringSafeArea(.bottom) // Extend background to bottom
             )
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .edgesIgnoringSafeArea(.bottom)
+            .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
             .onAppear {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     sheetOffset = 0
@@ -896,8 +896,8 @@ struct RequestActionSheet: View {
                     isTextFieldFocused = true
                 }
             }
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .transition(.move(edge: .bottom))
+        .frame(maxHeight: .infinity, alignment: .bottom)
+        .transition(.move(edge: .bottom))
         }
         .zIndex(150)
     }

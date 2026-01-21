@@ -555,11 +555,7 @@ struct EditNameView: View {
                 }
             
             // Modal Content (Centered)
-            ScrollViewReader { scrollProxy in // START ScrollViewReader
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        // ID for scrolling
-                        Color.clear.frame(height: 1).id("Top")
+            VStack(spacing: 20) {
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
@@ -605,6 +601,12 @@ struct EditNameView: View {
                     )
                     .focused($isFocused)
                     .padding(.horizontal, 25)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        if !newName.isEmpty {
+                            // Trigger save
+                        }
+                    }
                 
                 // Action Buttons
                 VStack(spacing: 15) {
@@ -645,38 +647,17 @@ struct EditNameView: View {
                     }
                 }
                 .padding(.horizontal, 25)
-                .padding(.bottom, 20)
-                
+                .padding(.horizontal, 25)
+                .padding(.bottom, 20) // Reduced padding to match previous design
             }
-            .padding(.bottom, 20)
-            } // End ScrollView
-            .onChange(of: isFocused) { focused in
-                if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
-            }
-            } // End ScrollViewReader
-            .background(
-                Color.white.edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        isFocused = false
-                    }
-            )
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        isFocused = false
-                    }
-                }
-            }
-            .padding(.bottom, 20)
             .background(
                 Color.white
-                    .edgesIgnoringSafeArea(.bottom)
+                    .edgesIgnoringSafeArea(.bottom) // Extend background to bottom
             )
             .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
+            .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
             .offset(y: sheetOffset)
             .frame(maxHeight: .infinity, alignment: .bottom)
-            .transition(.move(edge: .bottom))
             .onAppear {
                 newName = authService.user?.name ?? ""
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -684,8 +665,7 @@ struct EditNameView: View {
                 }
             }
         }
-        .zIndex(200) // Ensure it appears on top
-        .edgesIgnoringSafeArea(.all) // Ensure dim background covers everything
+        .zIndex(200)
     }
 }
 
