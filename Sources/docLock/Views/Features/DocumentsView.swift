@@ -540,7 +540,8 @@ struct DocumentsView: View {
             
             // FAB Button (Center Bottom)
             // Show FAB if we have items to display or are in a folder (even at max depth, we can still upload)
-            if selectedFolderId != "SHARED_ROOT" {
+            // Hide if any sheet or modal is open
+            if selectedFolderId != "SHARED_ROOT" && !showCreateFolderSheet && !showUploadDocumentSheet && !showUploadImageSheet && !showEditFolderSheet && !showEditDocumentSheet && !showingFriendSelection && !showDeleteDocumentConfirmation && !showDeleteFolderConfirmation && !showDocumentPreview {
                 VStack {
                     Spacer()
                     HStack {

@@ -461,7 +461,7 @@ struct CardsView: View {
             }
             
             // FAB Button (Center Bottom)
-            if !cardsService.cards.isEmpty {
+            if !cardsService.cards.isEmpty && !showingAddCard && !showingDeleteAlert && !showingFriendSelection && selectedCardToEdit == nil {
                 VStack {
                     Spacer()
                     HStack {

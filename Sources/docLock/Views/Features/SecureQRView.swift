@@ -207,7 +207,7 @@ struct SecureQRView: View {
                 }
                 
                 // Floating Add Button (shown when list has items)
-                if !secureQRService.secureQRs.isEmpty {
+                if !secureQRService.secureQRs.isEmpty && !showAddQRSheet && !showDownloadSheet && !showDeleteConfirmation && !showEditSheet {
                     VStack {
                         Spacer()
                         HStack {
