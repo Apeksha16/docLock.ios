@@ -201,8 +201,8 @@ struct FriendsView: View {
                             .fill(
                                 RadialGradient(
                                     gradient: Gradient(colors: [
-                                        Color(red: 1.0, green: 0.95, blue: 0.75).opacity(hasAppeared ? 1 : 0.5),
-                                        Color(red: 1.0, green: 0.96, blue: 0.8).opacity(hasAppeared ? 0.8 : 0.3)
+                                        Color(hex: "BF092F").opacity(hasAppeared ? 0.2 : 0.1),
+                                        Color(hex: "BF092F").opacity(hasAppeared ? 0.1 : 0.05)
                                     ]),
                                     center: .center,
                                     startRadius: 20,
@@ -233,8 +233,8 @@ struct FriendsView: View {
                             .fill(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
-                                        Color.yellow.opacity(0.4),
-                                        Color(hex: "BF092F").opacity(0.2)
+                                        Color(hex: "BF092F").opacity(0.35),
+                                        Color(hex: "BF092F").opacity(0.15)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -327,13 +327,14 @@ struct FriendsView: View {
                                 }
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
+                                Button {
                                     friendToDelete = friend
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         showDeleteConfirmation = true
                                     }
                                 } label: {
                                     Label("Delete", systemImage: "trash.fill")
+                                        .foregroundColor(.black) 
                                 }
                                 .tint(.red)
                             }
@@ -600,7 +601,12 @@ struct RequestActionSheet: View {
                 }
             
             // Premium Sheet Content
+            ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
+                 // Focus ID
+                 Color.clear.frame(height: 1).id("Top")
+                 
                 // Premium Drag Handle
                 Capsule()
                     .fill(
@@ -845,12 +851,28 @@ struct RequestActionSheet: View {
                             )
                         }
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, isTextFieldFocused ? 300 : 20)
                     }
                 }
                 .padding(.top, sentSuccess ? 0 : 4)
-                .padding(.bottom, sentSuccess ? 0 : 0) // Removed extra padding
             }
+            } // End ScrollView
+            .onChange(of: isTextFieldFocused) { focused in
+                if !focused {
+                    withAnimation {
+                        proxy.scrollTo("Top", anchor: .top)
+                    }
+                }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isTextFieldFocused = false
+                    }
+                }
+            }
+            } // End ScrollViewReader
             .background(
                 ZStack {
                     if sentSuccess {
@@ -883,7 +905,6 @@ struct RequestActionSheet: View {
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
             .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
-            .onAppear {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     sheetOffset = 0
                 }
@@ -896,6 +917,25 @@ struct RequestActionSheet: View {
                     isTextFieldFocused = true
                 }
             }
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        if value.translation.height > 0 {
+                            sheetOffset = value.translation.height
+                        }
+                    }
+                    .onEnded { value in
+                        if value.translation.height > 100 {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                isPresented = false
+                            }
+                        } else {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                sheetOffset = 0
+                            }
+                        }
+                    }
+            )
         .frame(maxHeight: .infinity, alignment: .bottom)
         .transition(.move(edge: .bottom))
         }

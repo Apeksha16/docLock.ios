@@ -1118,11 +1118,18 @@ struct AddEditCardView: View {
                 }
                 .disabled(cardName.isEmpty || cardNumber.isEmpty || cardHolder.isEmpty || expiry.isEmpty || cvv.isEmpty || isLoading)
                 .opacity((cardName.isEmpty || cardNumber.isEmpty || cardHolder.isEmpty || expiry.isEmpty || cvv.isEmpty || isLoading) ? 0.6 : 1)
-                .padding()
+                .padding(.bottom, focusedField != nil ? 320 : 20)
                 
                 Spacer()
             }
-        }
+            } // End ScrollView
+            .onChange(of: focusedField) { field in
+                if field == nil {
+                    withAnimation {
+                        scrollProxy.scrollTo("Top", anchor: .top)
+                    }
+                }
+            }
         .sheet(isPresented: $showingScanner) {
             #if os(iOS)
             if #available(iOS 16.0, *) {
@@ -1154,9 +1161,9 @@ struct AddEditCardView: View {
                 Spacer()
             }
         }
-        } // End ScrollViewReader
-        }
-    }
+    } // End ScrollViewReader
+    } // End ZStack
+    } // End body
     
     func saveCard() {
         isLoading = true

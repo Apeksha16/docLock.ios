@@ -2,8 +2,8 @@ import SwiftUI
 
 struct LoginView: View {
     @ObservedObject var authService: AuthService
-    @Binding var showSignup: Bool
-    var onMobileVerified: (String, Bool) -> Void // Returns (mobile, exists)
+    var onSignup: (String) -> Void
+    var onOTPRequested: (String) -> Void
     
     @State private var phoneNumber = ""
     @FocusState private var isTextFieldFocused: Bool
@@ -50,7 +50,7 @@ struct LoginView: View {
                     encryptionBadge
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 20) // Add bottom padding for better spacing
+                .padding(.bottom, 40)
             } // End of ScrollView
             .onChange(of: isTextFieldFocused) { focused in
                 if !focused {
@@ -59,26 +59,13 @@ struct LoginView: View {
                     }
                 }
             }
-        } // End of ScrollViewReader
-        .background(
-            Color.white
-                .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    isTextFieldFocused = false
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isTextFieldFocused = false
+                    }
                 }
-        )
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    isTextFieldFocused = false
-                }
-            }
-        }
-        .onAppear {
-            // Auto focus when view appears
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isTextFieldFocused = true
             }
         }
     }
@@ -97,8 +84,11 @@ struct LoginView: View {
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2)) // Dark Navy Text
                 .frame(height: 40) // Fixed height to prevent jumping
             
-            Text("Sign in to your secure vault")
+            Text("Your primary documents, \nencrypted & synced.")
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
                 .foregroundColor(.gray)
+                .padding(.horizontal, 40)
         }
     }
     
@@ -109,84 +99,83 @@ struct LoginView: View {
                 .fontWeight(.semibold)
                 .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
             
-            TextField("Enter 10-digit number", text: $phoneNumber)
-                .keyboardType(.numberPad)
-                .focused($isTextFieldFocused)
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke((isTextFieldFocused || !phoneNumber.isEmpty) ? themeColor : Color.gray.opacity(0.3), lineWidth: 1)
-                )
-                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2)) // Ensure text is visible (Dark Navy)
-                .colorScheme(.light) // Force light mode for placeholder visibility
-                .onChange(of: phoneNumber) { newValue in
-                    // Filter out non-numeric characters
-                    phoneNumber = newValue.filter { $0.isNumber }
-                    
-                    // Limit to 10 digits
-                    if phoneNumber.count > 10 {
-                        phoneNumber = String(phoneNumber.prefix(10))
+            HStack {
+                Text("+91")
+                    .fontWeight(.bold)
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                
+                Divider().frame(height: 20)
+                
+                TextField("Enter 10-digit number", text: $phoneNumber)
+                    .keyboardType(.numberPad)
+                    .focused($isTextFieldFocused)
+                    .onChange(of: phoneNumber) { newValue in
+                        // Filter out non-numeric characters
+                        phoneNumber = newValue.filter { $0.isNumber }
+                        
+                        // Limit to 10 digits
+                        if phoneNumber.count > 10 {
+                            phoneNumber = String(phoneNumber.prefix(10))
+                        }
                     }
-                }
+            }
+            .padding()
+            .background(Color.white)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke((isTextFieldFocused || !phoneNumber.isEmpty) ? themeColor : Color.gray.opacity(0.3), lineWidth: 1)
+            )
+            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+            .colorScheme(.light) // Force light mode colors for text field
         }
-        .padding(.top, 20)
+        .padding(.horizontal)
     }
     
     private var verifyButton: some View {
-        Button(action: {
-            verifyMobile()
-        }) {
+        Button(action: verifyMobileNumber) {
             HStack {
                 if isVerifying {
                     ProgressView()
                         .tint(.white)
-                        .padding(.trailing, 8)
+                        .padding(.trailing, 10)
                 }
-                Text(isVerifying ? "Verifying..." : "Get OTP")
+                Text("Verify Mobile")
                     .fontWeight(.bold)
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(isValidNumber && !isVerifying ? themeColor : disabledThemeColor)
+            .background(isValidNumber ? themeColor : disabledThemeColor)
             .foregroundColor(.white)
             .cornerRadius(15)
         }
-        .disabled(!isValidNumber || isVerifying || (authService.lockoutDate != nil && authService.lockoutDate! > Date()))
+        .disabled(!isValidNumber || isVerifying)
+        .padding(.horizontal)
     }
     
     private func lockoutView(lockoutDate: Date) -> some View {
-        VStack(spacing: 4) {
-            Text("Your account is locked")
-                .foregroundColor(.red)
-                .font(.caption)
+        VStack(spacing: 5) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+            Text("Account Locked")
                 .fontWeight(.bold)
-            
-            TimelineView(.periodic(from: .now, by: 1.0)) { context in
-                let remaining = Int(lockoutDate.timeIntervalSince(context.date))
-                if remaining > 0 {
-                    Text("Time remaining: \(remaining)s")
-                        .foregroundColor(.red)
-                        .font(.caption)
-                } else {
-                    Text("Lockout expired")
-                        .foregroundColor(.green)
-                        .font(.caption)
-                }
-            }
+            Text("Too many failed attempts. Try again after \(lockoutDate, style: .time)")
+                .font(.caption)
+                .multilineTextAlignment(.center)
         }
-        .padding(.top, 5)
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(12)
+        .padding(.horizontal)
     }
     
     private var footerView: some View {
         HStack {
-            Text("New to DocLock?")
+            Text("Don't have an account?")
                 .foregroundColor(.gray)
-            Button("Create Account") {
-                withAnimation {
-                    showSignup = true
-                }
+            Button("Sign Up") {
+                onSignup(phoneNumber)
             }
             .fontWeight(.bold)
             .foregroundColor(themeColor)
@@ -196,23 +185,28 @@ struct LoginView: View {
     
     private var encryptionBadge: some View {
         HStack {
-            Image(systemName: "lock.fill")
-            Text("Secured with 256-bit encryption")
+            Image(systemName: "checkmark.shield.fill")
+                .foregroundColor(.green)
+            Text("Military Grade Encryption")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(.gray)
         }
-        .font(.caption)
-        .foregroundColor(.gray)
-        .padding(10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-        )
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(Color.gray.opacity(0.05))
+        .clipShape(Capsule())
     }
     
-    func verifyMobile() {
+    private func verifyMobileNumber() {
         isVerifying = true
         authService.verifyMobile(mobile: phoneNumber) { exists, message in
             isVerifying = false
-            onMobileVerified(phoneNumber, exists)
+            if exists {
+                onOTPRequested(phoneNumber)
+            } else {
+                authService.errorMessage = "Mobile number not found. Please sign up."
+            }
         }
     }
 }

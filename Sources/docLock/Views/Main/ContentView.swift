@@ -27,15 +27,23 @@ struct ContentView: View {
                             }
                         }
                     ), authService: authService)
-                } else {
+                }
+                if !authService.isAuthenticated {
                     ZStack {
                         // Background - Dark Navy Blue
-                        Color(red: 0.05, green: 0.07, blue: 0.2) // Deep Navy Blue
+                        Color(red: 0.05, green: 0.07, blue: 0.2)
                             .edgesIgnoringSafeArea(.all)
 
-                        VStack {
-                            Spacer()
-                            // Bottom Sheet
+                        // Auth Flow Sheet
+                        ZStack {
+                            // Dimmed background overlay
+                            Color.black.opacity(0.4)
+                                .edgesIgnoringSafeArea(.all)
+                                .onTapGesture {
+                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                                }
+                                .transition(.opacity)
+
                             BottomSheetView {
                                 if showMPIN {
                                     MPINView(
@@ -44,76 +52,54 @@ struct ContentView: View {
                                         isLoginFlow: isLoginFlow,
                                         fullName: fullName,
                                         onBack: {
-                                            withAnimation {
+                                            withAnimation(.spring()) {
                                                 showMPIN = false
-                                                if !isLoginFlow {
-                                                    showSignup = true
-                                                }
                                             }
                                         }
                                     )
-                                    .transition(.move(edge: .bottom))
-                                    .gesture(
-                                        DragGesture()
-                                            .onEnded { value in
-                                                // Swipe right to go back
-                                                if value.translation.width > 50 {
-                                                    withAnimation {
-                                                        showMPIN = false
-                                                        if !isLoginFlow {
-                                                            showSignup = true
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                    )
+                                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
                                 } else if showSignup {
                                     SignupView(
+                                        authService: authService,
                                         prefilledMobile: mobileNumber,
-                                        showMPIN: $showMPIN,
-                                        showLogin: Binding(get: { !showSignup }, set: { _ in 
-                                            withAnimation {
+                                        onBack: {
+                                            withAnimation(.spring()) {
                                                 showSignup = false
-                                                mobileNumber = ""
                                             }
-                                        }),
-                                        onGetOTP: { mobile, name in
-                                            mobileNumber = mobile
+                                        },
+                                        onOTPRequested: { name, mobile in
                                             fullName = name
+                                            mobileNumber = mobile
                                             isLoginFlow = false
-                                            withAnimation {
+                                            withAnimation(.spring()) {
                                                 showMPIN = true
                                             }
                                         }
                                     )
-                                    .transition(.move(edge: .trailing))
+                                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
                                 } else {
                                     LoginView(
                                         authService: authService,
-                                        showSignup: $showSignup,
-                                        onMobileVerified: { mobile, exists in
+                                        onSignup: { mobile in
                                             mobileNumber = mobile
-                                            if exists {
-                                                // Mobile exists, go to MPIN for login
-                                                isLoginFlow = true
-                                                withAnimation {
-                                                    showMPIN = true
-                                                    toastMessage = "Mobile number verified"
-                                                    toastType = .success
-                                                }
-                                            } else {
-                                                // Mobile doesn't exist, go to signup
-                                                withAnimation {
-                                                    showSignup = true
-                                                    toastMessage = "Mobile number not found. Please sign up."
-                                                    toastType = .error
-                                                }
+                                            withAnimation(.spring()) {
+                                                showSignup = true
+                                            }
+                                        },
+                                        onOTPRequested: { mobile in
+                                            mobileNumber = mobile
+                                            isLoginFlow = true
+                                            withAnimation(.spring()) {
+                                                showMPIN = true
                                             }
                                         }
                                     )
                                     .transition(.move(edge: .leading))
                                 }
                             }
+                            .transition(.move(edge: .bottom))
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                            .padding(.top, 50)
                         }
                     }
                 }

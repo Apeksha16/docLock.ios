@@ -24,7 +24,12 @@ struct AddFriendView: View {
             // User asked for "popup should come... no back button". 
             // So: Search View is the BASE. Confirmation is the OVERLAY.
             
+            ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
+                // Focus ID
+                Color.clear.frame(height: 1).id("Top")
+                
                 // Decorative Background Pops
                  GeometryReader { geometry in
                      Circle()
@@ -178,8 +183,29 @@ struct AddFriendView: View {
                 }
                 .padding(.horizontal, 30)
                 .disabled(isLoading || searchText.count < 6)
-                .padding(.bottom, 20)
+                .padding(.bottom, isTextFieldFocused ? 320 : 50)
             }
+            } // End ScrollView
+            .onChange(of: isTextFieldFocused) { focused in
+                if !focused {
+                    withAnimation {
+                        proxy.scrollTo("Top", anchor: .top)
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isTextFieldFocused = false
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isTextFieldFocused = false
+                    }
+                }
+            }
+            } // End ScrollViewReader
             .background(
                 ZStack {
                     Color(red: 0.98, green: 0.98, blue: 0.96) // Base Color

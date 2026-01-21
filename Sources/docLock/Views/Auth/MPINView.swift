@@ -144,18 +144,14 @@ struct MPINView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.bottom, 20)
+        .padding(.bottom, 40)
         } // End ScrollView
         .onChange(of: isFocused) { focused in
             if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
         }
-        } // End ScrollViewReader
-        .background(
-            Color.white.edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    isFocused = false
-                }
-        )
+        .onTapGesture {
+            isFocused = false
+        }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -168,12 +164,6 @@ struct MPINView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             isFocused = false
-        }
-        .onAppear {
-            // Auto focus when view appears
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isFocused = true
-            }
         }
         .onChange(of: authService.errorMessage) { newError in
             errorMessage = newError
@@ -200,7 +190,8 @@ struct MPINView: View {
                 }
             }
         }
-    }
+        } // End ScrollViewReader
+    } // End Body
     
     func performLogin() {
         errorMessage = nil

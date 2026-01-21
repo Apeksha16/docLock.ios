@@ -1,14 +1,17 @@
 import SwiftUI
 
 struct SignupView: View {
+    @ObservedObject var authService: AuthService
     let prefilledMobile: String
-    @Binding var showMPIN: Bool
-    @Binding var showLogin: Bool // To navigate back to Login
-    var onGetOTP: (String, String) -> Void // Returns (mobile, fullName)
+    var onBack: () -> Void
+    var onOTPRequested: (String, String) -> Void // Returns (fullName, mobile)
     
     @State private var fullName = ""
     @State private var phoneNumber = ""
-    @FocusState private var isNameFieldFocused: Bool
+    enum Field: Hashable {
+        case name, phone
+    }
+    @FocusState private var focusedField: Field?
     
     // Theme Color: #8b5cf6 -> RGB(139, 92, 246)
     let themeColor = Color(red: 0.55, green: 0.36, blue: 0.96)
@@ -59,16 +62,18 @@ struct SignupView: View {
                         .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
                     
                     TextField("Enter your full name", text: $fullName)
-                        .focused($isNameFieldFocused)
+                        .focused($focusedField, equals: .name)
                         .padding()
                         .background(Color.white)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke((isNameFieldFocused || !fullName.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
+                                .stroke((focusedField == .name || !fullName.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
                         )
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                         .colorScheme(.light)
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .phone }
 
                 }
                 
@@ -81,15 +86,18 @@ struct SignupView: View {
                     
                     TextField("10-digit mobile number", text: $phoneNumber)
                         .keyboardType(.numberPad)
+                        .focused($focusedField, equals: .phone)
                         .padding()
                         .background(Color.white)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke((!phoneNumber.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
+                                .stroke((focusedField == .phone || !phoneNumber.isEmpty) ? Color(red: 0.55, green: 0.36, blue: 0.96) : Color.gray.opacity(0.3), lineWidth: 1)
                         )
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                         .colorScheme(.light)
+                        .submitLabel(.done)
+                        .onSubmit { focusedField = nil }
                         .onChange(of: phoneNumber) { newValue in
                             // Filter out non-numeric characters
                             phoneNumber = newValue.filter { $0.isNumber }
@@ -105,7 +113,7 @@ struct SignupView: View {
             .padding(.top, 10)
 
             Button(action: {
-                onGetOTP(phoneNumber, fullName)
+                onOTPRequested(fullName, phoneNumber)
             }) {
                 Text("Get OTP")
                     .fontWeight(.bold)
@@ -122,9 +130,7 @@ struct SignupView: View {
                 Text("Already have an account?")
                     .foregroundColor(.gray)
                 Button("Sign In") {
-                    withAnimation {
-                        showLogin = true
-                    }
+                        onBack()
                 }
                 .fontWeight(.bold)
                 .foregroundColor(themeColor)
@@ -146,39 +152,29 @@ struct SignupView: View {
             )
         }
         .padding(.horizontal)
-        .padding(.bottom, 20)
+        .padding(.bottom, 40)
         } // End ScrollView
-        .onChange(of: isNameFieldFocused) { focused in
-            if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
+        .onChange(of: focusedField) { focused in
+            if focused == nil { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
         }
-        } // End ScrollViewReader
-        .background(
-            Color.white
-                .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    isNameFieldFocused = false
-                    // Also dismiss generic keyboard if any
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }
-        )
+        .onTapGesture {
+            focusedField = nil
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") {
-                    isNameFieldFocused = false
+                    focusedField = nil
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
             }
         }
         .onAppear {
-            // Prefill mobile number if provided
             if !prefilledMobile.isEmpty {
                 phoneNumber = prefilledMobile
             }
-            // Auto focus on name field when view appears
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isNameFieldFocused = true
-            }
         }
-    }
+        } // End ScrollViewReader
+    } // End body
 }

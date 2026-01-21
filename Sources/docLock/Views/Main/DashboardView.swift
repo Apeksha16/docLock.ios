@@ -326,7 +326,7 @@ struct HomeView: View {
                         // Or if we want to show just activity level. 
                         // let qrsCount = 5.0 // Placeholder value since we don't have a count service readily available in snippet
                         // Actually, let's use a safe fallback.
-                        let qrsPercent = 0.45 // Fixed aesthetic value for now, or calculate if we had QR count
+                        let qrsPercent = 0.0 // Placeholder value as feature is under development
                         
                         
                         // Storage Circle (Multi-Ring)
@@ -405,11 +405,11 @@ struct HomeView: View {
                                         .tracking(1.5)
                                     
                                     HStack(alignment: .lastTextBaseline, spacing: 4) {
-                                        Text("5") // Placeholder as per graph logic
+                                        Text("0") // Placeholder until feature implemented
                                             .font(.system(size: 32, weight: .bold, design: .rounded))
                                             .foregroundColor(.orange)
                                         
-                                        Text("/ 20") // Placeholder limit
+                                        Text("/ --") // Placeholder limit
                                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                                             .foregroundColor(.gray.opacity(0.8))
                                             .padding(.bottom, 2)
@@ -424,7 +424,7 @@ struct HomeView: View {
                                         .foregroundColor(.gray)
                                         .tracking(1.5)
                                     
-                                    Text("25%") // Placeholder matching 5/20
+                                    Text("0%") // Placeholder until feature implemented
                                         .font(.system(size: 32, weight: .bold, design: .rounded))
                                         .foregroundColor(.orange)
                                 }

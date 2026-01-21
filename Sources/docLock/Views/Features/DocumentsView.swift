@@ -1066,7 +1066,12 @@ struct CreateFolderSheet: View {
                 }
             
             // Modal Content (Centered)
+            ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
+                 // Focus ID
+                 Color.clear.frame(height: 1).id("Top")
+                 
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
@@ -1205,9 +1210,25 @@ struct CreateFolderSheet: View {
                         }
                     }
                     .padding(.horizontal, 25)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, isFocused ? 320 : 20)
+                }
+            } // End ScrollView
+            .onChange(of: isFocused) { focused in
+                if !focused {
+                    withAnimation {
+                        proxy.scrollTo("Top", anchor: .top)
+                    }
                 }
             }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isFocused = false
+                    }
+                }
+            }
+            } // End ScrollViewReader
             .background(
                 Color.white
                     .edgesIgnoringSafeArea(.bottom)
@@ -1232,6 +1253,7 @@ struct CreateFolderSheet: View {
                     isFocused = true
                 }
             }
+        }
         }
         .zIndex(200) // Ensure it appears on top
         .edgesIgnoringSafeArea(.all)
@@ -1935,9 +1957,9 @@ struct FolderContentsView: View {
                         .padding(.horizontal, 30)
                         .padding(.top, 20)
                     }
-                    
-                    Spacer()
                 }
+                
+                Spacer()
             }
             } else {
                 // Show folders and documents together in list
@@ -2349,15 +2371,18 @@ struct EditDocumentSheet: View {
                     }
                 }
                 .padding(.horizontal, 25)
-                .padding(.bottom, 30)
+                .padding(.bottom, 10)
+            }
+            .padding(.bottom, isFocused ? 320 : 30)
+        } // End ScrollView
+            .onChange(of: isFocused) { focused in
+                if !focused {
+                    withAnimation {
+                        scrollProxy.scrollTo("Top", anchor: .top)
+                    }
                 }
-                .padding(.horizontal, 25)
-                .padding(.bottom, 30)
-                } // End ScrollView
-                .onChange(of: isFocused) { focused in
-                    if !focused { withAnimation { scrollProxy.scrollTo("Top", anchor: .top) } }
-                }
-            } // End ScrollViewReader
+            }
+        } // End ScrollViewReader
             .background(
                 Color.white.edgesIgnoringSafeArea(.all)
                     .onTapGesture {

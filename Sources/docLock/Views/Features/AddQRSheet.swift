@@ -274,7 +274,7 @@ struct AddQRSheet: View {
                 }
                 .padding(.horizontal, 30)
                 .disabled(!isFormValid || isLoading)
-                .padding(.bottom, 20)
+                .padding(.bottom, isTextFieldFocused ? 320 : 20)
             }
             } // End ScrollView
             .onChange(of: isTextFieldFocused) { focused in
