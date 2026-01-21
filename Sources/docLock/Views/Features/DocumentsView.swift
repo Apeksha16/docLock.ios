@@ -543,7 +543,8 @@ struct DocumentsView: View {
             // 1. Not at root level ("HOME")
             // 2. Not in an empty folder
             // 3. No sheets or modals are open
-            let isNotEmpty = hasFoldersToDisplay || !documentsService.currentFolderDocuments.isEmpty
+            let currentFoldersEmpty = selectedFolderId == nil ? !hasFoldersToDisplay : documentsService.currentFolderFolders.isEmpty
+            let isNotEmpty = !currentFoldersEmpty || !documentsService.currentFolderDocuments.isEmpty
             let isNotRoot = selectedFolderId != nil
             let noSheetsOpen = !showCreateFolderSheet && !showUploadDocumentSheet && !showUploadImageSheet && !showEditFolderSheet && !showEditDocumentSheet && !showingFriendSelection && !showDeleteDocumentConfirmation && !showDeleteConfirmation && !showDocumentPreview
             
