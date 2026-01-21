@@ -729,7 +729,7 @@ struct RequestActionSheet: View {
                             .padding(.bottom, 20)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.bottom, 30) // Extra safe area padding
+                        .padding(.bottom, 20) // Consistent sheet padding
                         .background(
                             ZStack {
                                 Color.white
@@ -845,11 +845,11 @@ struct RequestActionSheet: View {
                             )
                         }
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 20)
                     }
                 }
                 .padding(.top, sentSuccess ? 0 : 4)
-                .padding(.bottom, sentSuccess ? 0 : 10) // Reduced from 30 to 10
+                .padding(.bottom, sentSuccess ? 0 : 0) // Removed extra padding
             }
             .background(
                 ZStack {

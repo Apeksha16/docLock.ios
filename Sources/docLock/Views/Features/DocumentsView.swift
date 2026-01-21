@@ -1515,6 +1515,22 @@ struct UploadDocumentSheet: View {
             return
         }
         
+        // 2. Validate file size - max 5MB
+        do {
+            let resourceValues = try url.resourceValues(forKeys: [.fileSizeKey])
+            if let fileSize = resourceValues.fileSize {
+                let fiveMB = 5 * 1024 * 1024
+                if fileSize > fiveMB {
+                    isUploading = false
+                    errorMessage = "File size exceeds 5MB limit. Please select a smaller file."
+                    print("File size too large: \(fileSize) bytes")
+                    return
+                }
+            }
+        } catch {
+            print("Error checking file size: \(error)")
+        }
+        
         // Start security-scoped resource access
         guard url.startAccessingSecurityScopedResource() else {
             isUploading = false
@@ -1807,10 +1823,19 @@ struct UploadImageSheet: View {
         // Validate image - UIImagePickerController already ensures it's a valid image
         // But we can double-check that we have valid image data
         // Try JPEG first (smaller file size), then PNG
-        guard image.jpegData(compressionQuality: 0.8) != nil || image.pngData() != nil else {
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             isUploading = false
             errorMessage = "Invalid image format. Please select a valid image (JPG, JPEG, PNG, or other supported format)."
             print("Failed to convert image to data")
+            return
+        }
+        
+        // 2. Validate image size - max 2MB
+        let twoMB = 2 * 1024 * 1024
+        if imageData.count > twoMB {
+            isUploading = false
+            errorMessage = "Image size exceeds 2MB limit. Please select a smaller image or compress it."
+            print("Image size too large: \(imageData.count) bytes")
             return
         }
         

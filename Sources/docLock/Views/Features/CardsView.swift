@@ -1051,8 +1051,8 @@ struct AddEditCardView: View {
                                 }
                             }
                         
-                        // Card Number (Use numbersAndPunctuation to show Return/Next key)
-                        buildTextField(title: "Card Number", placeholder: "0000 0000 0000 0000", text: $cardNumber, field: .number, nextField: .holder, keyboardType: .numbersAndPunctuation)
+                        // Card Number (Use numberPad)
+                        buildTextField(title: "Card Number", placeholder: "0000 0000 0000 0000", text: $cardNumber, field: .number, nextField: .holder, keyboardType: .numberPad)
                             .onChange(of: cardNumber) { newValue in
                                 formatCardNumber(newValue)
                             }
@@ -1071,13 +1071,13 @@ struct AddEditCardView: View {
                         
                         HStack {
                              // Expiry
-                             buildTextField(title: "Expiry Date", placeholder: "MM/YY", text: $expiry, field: .expiry, nextField: .cvv, keyboardType: .numbersAndPunctuation)
+                             buildTextField(title: "Expiry Date", placeholder: "MM/YY", text: $expiry, field: .expiry, nextField: .cvv, keyboardType: .numberPad)
                                 .onChange(of: expiry) { newValue in
                                     formatExpiry(newValue)
                                 }
                             Spacer()
                              // CVV
-                             buildTextField(title: "CVV", placeholder: "123", text: $cvv, field: .cvv, nextField: nil, isSecure: true, keyboardType: .numbersAndPunctuation)
+                             buildTextField(title: "CVV", placeholder: "123", text: $cvv, field: .cvv, nextField: nil, isSecure: true, keyboardType: .numberPad)
                                 .onChange(of: cvv) { newValue in
                                     formatCVV(newValue)
                                 }

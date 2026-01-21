@@ -377,9 +377,17 @@ class AuthService: ObservableObject {
         errorMessage = nil
         
         // 1. Compress Image
-        guard let imageData = image.jpegData(compressionQuality: 0.5) else {
+        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
             isLoading = false
             completion(false, "Failed to compress image")
+            return
+        }
+        
+        // 1.5 Validate size after compression - max 2MB
+        let twoMB = 2 * 1024 * 1024
+        if imageData.count > twoMB {
+            isLoading = false
+            completion(false, "Image is too large (max 2MB).")
             return
         }
         
@@ -1789,6 +1797,20 @@ class DocumentsService: ObservableObject {
             return
         }
         
+        // 2. Validate file size - max 5MB
+        do {
+            let resourceValues = try fileURL.resourceValues(forKeys: [.fileSizeKey])
+            if let fileSize = resourceValues.fileSize {
+                let fiveMB = 5 * 1024 * 1024
+                if fileSize > fiveMB {
+                    completion(false, "File size exceeds 5MB limit.")
+                    return
+                }
+            }
+        } catch {
+            print("Error checking file size: \(error)")
+        }
+        
         let storage = Storage.storage()
         let fileRef = storage.reference().child("users/\(storageUserId)/documents/\(UUID().uuidString)_\(fileName)")
         
@@ -1920,6 +1942,13 @@ class DocumentsService: ObservableObject {
         
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             completion(false, "Failed to convert image to data")
+            return
+        }
+        
+        // Validate image size - max 2MB
+        let twoMB = 2 * 1024 * 1024
+        if imageData.count > twoMB {
+            completion(false, "Image size exceeds 2MB limit.")
             return
         }
         
