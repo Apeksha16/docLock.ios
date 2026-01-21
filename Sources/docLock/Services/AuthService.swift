@@ -30,6 +30,104 @@ class AuthService: ObservableObject {
         documentsService.appConfigService = appConfigService
     }
     
+    // MARK: - Session Restoration
+    func restoreSession() {
+        if let currentUser = Auth.auth().currentUser {
+            print("🔄 Found existing Firebase session for user: \(currentUser.uid)")
+            isLoading = true
+            
+            let db = Firestore.firestore()
+            db.collection("users").document(currentUser.uid).getDocument { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("🔴 Error fetching user profile: \(error.localizedDescription)")
+                    self.signOut()
+                    self.isLoading = false
+                    return
+                }
+                
+                guard let document = snapshot, document.exists, let data = document.data() else {
+                    print("🔴 User profile not found in Firestore")
+                    self.signOut()
+                    self.isLoading = false
+                    return
+                }
+                
+                // Manually reconstruct User object since it's a struct and we can't fully decode via JSON easily without a decoder wrapper
+                // OR better: use JSONSerialization to convert dict -> data -> JSONDecoder
+                // Manual mapping to avoid JSONSerialization crash with FIRTimestamp
+                let uid = document.documentID
+                let mobile = data["mobile"] as? String
+                let name = data["name"] as? String ?? "DocLock User"
+                let profileImageUrl = data["profileImageUrl"] as? String
+                let storageUsed = data["storageUsed"] as? Int64 ?? 0
+                
+                let addedAtTimestamp = data["addedAt"] as? Timestamp
+                let addedAt = addedAtTimestamp?.dateValue()
+                
+                let sharedCardsCount = data["sharedCardsCount"] as? Int
+                let sharedDocsCount = data["sharedDocsCount"] as? Int
+                
+                let user = User(
+                    uid: uid,
+                    mobile: mobile,
+                    name: name,
+                    profileImageUrl: profileImageUrl,
+                    storageUsed: storageUsed,
+                    addedAt: addedAt,
+                    sharedCardsCount: sharedCardsCount,
+                    sharedDocsCount: sharedDocsCount
+                )
+                
+                DispatchQueue.main.async {
+                    self.user = user
+                    print("✅ User profile restored: \(user.name)")
+                    
+                    // Fetch App Config
+                    self.appConfigService.fetchConfig { success in
+                        self.isLoading = false
+                        if success {
+                            self.isAuthenticated = true
+                            self.startDataSync(userId: user.id)
+                        } else {
+                            self.errorMessage = "Failed to load configuration"
+                        }
+                    }
+                }
+            }
+        } else {
+            print("ℹ️ No existing session found")
+            isLoading = false
+        }
+    }
+    
+    func signOut() {
+        // CRITICAL FIX: Stop all Firebase listeners before sign out
+        print("🛑 AuthService: Stopping all listeners before sign out")
+        
+        // Stop user profile listener
+        userListener?.remove()
+        userListener = nil
+        
+        // Stop all service listeners
+        friendsService.stopListening()
+        documentsService.stopListening()
+        cardsService.stopListening()
+        notificationService.stopListening()
+        
+        do {
+            try Auth.auth().signOut()
+            DispatchQueue.main.async {
+                self.user = nil
+                self.isAuthenticated = false
+                self.isLoading = false
+            }
+        } catch {
+            print("Error signing out: \(error)")
+        }
+    }
+    
     // Base URL from your Cloud Function
     private let baseURL = "https://api-to72oyfxda-uc.a.run.app/api/auth"
     
@@ -995,9 +1093,26 @@ class AuthService: ObservableObject {
     }
     
     func logout() {
+        // CRITICAL FIX: Stop all Firebase listeners before logout to prevent battery drain
+        print("🛑 AuthService: Stopping all listeners before logout")
+        
+        // Stop user profile listener
+        userListener?.remove()
+        userListener = nil
+        
+        // Stop all service listeners
+        friendsService.stopListening()
+        documentsService.stopListening()
+        cardsService.stopListening()
+        notificationService.stopListening()
+        
+        // Sign out from Firebase Auth
         try? Auth.auth().signOut()
-        self.user = nil
-        self.isAuthenticated = false
+        
+        DispatchQueue.main.async {
+            self.user = nil
+            self.isAuthenticated = false
+        }
     }
 }
 import Foundation

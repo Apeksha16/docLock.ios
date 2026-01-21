@@ -387,6 +387,7 @@ struct StatCard: View {
     let hasAppeared: Bool
     
     @State private var animatedCount: Int = 0
+    @State private var animationTimer: Timer? = nil
     
     var body: some View {
         VStack(spacing: 8) {
@@ -439,22 +440,31 @@ struct StatCard: View {
         .onChange(of: count) { newValue in
             animateCount()
         }
+        .onDisappear {
+            // CRITICAL FIX: Clean up timer when view disappears
+            animationTimer?.invalidate()
+            animationTimer = nil
+        }
     }
     
     private func animateCount() {
+        // CRITICAL FIX: Invalidate existing timer before creating new one
+        animationTimer?.invalidate()
+        
         let steps = min(abs(count - animatedCount), 20)
         guard steps > 0 else { return }
         
         let stepValue = count > animatedCount ? 1 : -1
         var currentStep = 0
         
-        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
             animatedCount += stepValue
             currentStep += 1
             
             if currentStep >= steps || animatedCount == count {
                 animatedCount = count
                 timer.invalidate()
+                animationTimer = nil
             }
         }
     }

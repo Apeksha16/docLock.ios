@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct TypewriterText: View {
     let text: String
@@ -7,6 +8,7 @@ struct TypewriterText: View {
     @State private var showCursor = true
     @State private var timer: Timer? = nil
     @State private var isDeleting = false
+    @State private var isVisible = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -20,12 +22,26 @@ struct TypewriterText: View {
         }
         .multilineTextAlignment(.center)
         .onAppear {
+            isVisible = true
             animateText()
-            startCursorBlink()
+        }
+        .onDisappear {
+            // CRITICAL: Clean up all timers to prevent memory leaks
+            isVisible = false
+            timer?.invalidate()
+            timer = nil
         }
         .onChange(of: text) { _ in
             isDeleting = false
             animateText()
+        }
+        .onReceive(Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()) { _ in
+            // Only blink cursor when view is visible
+            if isVisible {
+                withAnimation {
+                    showCursor.toggle()
+                }
+            }
         }
     }
 
@@ -68,14 +84,6 @@ struct TypewriterText: View {
                 isDeleting = false
                 // Notify completion
                 onComplete?()
-            }
-        }
-    }
-    
-    private func startCursorBlink() {
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            withAnimation {
-                showCursor.toggle()
             }
         }
     }

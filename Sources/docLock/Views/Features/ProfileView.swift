@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct ProfileView: View {
     @Binding var isAuthenticated: Bool
@@ -121,11 +122,11 @@ struct ProfileView: View {
                             }
                         }) {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 16)
+                                RoundedRectangle(cornerRadius: 20)
                                     .fill(Color.white)
                                     .frame(width: 56, height: 56)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
+                                        RoundedRectangle(cornerRadius: 20)
                                             .stroke(Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.3), lineWidth: 1)
                                     )
                                 
@@ -398,6 +399,17 @@ struct ProfileView: View {
                         Spacer().frame(height: 100)
                     }
                 }
+
+            }
+            
+            // Edit Name Sheet Overlay
+            if showEditNameSheet {
+                EditNameView(
+                    authService: authService,
+                    isPresented: $showEditNameSheet
+                )
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
+                .zIndex(100)
             }
         }
         .onAppear {
@@ -482,7 +494,7 @@ struct SettingRow: View {
         }
         .padding()
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(20)
         .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
     }
 }
@@ -523,7 +535,7 @@ struct AnimatedSettingRow: View {
         }
         .padding()
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(20)
         .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
         .opacity(hasAppeared ? 1 : 0)
         .offset(x: hasAppeared ? 0 : -30)
@@ -540,12 +552,11 @@ struct EditNameView: View {
     @Binding var isPresented: Bool
     @State private var newName: String = ""
     @State private var isSaving = false
-    @State private var sheetOffset: CGFloat = 800
     @FocusState private var isFocused: Bool
     
     var body: some View {
         ZStack {
-            // Dimmed background
+            // Dimmed background (Full Screen)
             Color.black.opacity(0.4)
                 .edgesIgnoringSafeArea(.all)
                 .onTapGesture {
@@ -554,25 +565,24 @@ struct EditNameView: View {
                     }
                 }
             
-            // Modal Content (Centered)
-            VStack(spacing: 20) {
-                // Drag Handle
-                Capsule()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 4)
-                    .padding(.top, 10)
-                
-                // Header Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.1))
-                        .frame(width: 60, height: 60)
-                    
-                    Image(systemName: "pencil.line")
-                        .font(.system(size: 28))
-                        .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
+            // Popup Content (Centered)
+            VStack(spacing: 0) {
+                // Header (Icon & Close Button Layout)
+                HStack {
+                    Spacer()
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.1))
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: "pencil.line")
+                            .font(.system(size: 28))
+                            .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
+                    }
+                    Spacer()
                 }
-                .padding(.top, 5)
+                .padding(.top, 25)
+                .padding(.bottom, 15)
                 
                 // Title & Subtitle
                 VStack(spacing: 8) {
@@ -586,39 +596,34 @@ struct EditNameView: View {
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal)
                 }
+                .padding(.bottom, 25)
                 
                 // Input Field
-                TextField("Enter your full name", text: $newName)
-                    .font(.headline)
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .padding()
-                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .focused($isFocused)
-                    .padding(.horizontal, 25)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        if !newName.isEmpty {
-                            // Trigger save
-                            isSaving = true
-                            authService.updateName(name: newName) { success, _ in
-                                isSaving = false
-                                if success {
-                                    withAnimation { isPresented = false }
-                                }
-                            }
+                VStack(alignment: .leading, spacing: 5) {
+                    TextField("Enter your full name", text: $newName)
+                        .font(.headline)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .padding()
+                        .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+                        .cornerRadius(15)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 15)
+                                .stroke(isFocused ? Color(red: 0.28, green: 0.65, blue: 0.66) : Color.gray.opacity(0.2), lineWidth: isFocused ? 2 : 1)
+                        )
+                        .focused($isFocused)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            isFocused = false
                         }
-                    }
+                }
+                .padding(.horizontal, 25)
+                .padding(.bottom, 20)
                 
                 // Action Buttons
-                VStack(spacing: 15) {
+                VStack(spacing: 12) {
                     Button(action: {
+                        isFocused = false
                         isSaving = true
                         authService.updateName(name: newName) { success, _ in
                             isSaving = false
@@ -634,7 +639,6 @@ struct EditNameView: View {
                                     .padding(.trailing, 5)
                             }
                             Text(isSaving ? "Saving..." : "Save Changes")
-                                .font(.headline)
                                 .fontWeight(.bold)
                         }
                         .foregroundColor(.white)
@@ -646,37 +650,34 @@ struct EditNameView: View {
                     .disabled(newName.isEmpty || isSaving)
                     
                     Button(action: {
-                        withAnimation { isPresented = false }
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                             isPresented = false 
+                        }
                     }) {
-                        Text("Wait, I changed my mind")
-                            .font(.headline)
+                        Text("Close")
                             .fontWeight(.medium)
                             .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                            .padding(.vertical, 5)
                     }
                 }
                 .padding(.horizontal, 25)
-                .padding(.bottom, 20)
+                .padding(.bottom, 25)
             }
-            .padding(.bottom, isFocused ? 0 : 20) // Adjust padding when keyboard is active if needed, but main layout logic handles it
             .background(Color.white)
-            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
-            .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
-            // Separate background layer to fill safe area
-            .background(
-                Color.white
-                    .edgesIgnoringSafeArea(.bottom)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-            )
-            .offset(y: sheetOffset)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .onAppear {
-                newName = authService.user?.name ?? ""
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    sheetOffset = 0
-                }
-            }
+            .cornerRadius(25)
+            .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
+            .padding(.horizontal, 40)
+            .padding(.bottom, 12) // controls gap above keyboard
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .zIndex(200)
+        .onAppear {
+            newName = authService.user?.name ?? ""
+            // Autofocus with slight delay for animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                isFocused = true
+            }
+        }
     }
 }
 

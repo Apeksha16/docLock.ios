@@ -71,8 +71,9 @@ struct DashboardView: View {
                     onPrimaryAction: {
                         withAnimation {
                             showLogoutModal = false
-                            isAuthenticated = false // Log out
                         }
+                        // CRITICAL FIX: Use proper logout method to stop all listeners
+                        authService.logout()
                     },
                     onCancel: { withAnimation { showLogoutModal = false } }
                 )
@@ -120,25 +121,10 @@ struct DashboardView: View {
                     .zIndex(200) // Ensure it's on top of TabBar
             }
             
-            // Add Friend Sheet (Above TabBar)
+            // Add Friend Popup (Above TabBar)
             if showAddFriend {
-                ZStack {
-                    // Dimmed background - animate opacity along with sheet
-                    Color.black.opacity(0.4)
-                        .edgesIgnoringSafeArea(.all)
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                showAddFriend = false
-                            }
-                        }
-                        .transition(.opacity)
-                    
-                    AddFriendView(isPresented: $showAddFriend, authService: authService, friendsService: authService.friendsService)
-                        .transition(.move(edge: .bottom))
-                        .frame(maxHeight: .infinity, alignment: .bottom)
-                        .padding(.top, 50)
-                }
-                .zIndex(201)
+                AddFriendView(isPresented: $showAddFriend, authService: authService, friendsService: authService.friendsService)
+                    .zIndex(201)
             }
             
             // Delete Friend Modal (Dashboard Level to cover TabBar)

@@ -114,9 +114,10 @@ struct AboutView: View {
                                     FeatureGridItem(icon: "bolt.fill", color: .orange, title: "Instant Access", description: "Find any document in seconds with smart search.")
                                     FeatureGridItem(icon: "cloud.fill", color: .blue, title: "Cloud Sync", description: "Access your files from any device, anywhere.")
                                 }
-                                .padding(.horizontal)
-                                .padding(.vertical, 20) // Added padding to prevent shadow clipping
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 40) // Increased padding to prevent shadow clipping
                             }
+                            .padding(.horizontal, -20)
                         }
                         
                         // Premium Features - Horizontal Scroll
@@ -148,9 +149,10 @@ struct AboutView: View {
                                         icon: "creditcard.fill"
                                     )
                                 }
-                                .padding(.horizontal)
+                                .padding(.horizontal, 24)
                                 .padding(.vertical, 40) // Increased padding to prevent edge cutting/shadow clipping
                             }
+                            .padding(.horizontal, -20)
                         }
                         
                         // Pro Tips
@@ -170,16 +172,26 @@ struct AboutView: View {
                         }
                         
                         // Footer
-                        VStack(spacing: 5) {
-                            Text("Designed by Apeksha Verma")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.gray)
+                        VStack(spacing: 8) {
+                            HStack(spacing: 4) {
+                                Text("Designed by")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                Text("Apeksha Verma")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Color(red: 1.0, green: 0.4, blue: 0.7)) // Pinkish
+                            }
                             
-                            Text("Developed & Architected by Pranav Katiyar")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.gray)
+                            HStack(spacing: 4) {
+                                Text("Developed & Architected by")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                Text("Pranav Katiyar")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.blue)
+                            }
                         }
                         .padding(.top, 20)
                         
