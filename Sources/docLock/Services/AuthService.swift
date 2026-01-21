@@ -25,6 +25,7 @@ class AuthService: ObservableObject {
     let documentsService = DocumentsService()
     let cardsService = CardsService()
     let appConfigService = AppConfigService()
+    let secureQRService = SecureQRService()
     
     init() {
         documentsService.appConfigService = appConfigService
@@ -2837,3 +2838,4 @@ class AppConfigService: ObservableObject {
         return currentDepth < maxFolderDepth
     }
 }
+

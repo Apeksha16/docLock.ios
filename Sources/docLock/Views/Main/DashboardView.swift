@@ -506,6 +506,7 @@ struct HomeView: View {
                             .fullScreenCover(isPresented: $showQRs) {
                                 SecureQRView(
                                     documentsService: documentsService,
+                                    secureQRService: authService.secureQRService,
                                     userId: authService.user?.id ?? authService.user?.mobile ?? "unknown"
                                 )
                             }
