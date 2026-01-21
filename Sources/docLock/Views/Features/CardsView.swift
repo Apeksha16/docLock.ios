@@ -1146,6 +1146,7 @@ struct AddEditCardView: View {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     withAnimation { scrollProxy.scrollTo("Top", anchor: .top) }
                 }
+                Spacer()
             }
         }
         } // End ScrollViewReader
