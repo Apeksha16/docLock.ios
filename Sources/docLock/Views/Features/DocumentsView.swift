@@ -539,9 +539,15 @@ struct DocumentsView: View {
             }
             
             // FAB Button (Center Bottom)
-            // Show FAB if we have items to display or are in a folder (even at max depth, we can still upload)
-            // Hide if any sheet or modal is open
-            if selectedFolderId != "SHARED_ROOT" && !showCreateFolderSheet && !showUploadDocumentSheet && !showUploadImageSheet && !showEditFolderSheet && !showEditDocumentSheet && !showingFriendSelection && !showDeleteDocumentConfirmation && !showDeleteConfirmation && !showDocumentPreview {
+            // Show FAB if:
+            // 1. Not at root level ("HOME")
+            // 2. Not in an empty folder
+            // 3. No sheets or modals are open
+            let isNotEmpty = hasFoldersToDisplay || !documentsService.currentFolderDocuments.isEmpty
+            let isNotRoot = selectedFolderId != nil
+            let noSheetsOpen = !showCreateFolderSheet && !showUploadDocumentSheet && !showUploadImageSheet && !showEditFolderSheet && !showEditDocumentSheet && !showingFriendSelection && !showDeleteDocumentConfirmation && !showDeleteConfirmation && !showDocumentPreview
+            
+            if isNotRoot && isNotEmpty && noSheetsOpen && selectedFolderId != "SHARED_ROOT" {
                 VStack {
                     Spacer()
                     HStack {
@@ -1057,44 +1063,31 @@ struct CreateFolderSheet: View {
     @State private var keyboardHeight: CGFloat = 0
     
     var body: some View {
-        ZStack {
-            // Dimmed Background
-            Color.black.opacity(0.4)
-                .edgesIgnoringSafeArea(.all)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
+        VStack {
+            Spacer()
             
-            // Sheet Content
-            VStack {
-                Spacer()
+            VStack(spacing: 0) {
+                dragHandle
                 
-                VStack(spacing: 0) {
-                    dragHandle
-                    
-                    VStack(spacing: 24) {
-                        headerIcon
-                        headerTexts
-                        inputField
-                        actionButtons
-                    }
-                    .padding(.bottom, 8)
+                VStack(spacing: 24) {
+                    headerIcon
+                    headerTexts
+                    inputField
+                    actionButtons
                 }
-                .padding(.bottom, 20)
-                .background(
-                    LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-                .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
-                 .overlay(
-                    RoundedCorner(radius: 20, corners: [.topLeft, .topRight])
-                        .stroke(Color.white.opacity(0.5), lineWidth: 1)
-                )
-                .offset(y: sheetOffset)
-                .padding(.bottom, keyboardHeight)
+                .padding(.bottom, 8)
             }
+            .padding(.bottom, 20)
+            .background(
+                LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
+             .overlay(
+                RoundedCorner(radius: 20, corners: [.topLeft, .topRight])
+                    .stroke(Color.white.opacity(0.5), lineWidth: 1)
+            )
+            .offset(y: sheetOffset)
+            .padding(.bottom, keyboardHeight)
         }
         .edgesIgnoringSafeArea(.all)
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { output in
@@ -2234,17 +2227,8 @@ struct EditDocumentSheet: View {
     }
     
     var body: some View {
-        ZStack {
-            // Background Tap
-            Color.clear
-                .contentShape(Rectangle())
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
+        VStack {
+            Spacer()
             
             // Sheet Content
             VStack(spacing: 0) {
@@ -2388,8 +2372,7 @@ struct EditDocumentSheet: View {
                  // no-op
             }
             .transition(.move(edge: .bottom))
-        } // ZStack
-        .zIndex(200)
+        }
         .edgesIgnoringSafeArea(.all)
     }
 }
