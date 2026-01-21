@@ -491,7 +491,7 @@ struct DocumentsView: View {
             }
             
             // FAB Overlay
-            if showFabMenu && !documentsService.folders.isEmpty {
+            if showFabMenu {
                 Color.white.opacity(0.8)
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
@@ -1526,7 +1526,23 @@ struct UploadDocumentSheet: View {
         errorMessage = nil
         
         // Get file name from URL
-        let fileName = url.lastPathComponent
+        let originalFileName = url.lastPathComponent
+        
+        // Truncate filename to 30 characters max (preserving extension)
+        let nameWithoutExt = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension
+        let maxNameLength = 30 - (ext.count + 1) // +1 for dot
+        
+        var fileName = originalFileName
+        if originalFileName.count > 30 {
+            if maxNameLength > 0 {
+                let truncatedName = String(nameWithoutExt.prefix(maxNameLength))
+                fileName = "\(truncatedName).\(ext)"
+            } else {
+                 // Fallback if extension is super long (unlikely)
+                 fileName = String(originalFileName.prefix(30))
+            }
+        }
         
         // Validate file type - only PDFs allowed
         let fileExtension = (fileName as NSString).pathExtension.lowercased()
@@ -2054,6 +2070,8 @@ struct DocumentListItem: View {
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 
                 HStack(spacing: 6) {
                     if document.isShared {
@@ -2318,9 +2336,9 @@ struct EditDocumentSheet: View {
                         var filtered = newValue.filter { char in
                             char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
                         }
-                        // Limit to 50 characters
-                        if filtered.count > 50 {
-                            filtered = String(filtered.prefix(50))
+                        // Limit to 30 characters
+                        if filtered.count > 30 {
+                            filtered = String(filtered.prefix(30))
                         }
                         if documentName != filtered {
                             documentName = filtered

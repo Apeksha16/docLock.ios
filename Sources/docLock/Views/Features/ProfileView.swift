@@ -592,6 +592,7 @@ struct EditNameView: View {
                 // Input Field
                 TextField("Enter your full name", text: $newName)
                     .font(.headline)
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     .padding()
                     .background(Color(red: 0.96, green: 0.96, blue: 0.98))
                     .cornerRadius(12)
@@ -605,6 +606,13 @@ struct EditNameView: View {
                     .onSubmit {
                         if !newName.isEmpty {
                             // Trigger save
+                            isSaving = true
+                            authService.updateName(name: newName) { success, _ in
+                                isSaving = false
+                                if success {
+                                    withAnimation { isPresented = false }
+                                }
+                            }
                         }
                     }
                 
@@ -649,12 +657,16 @@ struct EditNameView: View {
                 .padding(.horizontal, 25)
                 .padding(.bottom, 20)
             }
+            .padding(.bottom, isFocused ? 0 : 20) // Adjust padding when keyboard is active if needed, but main layout logic handles it
+            .background(Color.white)
+            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
+            .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
+            // Separate background layer to fill safe area
             .background(
                 Color.white
-                    .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
                     .edgesIgnoringSafeArea(.bottom)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
             )
-            .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
             .offset(y: sheetOffset)
             .frame(maxHeight: .infinity, alignment: .bottom)
             .onAppear {

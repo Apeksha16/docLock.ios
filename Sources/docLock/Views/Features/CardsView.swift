@@ -595,6 +595,7 @@ struct SectionHeader: View {
             Text(title)
                 .font(.headline)
                 .fontWeight(.bold)
+                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2)) // Explicitly set dark color
             Spacer()
             Text("\(count) cards")
                 .font(.caption)
@@ -935,6 +936,7 @@ struct AddEditCardView: View {
                     Spacer()
                     #if os(iOS)
                     if #available(iOS 16.0, *) {
+                        /*
                         Button(action: {
                             if DataScannerViewController.isSupported && DataScannerViewController.isAvailable {
                                 showingScanner = true
@@ -955,6 +957,7 @@ struct AddEditCardView: View {
                             }
                             .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                         }
+                        */
                     } else {
                         Color.clear.frame(width: 56, height: 56)
                     }
@@ -1130,40 +1133,26 @@ struct AddEditCardView: View {
                     }
                 }
             }
-        .sheet(isPresented: $showingScanner) {
-            #if os(iOS)
-            if #available(iOS 16.0, *) {
-                CardScannerView(isPresented: $showingScanner) { number, expiry, name in
-                    self.cardNumber = number
-                    if let exp = expiry {
-                        self.expiry = exp
+            .background(
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }
-                    // Name extraction available but not used currently
-                    _ = name
+            )
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        withAnimation { scrollProxy.scrollTo("Top", anchor: .top) }
+                    }
+                    Spacer()
                 }
             }
-            #endif
         }
-        .background(
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }
-        )
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    withAnimation { scrollProxy.scrollTo("Top", anchor: .top) }
-                }
-                Spacer()
-            }
-        }
-    } // End ScrollViewReader
     } // End ZStack
-    } // End body
+} // End body
     
     func saveCard() {
         isLoading = true
@@ -1304,41 +1293,49 @@ struct AddEditCardView: View {
                 .font(.headline)
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
             
-            if isSecure {
-                SecureField(placeholder, text: text)
-                    .focused($focusedField, equals: field)
-                    .submitLabel(nextField == nil ? .done : .next)
-                    .onSubmit {
-                        if let next = nextField {
-                            focusedField = next
-                        } else {
-                            focusedField = nil
+            ZStack(alignment: .leading) {
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .foregroundColor(Color(red: 0.8, green: 0.8, blue: 0.8)) // Explicit placeholder color
+                        .padding(.horizontal)
+                        .padding(.vertical, 12) // Approximate padding to match TextField
+                }
+                
+                if isSecure {
+                    SecureField("", text: text) // Empty string for native placeholder
+                        .focused($focusedField, equals: field)
+                        .submitLabel(nextField == nil ? .done : .next)
+                        .onSubmit {
+                            if let next = nextField {
+                                focusedField = next
+                            } else {
+                                focusedField = nil
+                            }
                         }
-                    }
-                    .keyboardType(keyboardType)
-                    .padding()
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-            } else {
-                TextField(placeholder, text: text)
-                    .focused($focusedField, equals: field)
-                    .submitLabel(nextField == nil ? .done : .next)
-                    .onSubmit {
-                        if let next = nextField {
-                            focusedField = next
-                        } else {
-                            focusedField = nil
+                        .keyboardType(keyboardType)
+                        .padding()
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .background(Color.clear) // Clear background for field, background is on ZStack/Container if needed, or we keep it here but standard z-ordering
+                } else {
+                    TextField("", text: text) // Empty string for native placeholder
+                        .focused($focusedField, equals: field)
+                        .submitLabel(nextField == nil ? .done : .next)
+                        .onSubmit {
+                            if let next = nextField {
+                                focusedField = next
+                            } else {
+                                focusedField = nil
+                            }
                         }
-                    }
-                    .keyboardType(keyboardType)
-                    .padding()
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                        .keyboardType(keyboardType)
+                        .padding()
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .background(Color.clear)
+                }
             }
+            .background(Color.white)
+            .cornerRadius(10)
+            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         }
     }
 }
@@ -1356,23 +1353,31 @@ struct CustomFormTextField: View {
                 .font(.headline)
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
             
-            if isSecure {
-                SecureField(placeholder, text: $text)
-                    .applyKeyboardType(keyboardType)
-                    .padding()
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-            } else {
-                TextField(placeholder, text: $text)
-                    .applyKeyboardType(keyboardType)
-                    .padding()
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+            ZStack(alignment: .leading) {
+                if text.isEmpty {
+                    Text(placeholder)
+                        .foregroundColor(Color(red: 0.8, green: 0.8, blue: 0.8)) // Explicit placeholder color
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
+                }
+                
+                if isSecure {
+                    SecureField("", text: $text)
+                        .applyKeyboardType(keyboardType)
+                        .padding()
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .background(Color.clear)
+                } else {
+                    TextField("", text: $text)
+                        .applyKeyboardType(keyboardType)
+                        .padding()
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .background(Color.clear)
+                }
             }
+            .background(Color.white)
+            .cornerRadius(10)
+            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         }
     }
 }

@@ -5,20 +5,49 @@ struct AboutView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.98, green: 0.98, blue: 0.98) // White background
+            // Background Layer
+            Color(red: 0.98, green: 0.98, blue: 0.98) // Base Color
                 .edgesIgnoringSafeArea(.all)
+            
+            // Decorative Pops (Profile Theme - Blue/Cyan)
+            GeometryReader { proxy in
+                Circle()
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 150, height: 150)
+                    .position(x: 50, y: 100)
+                    .blur(radius: 20)
+                
+                Circle()
+                    .fill(Color.cyan.opacity(0.1))
+                    .frame(width: 200, height: 200)
+                    .position(x: proxy.size.width - 20, y: 50)
+                    .blur(radius: 30)
+                    
+                Circle()
+                    .fill(Color.blue.opacity(0.05))
+                    .frame(width: 120, height: 120)
+                    .position(x: proxy.size.width * 0.8, y: proxy.size.height * 0.6)
+                    .blur(radius: 40)
+            }
+            .edgesIgnoringSafeArea(.all)
             
             VStack {
                 // Header
                 HStack {
                     Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 20))
-                            .foregroundColor(.black)
-                            .padding(10)
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white)
+                                .frame(width: 56, height: 56)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                                )
+                            
+                            Image(systemName: "arrow.left")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.black)
+                        }
                     }
                     
                     Spacer()
@@ -26,11 +55,12 @@ struct AboutView: View {
                     Text("About")
                         .font(.headline)
                         .fontWeight(.bold)
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     
                     Spacer()
                     
-                    // Empty view to balance layout
-                    Color.clear.frame(width: 44, height: 44)
+                    // Empty view to balance layout (width of button)
+                    Color.clear.frame(width: 56, height: 56)
                 }
                 .padding()
                 
@@ -85,6 +115,7 @@ struct AboutView: View {
                                     FeatureGridItem(icon: "cloud.fill", color: .blue, title: "Cloud Sync", description: "Access your files from any device, anywhere.")
                                 }
                                 .padding(.horizontal)
+                                .padding(.vertical, 20) // Added padding to prevent shadow clipping
                             }
                         }
                         
@@ -118,7 +149,7 @@ struct AboutView: View {
                                     )
                                 }
                                 .padding(.horizontal)
-                                .padding(.vertical, 30) // Add ample vertical padding for shadows and size
+                                .padding(.vertical, 40) // Increased padding to prevent edge cutting/shadow clipping
                             }
                         }
                         
