@@ -647,14 +647,13 @@ struct EditNameView: View {
                     }
                 }
                 .padding(.horizontal, 25)
-                .padding(.horizontal, 25)
-                .padding(.bottom, 20) // Reduced padding to match previous design
+                .padding(.bottom, 20)
             }
             .background(
                 Color.white
-                    .edgesIgnoringSafeArea(.bottom) // Extend background to bottom
+                    .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
+                    .edgesIgnoringSafeArea(.bottom)
             )
-            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
             .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
             .offset(y: sheetOffset)
             .frame(maxHeight: .infinity, alignment: .bottom)
