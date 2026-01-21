@@ -671,6 +671,7 @@ struct EditNameView: View {
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     @Binding var isPresented: Bool
+    var allowsEditing: Bool = true // Default to true for backward compatibility
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -680,7 +681,7 @@ struct ImagePicker: UIViewControllerRepresentable {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         picker.sourceType = .photoLibrary
-        picker.allowsEditing = true // Allow cropping to square
+        picker.allowsEditing = allowsEditing // Use the property
         // Only allow image types (JPG, JPEG, PNG, and all iOS supported image types)
         picker.mediaTypes = ["public.image"]
         return picker

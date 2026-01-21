@@ -450,8 +450,8 @@ struct DocumentsView: View {
                     .scrollIndicators(.hidden)
                 }
             }
-            .blur(radius: (showFabMenu || showCreateFolderSheet || showUploadDocumentSheet || showUploadImageSheet) ? 2 : 0) // Blur background when modal is open
-            .allowsHitTesting(!(showUploadDocumentSheet || showUploadImageSheet || showCreateFolderSheet)) // Block interactions when sheets are open
+            .blur(radius: (showFabMenu || showCreateFolderSheet || showUploadDocumentSheet || showUploadImageSheet || showEditFolderSheet || showEditDocumentSheet) ? 2 : 0) // Blur background when modal is open
+            .allowsHitTesting(!(showUploadDocumentSheet || showUploadImageSheet || showCreateFolderSheet || showEditFolderSheet || showEditDocumentSheet)) // Block interactions when sheets are open
             
             // Create Folder Sheet
             if showCreateFolderSheet {
@@ -491,7 +491,7 @@ struct DocumentsView: View {
             }
             
             // FAB Overlay
-            if showFabMenu && !documentsService.folders.isEmpty {
+            if showFabMenu {
                 Color.white.opacity(0.8)
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
@@ -540,7 +540,7 @@ struct DocumentsView: View {
             
             // FAB Button (Center Bottom)
             // Show FAB if we have items to display or are in a folder (even at max depth, we can still upload)
-            if (!documentsService.folders.isEmpty || !documentsService.currentFolderDocuments.isEmpty || selectedFolderId != nil) && selectedFolderId != "SHARED_ROOT" {
+            if selectedFolderId != "SHARED_ROOT" {
                 VStack {
                     Spacer()
                     HStack {
@@ -1046,217 +1046,204 @@ struct CreateFolderSheet: View {
     @Binding var isPresented: Bool
     @Binding var toastMessage: String?
     @Binding var toastType: ToastType
-    var folderToEdit: DocFolder? = nil // Optional folder to edit
+    var folderToEdit: DocFolder? = nil
     
     @State private var folderName: String = ""
     @State private var sheetOffset: CGFloat = 800
     @State private var iconScale: CGFloat = 0.5
     @State private var iconRotation: Double = -180
     @FocusState private var isFocused: Bool
+    @State private var keyboardHeight: CGFloat = 0
     
     var body: some View {
         ZStack {
-            // Dimmed background
+            // Dimmed Background
             Color.black.opacity(0.4)
                 .edgesIgnoringSafeArea(.all)
+                .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         isPresented = false
                     }
                 }
             
-            // Modal Content (Centered)
-            ScrollViewReader { proxy in
-            ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
-                 // Focus ID
-                 Color.clear.frame(height: 1).id("Top")
-                 
-                // Drag Handle
-                Capsule()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 4)
-                    .padding(.top, 10)
-                    .padding(.bottom, 15)
+            // Sheet Content
+            VStack {
+                Spacer()
                 
-                VStack(spacing: 20) {
-                    // Premium Animated Header Icon
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.blue.opacity(0.15),
-                                        Color.blue.opacity(0.08)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 60, height: 60)
-                        
-                        Image(systemName: folderToEdit != nil ? "pencil" : "folder.badge.plus")
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(.blue)
-                    }
-                    .scaleEffect(iconScale)
-                    .rotationEffect(.degrees(iconRotation))
+                VStack(spacing: 0) {
+                    dragHandle
                     
-                    // Title & Subtitle
-                    VStack(spacing: 8) {
-                        Text(folderToEdit != nil ? "Edit Folder" : "New Folder")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                        
-                        Text(folderToEdit != nil ? "Update your folder name." : "Organize your documents with ease.\nGive your new folder a name.")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal)
+                    VStack(spacing: 24) {
+                        headerIcon
+                        headerTexts
+                        inputField
+                        actionButtons
                     }
-                    
-                    // Input Field
-                    TextField("Folder Name", text: $folderName)
-                        .font(.headline)
-                        .padding()
-                        .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                        .focused($isFocused)
-                        .padding(.horizontal, 25)
-                        .submitLabel(.done)
-                        .onChange(of: folderName) { newValue in
-                            // Only allow alphanumeric, space, hyphen, and underscore
-                            var filtered = newValue.filter { char in
-                                char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
-                            }
-                            // Limit to 30 characters
-                            if filtered.count > 30 {
-                                filtered = String(filtered.prefix(30))
-                            }
-                            if folderName != filtered {
-                                folderName = filtered
-                            }
-                        }
-                    
-                    // Action Buttons
-                    VStack(spacing: 15) {
-                        Button(action: {
-                            if let folder = folderToEdit {
-                                // Update existing folder
-                                documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName) { success, error in
-                                    DispatchQueue.main.async {
-                                        if success {
-                                            toastMessage = "Folder renamed to '\(folderName)'"
-                                            toastType = .success
-                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                                isPresented = false
-                                            }
-                                        } else {
-                                            toastMessage = error ?? "Failed to update folder"
-                                            toastType = .error
-                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                                isPresented = false
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                // Create folder in background (no loader)
-                                let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
-                                documentsService.createFolder(userId: userId, folderName: folderName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
-                                    DispatchQueue.main.async {
-                                        if success {
-                                            toastMessage = "Folder '\(folderName)' created successfully"
-                                            toastType = .success
-                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                                isPresented = false
-                                            }
-                                        } else {
-                                            toastMessage = error ?? "Failed to create folder"
-                                            toastType = .error
-                                            print("Error creating folder: \(error ?? "Unknown error")")
-                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                                isPresented = false
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }) {
-                            Text(folderToEdit != nil ? "Update Folder" : "Create Folder")
-                                .font(.headline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name) ? Color.gray.opacity(0.5) : Color.blue)
-                                .cornerRadius(15)
-                        }
-                        .disabled(folderName.isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name))
-                        
-                        Button(action: {
-                            withAnimation { isPresented = false }
-                        }) {
-                            Text("Cancel")
-                                .font(.headline)
-                                .fontWeight(.medium)
-                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                        }
-                    }
-                    .padding(.horizontal, 25)
-                    .padding(.bottom, isFocused ? 320 : 20)
+                    .padding(.bottom, 8)
                 }
-            } // End ScrollView
-            .onChange(of: isFocused) { focused in
-                if !focused {
-                    withAnimation {
-                        proxy.scrollTo("Top", anchor: .top)
-                    }
-                }
-            }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        isFocused = false
-                    }
-                }
-            }
-            } // End ScrollViewReader
-            .background(
-                Color.white
-                    .edgesIgnoringSafeArea(.bottom)
-            )
-            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
-            .offset(y: sheetOffset)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .transition(.move(edge: .bottom))
-            .onAppear {
-                if let folder = folderToEdit {
-                    folderName = folder.name
-                }
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    sheetOffset = 0
-                }
-                withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
-                    iconScale = 1.0
-                    iconRotation = 0
-                }
-                // Auto focus
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    isFocused = true
-                }
+                .padding(.bottom, 20)
+                .background(
+                    LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
+                 .overlay(
+                    RoundedCorner(radius: 20, corners: [.topLeft, .topRight])
+                        .stroke(Color.white.opacity(0.5), lineWidth: 1)
+                )
+                .offset(y: sheetOffset)
+                .padding(.bottom, keyboardHeight)
             }
         }
-        }
-        .zIndex(200) // Ensure it appears on top
         .edgesIgnoringSafeArea(.all)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { output in
+            if let keyboardFrame = output.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+               withAnimation(.easeOut(duration: 0.25)) {
+                   self.keyboardHeight = keyboardFrame.height
+               }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.25)) {
+                self.keyboardHeight = 0
+            }
+        }
+        .onAppear {
+            if let folder = folderToEdit { folderName = folder.name }
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) { sheetOffset = 0 }
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
+                iconScale = 1.0
+                iconRotation = 0
+            }
+            DispatchQueue.main.async { isFocused = true }
+        }
+    }
+}
+
+// MARK: - Subviews
+private extension CreateFolderSheet {
+    var dragHandle: some View {
+        Capsule()
+            .fill(Color.gray.opacity(0.3))
+            .frame(width: 50, height: 5)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+    }
+    
+    var headerIcon: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 35)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 90, height: 90)
+            
+            Image(systemName: folderToEdit != nil ? "pencil" : "folder.fill")
+                .font(.system(size: 38, weight: .semibold))
+                .foregroundColor(.white)
+        }
+        .scaleEffect(iconScale)
+        .rotationEffect(.degrees(iconRotation))
+        .padding(.top, 8)
+    }
+    
+    var headerTexts: some View {
+        VStack(spacing: 8) {
+            Text(folderToEdit != nil ? "Edit Folder" : "New Folder")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+            
+            Text(folderToEdit != nil ? "Update your folder name." : "Create a new folder to organize\nyour documents.")
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal)
+        }
+    }
+    
+    var inputField: some View {
+        TextField("Folder Name", text: $folderName)
+            .font(.headline)
+            .foregroundColor(.black)
+            .padding()
+            .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+            .focused($isFocused)
+            .padding(.horizontal, 24)
+            .submitLabel(.done)
+            .onChange(of: folderName) { newValue in
+                var filtered = newValue.filter { char in
+                    char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                }
+                if filtered.count > 50 { filtered = String(filtered.prefix(50)) }
+                if folderName != filtered { folderName = filtered }
+            }
+    }
+    
+    var actionButtons: some View {
+        VStack(spacing: 16) {
+            Button(action: handleSave) {
+                ZStack {
+                    Text(folderToEdit != nil ? "Update Folder" : "Create Folder")
+                        .fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]), startPoint: .leading, endPoint: .trailing))
+                .foregroundColor(.white)
+                .cornerRadius(15)
+            }
+            .padding(.horizontal, 24)
+            .disabled(folderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name))
+            .opacity((folderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name)) ? 0.6 : 1.0)
+            
+            Button(action: {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    isPresented = false
+                }
+            }) {
+                Text("Cancel")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+            }
+        }
+    }
+    
+    func handleSave() {
+        if let folder = folderToEdit {
+            documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName.trimmingCharacters(in: .whitespacesAndNewlines)) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        toastMessage = "Folder renamed to '\(folderName)'"
+                        toastType = .success
+                        isPresented = false
+                    } else {
+                        toastMessage = error ?? "Failed to update folder"
+                        toastType = .error
+                    }
+                }
+            }
+        } else {
+            let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
+            documentsService.createFolder(userId: userId, folderName: folderName.trimmingCharacters(in: .whitespacesAndNewlines), parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        toastMessage = "Folder '\(folderName)' created"
+                        toastType = .success
+                        isPresented = false
+                    } else {
+                        toastMessage = error ?? "Failed to create folder"
+                        toastType = .error
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1829,7 +1816,7 @@ struct UploadImageSheet: View {
         .zIndex(200)
         .edgesIgnoringSafeArea(.all)
         .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage, isPresented: $showImagePicker)
+            ImagePicker(image: $selectedImage, isPresented: $showImagePicker, allowsEditing: false)
         }
         .onChange(of: selectedImage) { newImage in
             if let image = newImage {
@@ -2229,7 +2216,6 @@ struct EditDocumentSheet: View {
     @State private var iconRotation: Double = -180
     @FocusState private var isFocused: Bool
     
-    // Determine if this is an image file
     private var isImageFile: Bool {
         let typeLower = document.type.lowercased()
         let nameLower = document.name.lowercased()
@@ -2248,185 +2234,160 @@ struct EditDocumentSheet: View {
     
     var body: some View {
         ZStack {
-            // No dimmed background - keep background visible
+            // Background Tap
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        isPresented = false
+                    }
+                }
             
-            // Modal Content
-            ScrollViewReader { scrollProxy in // START ScrollViewReader
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        // ID for scrolling
-                        Color.clear.frame(height: 1).id("Top")
+            // Sheet Content
+            VStack(spacing: 0) {
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 4)
-                    .padding(.top, 10)
+                    .frame(width: 50, height: 5)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
                 
-                // Premium Animated Header Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    document.type == "image" ? Color.cyan.opacity(0.15) : Color.blue.opacity(0.15),
-                                    document.type == "image" ? Color.cyan.opacity(0.08) : Color.blue.opacity(0.08)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-                    
-                    Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(document.type == "image" ? .cyan : .blue)
-                }
-                .scaleEffect(iconScale)
-                .rotationEffect(.degrees(iconRotation))
-                .padding(.top, 5)
-                
-                // Title & Subtitle
-                VStack(spacing: 8) {
-                    Text("Edit Name")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    
-                    Text("Update your \(fileTypeText) name.")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal)
-                }
-                
-                // Input Field
-                TextField("\(isImageFile ? "Image" : "File") Name", text: $documentName)
-                    .font(.headline)
-                    .padding()
-                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .focused($isFocused)
-                    .padding(.horizontal, 25)
-                    .submitLabel(.done)
-                    .onChange(of: documentName) { newValue in
-                        // Only allow alphanumeric, space, hyphen, and underscore
-                        var filtered = newValue.filter { char in
-                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
-                        }
-                        // Limit to 50 characters
-                        if filtered.count > 50 {
-                            filtered = String(filtered.prefix(50))
-                        }
-                        if documentName != filtered {
-                            documentName = filtered
-                        }
+                // Content Container
+                VStack(spacing: 24) {
+                    // Icon
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 35)
+                            .fill(LinearGradient(gradient: Gradient(colors: [
+                                document.type == "image" ? Color.cyan.opacity(0.15) : Color.blue.opacity(0.15),
+                                document.type == "image" ? Color.cyan.opacity(0.08) : Color.blue.opacity(0.08)
+                            ]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 90, height: 90)
+                        
+                        Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
+                            .font(.system(size: 38, weight: .semibold))
+                            .foregroundColor(document.type == "image" ? .cyan : .blue)
                     }
-                
-                // Action Buttons
-                VStack(spacing: 15) {
-                    Button(action: {
-                        print("🔄 EditDocumentSheet: Updating document \(document.id) name from '\(document.name)' to '\(documentName)'")
-                        documentsService.updateDocumentName(userId: userId, documentId: document.id, newName: documentName.trimmingCharacters(in: .whitespacesAndNewlines)) { success, error in
-                            DispatchQueue.main.async {
-                                if success {
-                                    print("✅ EditDocumentSheet: Update successful")
-                                    toastMessage = "\(document.type == "image" ? "Image" : "Document") renamed to '\(documentName)'"
-                                    toastType = .success
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        isPresented = false
-                                    }
-                                } else {
-                                    print("❌ EditDocumentSheet: Update failed - \(error ?? "Unknown error")")
-                                    toastMessage = error ?? "Failed to update \(document.type == "image" ? "image" : "document") name"
-                                    toastType = .error
-                                }
+                    .scaleEffect(iconScale)
+                    .rotationEffect(.degrees(iconRotation))
+                    .padding(.top, 8)
+                    
+                    // Texts
+                    VStack(spacing: 8) {
+                        Text("Edit Name")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        
+                        Text("Update your \(fileTypeText) name.")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal)
+                    }
+                    
+                    // Input
+                    TextField("\(isImageFile ? "Image" : "File") Name", text: $documentName)
+                        .font(.headline)
+                        .foregroundColor(.black)
+                        .padding()
+                        .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+                        .focused($isFocused)
+                        .padding(.horizontal, 24)
+                        .submitLabel(.done)
+                        .onChange(of: documentName) { newValue in
+                            var filtered = newValue.filter { char in
+                                char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                            }
+                            if filtered.count > 50 {
+                                filtered = String(filtered.prefix(50))
+                            }
+                            if documentName != filtered {
+                                documentName = filtered
                             }
                         }
-                    }) {
-                        Text("Save Changes")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || documentName.trimmingCharacters(in: .whitespacesAndNewlines) == document.name ? Color.gray.opacity(0.5) : (document.type == "image" ? Color.cyan : Color.blue))
-                            .cornerRadius(15)
-                    }
-                    .disabled(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || documentName.trimmingCharacters(in: .whitespacesAndNewlines) == document.name)
                     
-                    Button(action: {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            isPresented = false
+                    // Buttons
+                    VStack(spacing: 16) {
+                        Button(action: {
+                            documentsService.updateDocumentName(userId: userId, documentId: document.id, newName: documentName.trimmingCharacters(in: .whitespacesAndNewlines)) { success, error in
+                                DispatchQueue.main.async {
+                                    if success {
+                                        toastMessage = "\(document.type == "image" ? "Image" : "Document") renamed"
+                                        toastType = .success
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { isPresented = false }
+                                    } else {
+                                        toastMessage = error ?? "Error"
+                                        toastType = .error
+                                    }
+                                }
+                            }
+                        }) {
+                            HStack(spacing: 16) {
+                                ZStack {
+                                    Circle()
+                                        .fill((document.type == "image" ? Color.cyan : Color.blue).opacity(0.15))
+                                        .frame(width: 56, height: 56)
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 26, weight: .semibold))
+                                        .foregroundColor(document.type == "image" ? .cyan : .blue)
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Save Changes")
+                                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                                    Text("Update file name")
+                                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                                        .foregroundColor(.gray.opacity(0.8))
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.gray.opacity(0.4))
+                            }
+                            .padding(18)
+                            .background(ZStack {
+                                RoundedRectangle(cornerRadius: 20).fill(LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                                RoundedRectangle(cornerRadius: 20).stroke(LinearGradient(gradient: Gradient(colors: [(document.type == "image" ? Color.cyan : Color.blue).opacity(0.3), (document.type == "image" ? Color.cyan : Color.blue).opacity(0.15)]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
+                            })
                         }
-                    }) {
-                        Text("Cancel")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    }
-                }
-                .padding(.horizontal, 25)
-                .padding(.bottom, 10)
-            }
-            .padding(.bottom, isFocused ? 320 : 30)
-        } // End ScrollView
-            .onChange(of: isFocused) { focused in
-                if !focused {
-                    withAnimation {
-                        scrollProxy.scrollTo("Top", anchor: .top)
-                    }
-                }
-            }
-        } // End ScrollViewReader
-            .background(
-                Color.white.edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        isFocused = false
-                    }
-            )
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        isFocused = false
-                    }
-                }
-            }
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(Color.white)
-                }
-            )
-            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
+                        .padding(.horizontal, 24)
+                        .disabled(documentName.isEmpty)
+                        .opacity(documentName.isEmpty ? 0.6 : 1.0)
+                        
+                        Button(action: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { isPresented = false }
+                        }) {
+                            Text("Cancel")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        }
+                    } // Buttons
+                } // Content VStack
+                .padding(.bottom, 8)
+            } // Outer VStack
+            .padding(.bottom, 20)
+            .background(LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing).edgesIgnoringSafeArea(.bottom))
+            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
             .frame(maxHeight: .infinity, alignment: .bottom)
-            .edgesIgnoringSafeArea(.bottom)
             .onAppear {
                 documentName = document.name
-                print("📝 EditDocumentSheet: Opened for document \(document.id) with name '\(document.name)'")
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    sheetOffset = 0
-                }
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) { sheetOffset = 0 }
                 withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
                     iconScale = 1.0
                     iconRotation = 0
                 }
-                // Auto focus
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    isFocused = true
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { isFocused = true }
             }
             .onChange(of: documentName) { newValue in
-                print("📝 EditDocumentSheet: documentName changed to '\(newValue)'")
+                 // no-op
             }
             .transition(.move(edge: .bottom))
-        }
+        } // ZStack
         .zIndex(200)
         .edgesIgnoringSafeArea(.all)
     }

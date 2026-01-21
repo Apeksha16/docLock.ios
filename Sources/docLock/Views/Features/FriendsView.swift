@@ -905,6 +905,7 @@ struct RequestActionSheet: View {
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .offset(y: sheetOffset)
             .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
+            .onAppear {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     sheetOffset = 0
                 }

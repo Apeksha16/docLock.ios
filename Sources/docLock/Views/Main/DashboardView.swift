@@ -409,7 +409,7 @@ struct HomeView: View {
                                             .font(.system(size: 32, weight: .bold, design: .rounded))
                                             .foregroundColor(.orange)
                                         
-                                        Text("/ --") // Placeholder limit
+                                        Text("/ 5") // Fixed Limit
                                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                                             .foregroundColor(.gray.opacity(0.8))
                                             .padding(.bottom, 2)
@@ -424,7 +424,7 @@ struct HomeView: View {
                                         .foregroundColor(.gray)
                                         .tracking(1.5)
                                     
-                                    Text("0%") // Placeholder until feature implemented
+                                    Text("0%") // Usage based on 0/5
                                         .font(.system(size: 32, weight: .bold, design: .rounded))
                                         .foregroundColor(.orange)
                                 }

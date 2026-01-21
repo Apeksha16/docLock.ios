@@ -595,6 +595,7 @@ struct SectionHeader: View {
             Text(title)
                 .font(.headline)
                 .fontWeight(.bold)
+                .foregroundColor(.black)
             Spacer()
             Text("\(count) cards")
                 .font(.caption)
@@ -1105,7 +1106,7 @@ struct AddEditCardView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(.vertical, 16)
                     .background(
                         LinearGradient(
                             gradient: Gradient(colors: CardModel.getColors(for: cardType, index: selectedColorIndex)),
@@ -1115,6 +1116,7 @@ struct AddEditCardView: View {
                     )
                     .foregroundColor(.white)
                     .cornerRadius(15)
+                    .padding(.horizontal)
                 }
                 .disabled(cardName.isEmpty || cardNumber.isEmpty || cardHolder.isEmpty || expiry.isEmpty || cvv.isEmpty || isLoading)
                 .opacity((cardName.isEmpty || cardNumber.isEmpty || cardHolder.isEmpty || expiry.isEmpty || cvv.isEmpty || isLoading) ? 0.6 : 1)
@@ -1302,42 +1304,58 @@ struct AddEditCardView: View {
         VStack(alignment: .leading) {
             Text(title)
                 .font(.headline)
-                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                .foregroundColor(.black)
             
             if isSecure {
-                SecureField(placeholder, text: text)
-                    .focused($focusedField, equals: field)
-                    .submitLabel(nextField == nil ? .done : .next)
-                    .onSubmit {
-                        if let next = nextField {
-                            focusedField = next
-                        } else {
-                            focusedField = nil
-                        }
+                ZStack(alignment: .leading) {
+                    if text.wrappedValue.isEmpty {
+                        Text(placeholder)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal)
+                            .padding(.vertical, 12)
                     }
-                    .keyboardType(keyboardType)
-                    .padding()
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                    SecureField("", text: text)
+                        .focused($focusedField, equals: field)
+                        .submitLabel(nextField == nil ? .done : .next)
+                        .onSubmit {
+                            if let next = nextField {
+                                focusedField = next
+                            } else {
+                                focusedField = nil
+                            }
+                        }
+                        .keyboardType(keyboardType)
+                        .padding()
+                        .foregroundColor(.black)
+                        .background(Color.white)
+                        .cornerRadius(10)
+                        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                }
             } else {
-                TextField(placeholder, text: text)
-                    .focused($focusedField, equals: field)
-                    .submitLabel(nextField == nil ? .done : .next)
-                    .onSubmit {
-                        if let next = nextField {
-                            focusedField = next
-                        } else {
-                            focusedField = nil
-                        }
+                ZStack(alignment: .leading) {
+                    if text.wrappedValue.isEmpty {
+                        Text(placeholder)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal)
+                            .padding(.vertical, 12)
                     }
-                    .keyboardType(keyboardType)
-                    .padding()
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                    TextField("", text: text)
+                        .focused($focusedField, equals: field)
+                        .submitLabel(nextField == nil ? .done : .next)
+                        .onSubmit {
+                            if let next = nextField {
+                                focusedField = next
+                            } else {
+                                focusedField = nil
+                            }
+                        }
+                        .keyboardType(keyboardType)
+                        .padding()
+                        .foregroundColor(.black)
+                        .background(Color.white)
+                        .cornerRadius(10)
+                        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                }
             }
         }
     }
