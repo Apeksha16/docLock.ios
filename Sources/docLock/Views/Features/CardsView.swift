@@ -58,6 +58,7 @@ struct CardsView: View {
     @ObservedObject var friendsService: FriendsService
     @ObservedObject var notificationService: NotificationService
     let userId: String
+    let userName: String?
     
     @State private var showingAddCard = false
     @State private var selectedCardToEdit: CardModel?
@@ -557,7 +558,7 @@ struct CardsView: View {
         }
         .sheet(isPresented: $showingAddCard) {
 
-            AddEditCardView(isPresented: $showingAddCard, cardType: selectedNewCardType, card: nil as CardModel?, userId: userId, cardsService: cardsService, notificationService: notificationService) { message in
+            AddEditCardView(isPresented: $showingAddCard, cardType: selectedNewCardType, card: nil as CardModel?, userId: userId, userName: userName, cardsService: cardsService, notificationService: notificationService) { message in
                 toastMessage = message
                 toastType = .success
             }
@@ -566,7 +567,7 @@ struct CardsView: View {
             AddEditCardView(isPresented: Binding(
                 get: { selectedCardToEdit != nil },
                 set: { if !$0 { selectedCardToEdit = nil } }
-            ), card: card, userId: userId, cardsService: cardsService, notificationService: notificationService) { message in
+            ), card: card, userId: userId, userName: userName, cardsService: cardsService, notificationService: notificationService) { message in
                 toastMessage = message
                 toastType = .success
             }
@@ -785,6 +786,7 @@ struct AddEditCardView: View {
     let cardsService: CardsService
     let notificationService: NotificationService
     var onSuccess: ((String) -> Void)?
+    let accountName: String?
     @State private var isLoading = false
     
     // Distinct Palettes
@@ -793,10 +795,11 @@ struct AddEditCardView: View {
     @State private var selectedColorIndex: Int = 0
     @State private var hasAppeared = false
 
-    init(isPresented: Binding<Bool>, cardType: CardType = .debit, card: CardModel?, userId: String, cardsService: CardsService, notificationService: NotificationService, onSuccess: ((String) -> Void)? = nil) {
+    init(isPresented: Binding<Bool>, cardType: CardType = .debit, card: CardModel?, userId: String, userName: String?, cardsService: CardsService, notificationService: NotificationService, onSuccess: ((String) -> Void)? = nil) {
         self._isPresented = isPresented
         self.card = card
         self.userId = userId
+        self.accountName = userName
         self.cardsService = cardsService
         self.notificationService = notificationService
         self.onSuccess = onSuccess
@@ -812,6 +815,8 @@ struct AddEditCardView: View {
             _selectedColorIndex = State(initialValue: existingCard.colorIndex ?? 0)
         } else {
             _cardType = State(initialValue: cardType)
+            // Pre-fill card holder with account name
+            _cardHolder = State(initialValue: userName ?? "")
             // Auto-select random color from appropriate palette
             if cardType == .credit {
                 _selectedColorIndex = State(initialValue: Int.random(in: 0..<5))
@@ -1393,24 +1398,56 @@ func getCardBrand(number: String) -> String {
     let cleanNumber = number.replacingOccurrences(of: " ", with: "")
     if cleanNumber.isEmpty { return "" }
     
+    // Visa: Starts with 4
     if cleanNumber.hasPrefix("4") { return "VISA" }
+    
+    // Amex: Starts with 34 or 37
     if cleanNumber.hasPrefix("34") || cleanNumber.hasPrefix("37") { return "AMEX" }
     
-    // Mastercard
-    if cleanNumber.hasPrefix("51") || cleanNumber.hasPrefix("52") || cleanNumber.hasPrefix("53") || cleanNumber.hasPrefix("54") || cleanNumber.hasPrefix("55") { return "MASTERCARD" }
+    // Mastercard: 51-55 or 2221-2720
+    if cleanNumber.hasPrefix("51") || cleanNumber.hasPrefix("52") || cleanNumber.hasPrefix("53") || cleanNumber.hasPrefix("54") || cleanNumber.hasPrefix("55") {
+        return "MASTERCARD"
+    }
+    
+    // Mastercard 2-series (2221-2720)
     if cleanNumber.hasPrefix("2") {
-        let prefixInt = Int(cleanNumber.prefix(4)) ?? 0
-        // Check if we have enough digits to definitively say it's MC 2-series range (2221-2720)
-        // If we only have "2", we don't know yet. But user wants auto-detect AS THEY TYPE.
-        // If user types "2", we probably shouldn't show MC yet unless we are sure.
-        // But 2221... requires 4 digits.
-        if cleanNumber.count >= 4 {
-             if prefixInt >= 2221 && prefixInt <= 2720 { return "MASTERCARD" }
+        if cleanNumber.count >= 2 {
+            let prefix2 = Int(cleanNumber.prefix(2)) ?? 0
+            if prefix2 >= 22 && prefix2 <= 27 {
+                // More precise check if enough digits
+                if cleanNumber.count >= 4 {
+                    let prefix4 = Int(cleanNumber.prefix(4)) ?? 0
+                    if prefix4 >= 2221 && prefix4 <= 2720 { return "MASTERCARD" }
+                } else {
+                    // If only 2 or 3 digits, we show it if it's in range
+                    return "MASTERCARD"
+                }
+            }
         }
     }
     
-    // RuPay
-    if cleanNumber.hasPrefix("60") || cleanNumber.hasPrefix("65") || cleanNumber.hasPrefix("81") || cleanNumber.hasPrefix("82") || cleanNumber.hasPrefix("508") || cleanNumber.hasPrefix("353") || cleanNumber.hasPrefix("356") { return "RUPAY" }
+    // RuPay: Very broad range in India
+    // Common prefixes: 60, 65, 81, 82, 508, 353, 356
+    // Also 6061-6085 range is common for RuPay
+    let ruPayPrefixes = ["60", "65", "81", "82", "508", "353", "356"]
+    for prefix in ruPayPrefixes {
+        if cleanNumber.hasPrefix(prefix) { return "RUPAY" }
+    }
+    
+    // Additional RuPay 6-digit BIN check if available
+    if cleanNumber.count >= 6 {
+        let prefix6 = Int(cleanNumber.prefix(6)) ?? 0
+        if (prefix6 >= 606100 && prefix6 <= 608599) || (prefix6 >= 652150 && prefix6 <= 653149) {
+            return "RUPAY"
+        }
+    }
+
+    // Generic RuPay starts with 6
+    if cleanNumber.hasPrefix("6") && !cleanNumber.hasPrefix("60") && !cleanNumber.hasPrefix("65") {
+        // Many RuPay cards start with 6. If not Visa (4) or MC (5), and starts with 6/5/8...
+        // But 6 is also used by Discover/Maestro. In India, 6 is heavily RuPay.
+        return "RUPAY" 
+    }
     
     return ""
 }

@@ -480,7 +480,7 @@ struct HomeView: View {
                                 FeatureCard(icon: "creditcard.fill", title: "Cards", iconColor: .pink, iconBgColor: Color.pink.opacity(0.1))
                             }
                             .fullScreenCover(isPresented: $showCards) {
-                                CardsView(cardsService: cardsService, friendsService: authService.friendsService, notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown")
+                                CardsView(cardsService: cardsService, friendsService: authService.friendsService, notificationService: notificationService, userId: authService.user?.id ?? authService.user?.mobile ?? "unknown", userName: authService.user?.name)
                             }
                             
                             Button(action: { showQRs = true }) {
