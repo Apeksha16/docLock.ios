@@ -1310,6 +1310,7 @@ struct AddEditCardView: View {
                     }
                     .keyboardType(keyboardType)
                     .padding()
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     .background(Color.white)
                     .cornerRadius(10)
                     .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
@@ -1326,6 +1327,7 @@ struct AddEditCardView: View {
                     }
                     .keyboardType(keyboardType)
                     .padding()
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     .background(Color.white)
                     .cornerRadius(10)
                     .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
@@ -1351,6 +1353,7 @@ struct CustomFormTextField: View {
                 SecureField(placeholder, text: $text)
                     .applyKeyboardType(keyboardType)
                     .padding()
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     .background(Color.white)
                     .cornerRadius(10)
                     .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
@@ -1358,6 +1361,7 @@ struct CustomFormTextField: View {
                 TextField(placeholder, text: $text)
                     .applyKeyboardType(keyboardType)
                     .padding()
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     .background(Color.white)
                     .cornerRadius(10)
                     .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)

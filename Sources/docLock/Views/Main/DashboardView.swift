@@ -12,6 +12,7 @@ struct DashboardView: View {
     @State private var friendToDelete: User?
     @State private var showRequestSheet = false
     @State private var selectedFriendForRequest: User?
+    @State private var isDeletingAccount = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -87,13 +88,29 @@ struct DashboardView: View {
                     primaryButtonText: "Yes, Delete Everything",
                     primaryButtonColor: .red,
                     onPrimaryAction: {
-                       // Perform delete
-                       withAnimation {
-                           showDeleteModal = false
-                           isAuthenticated = false
+                       isDeletingAccount = true
+                       authService.deleteAccount { success, error in
+                           isDeletingAccount = false
+                           if !success {
+                               print("Delete account failed: \(error ?? "Unknown error")")
+                           }
+                           
+                           // Only dismiss if success or if we want to reset UI
+                           // User specified: "wait on that popup util all process not done succcessfully"
+                           // So we keep it open on failure? Or close it?
+                           // Usually close on success.
+                           if success {
+                               withAnimation {
+                                   showDeleteModal = false
+                               }
+                           } else {
+                                // Maybe show an alert or toast?
+                                // For now, we just stop loading so they can try again or cancel.
+                           }
                        }
                     },
-                    onCancel: { withAnimation { showDeleteModal = false } }
+                    onCancel: { withAnimation { showDeleteModal = false } },
+                    isLoading: isDeletingAccount
                 )
             }
             

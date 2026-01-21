@@ -539,8 +539,8 @@ struct DocumentsView: View {
             }
             
             // FAB Button (Center Bottom)
-            // Show FAB if we have folders or are in a folder (even at max depth, we can still upload)
-            if (!documentsService.folders.isEmpty || selectedFolderId != nil) && selectedFolderId != "SHARED_ROOT" {
+            // Show FAB if we have items to display or are in a folder (even at max depth, we can still upload)
+            if (!documentsService.folders.isEmpty || !documentsService.currentFolderDocuments.isEmpty || selectedFolderId != nil) && selectedFolderId != "SHARED_ROOT" {
                 VStack {
                     Spacer()
                     HStack {

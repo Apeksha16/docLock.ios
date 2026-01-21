@@ -905,6 +905,100 @@ class AuthService: ObservableObject {
             }
         }
     }
+    // MARK: - Delete Account
+    func deleteAccount(completion: @escaping (Bool, String?) -> Void) {
+        guard let user = user, let currentUser = Auth.auth().currentUser else {
+            completion(false, "User not logged in")
+            return
+        }
+        
+        let userId = user.uid
+        print("🚨 AuthService: STARTING ACCOUNT DELETION for \(userId)")
+        isLoading = true
+        
+        // 0. STOP ALL LISTENERS IMMEDIATEY
+        // This prevents permissions errors as we start deleting data
+        self.userListener?.remove()
+        self.userListener = nil
+        
+        // Stop sub-service listeners
+        self.friendsService.stopListening()
+        self.documentsService.stopListening()
+        self.cardsService.stopListening()
+        self.notificationService.stopListening()
+        
+        let db = Firestore.firestore()
+        let storage = Storage.storage()
+        let group = DispatchGroup()
+        
+        // 1. Delete Profile Image
+        if let imageUrl = user.profileImageUrl, !imageUrl.isEmpty {
+            group.enter()
+            let storageRef = storage.reference(forURL: imageUrl)
+            storageRef.delete { _ in
+                print("🟢 AuthService: Profile image deleted")
+                group.leave()
+            }
+        }
+        
+        // 2. Delete All Documents & Folders
+        group.enter()
+        documentsService.deleteAllDocuments(userId: userId) { _ in
+            group.leave()
+        }
+        
+        // 3. Delete All Friends (and remove self from their lists)
+        group.enter()
+        friendsService.deleteAllFriends(userId: userId) { _ in
+            group.leave()
+        }
+        
+        // 4. Delete All Cards
+        group.enter()
+        cardsService.deleteAllCards(userId: userId) { _ in
+            group.leave()
+        }
+        
+        // 5. Delete Notifications (Fire and forget or assume fast enough)
+        notificationService.deleteAllNotifications(userId: userId)
+        
+        group.notify(queue: .main) {
+            print("🟢 AuthService: All sub-collections and files processed")
+            
+            // 6. Delete User Document
+            db.collection("users").document(userId).delete { error in
+                if let error = error {
+                    print("🔴 AuthService: Error deleting user doc: \(error.localizedDescription)")
+                    self.isLoading = false
+                    completion(false, error.localizedDescription)
+                } else {
+                    print("🟢 AuthService: User document deleted")
+                    
+                    // 7. Delete Auth Account
+                    currentUser.delete { error in
+                        self.isLoading = false
+                        if let error = error {
+                            print("🔴 AuthService: Error deleting auth user: \(error.localizedDescription)")
+                            // Even if auth delete fails, we cleared data. Force logout.
+                            self.logout()
+                            completion(false, "Data deleted but account deletion failed: \(error.localizedDescription)")
+                        } else {
+                            print("🟢 AuthService: Account deleted successfully")
+                            self.user = nil
+                            self.isAuthenticated = false
+                            completion(true, nil)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    func logout() {
+        try? Auth.auth().signOut()
+        self.user = nil
+        self.isAuthenticated = false
+    }
 }
 import Foundation
 import FirebaseFirestore
@@ -1018,6 +1112,26 @@ class NotificationService: ObservableObject {
                 print("✅ NotificationService Sent to \(userId)")
             }
             completion?(error)
+        }
+    }
+
+    func deleteAllNotifications(userId: String) {
+        print("🗑️ NotificationService: Deleting all notifications for \(userId)")
+        db.collection("users").document(userId).collection("notifications").getDocuments { [weak self] snapshot, error in
+            guard let documents = snapshot?.documents, !documents.isEmpty else { return }
+            
+            let batch = self?.db.batch()
+            for doc in documents {
+                batch?.deleteDocument(doc.reference)
+            }
+            
+            batch?.commit { error in
+                if let error = error {
+                    print("🔴 Error deleting all notifications: \(error.localizedDescription)")
+                } else {
+                    print("🟢 NotificationService: All notifications deleted")
+                }
+            }
         }
     }
 }
@@ -1271,6 +1385,67 @@ class FriendsService: ObservableObject {
             sharedCardsCount: (data["sharedCardsCount"] as? NSNumber)?.intValue,
             sharedDocsCount: (data["sharedDocsCount"] as? NSNumber)?.intValue
         )
+    }
+
+    func deleteAllFriends(userId: String, completion: @escaping (Bool) -> Void) {
+        print("🗑️ FriendsService: Deleting all friends and cleaning up references for \(userId)")
+        
+        db.collection("users").document(userId).collection("friends").getDocuments { [weak self] snapshot, error in
+            guard let self = self else { completion(false); return }
+            
+            if let error = error {
+                print("🔴 Error fetching friends to delete: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+            
+            guard let documents = snapshot?.documents, !documents.isEmpty else {
+                print("ℹ️ No friends to delete")
+                completion(true)
+                return
+            }
+            
+            let group = DispatchGroup()
+            
+            for doc in documents {
+                group.enter()
+                let friendId = doc.documentID
+                let friendName = doc.data()["name"] as? String ?? "Unknown"
+                
+                // Minimal user objects for deletion logic
+                let friendUser = User(
+                    uid: friendId, 
+                    mobile: nil, 
+                    name: friendName, 
+                    profileImageUrl: nil, 
+                    storageUsed: 0,
+                    addedAt: nil,
+                    sharedCardsCount: 0,
+                    sharedDocsCount: 0
+                )
+                
+                let currentUser = User(
+                    uid: userId, 
+                    mobile: nil, 
+                    name: "Deleted User", 
+                    profileImageUrl: nil, 
+                    storageUsed: 0,
+                    addedAt: nil,
+                    sharedCardsCount: 0,
+                    sharedDocsCount: 0
+                )
+                
+                // Use existing deleteFriend to handle bidirectional removal and notifications
+                self.deleteFriend(currentUser: currentUser, friend: friendUser)
+                // Small delay to prevent rate limiting if many friends, though Firestore handles it well usually
+                group.leave()
+            }
+            
+            group.notify(queue: .main) {
+                print("🟢 FriendsService: All friends processed for deletion")
+                completion(true)
+            }
+        }
     }
 }
 
@@ -1814,7 +1989,20 @@ class DocumentsService: ObservableObject {
         let storage = Storage.storage()
         let fileRef = storage.reference().child("users/\(storageUserId)/documents/\(UUID().uuidString)_\(fileName)")
         
-        fileRef.putFile(from: fileURL, metadata: nil) { [weak self] metadata, error in
+        // Read data immediately while we have access (if security scoped)
+        var fileData: Data
+        do {
+            fileData = try Data(contentsOf: fileURL)
+        } catch {
+            print("🔴 DocumentsService Read Data Error: \(error.localizedDescription)")
+            completion(false, "Failed to read file: \(error.localizedDescription)")
+            return
+        }
+        
+        let metadata = StorageMetadata()
+        metadata.contentType = "application/pdf"
+        
+        fileRef.putData(fileData, metadata: metadata) { [weak self] metadata, error in
             if let error = error {
                 print("🔴 DocumentsService Upload Document Error: \(error.localizedDescription)")
                 completion(false, error.localizedDescription)
@@ -2232,6 +2420,63 @@ class DocumentsService: ObservableObject {
             }
         }
     }
+    func deleteAllDocuments(userId: String, completion: @escaping (Bool) -> Void) {
+        print("🗑️ DocumentsService: Deleting all documents and folders for \(userId)")
+        
+        let documentsRef = db.collection("users").document(userId).collection("documents")
+        let foldersRef = db.collection("users").document(userId).collection("folders")
+        let storage = Storage.storage()
+        
+        // 1. Delete all documents and their storage files
+        documentsRef.getDocuments { [weak self] snapshot, error in
+            if let error = error {
+                print("🔴 Error fetching docs to delete: \(error.localizedDescription)")
+            }
+            
+            let docs = snapshot?.documents ?? []
+            let group = DispatchGroup()
+            
+            for doc in docs {
+                group.enter()
+                let data = doc.data()
+                let storageUrl = data["url"] as? String ?? ""
+                
+                // Delete from Storage
+                if !storageUrl.isEmpty {
+                    let storageRef = storage.reference(forURL: storageUrl)
+                    storageRef.delete { _ in } // Ignore error
+                }
+                
+                // Delete from Firestore
+                doc.reference.delete { _ in
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                print("🟢 DocumentsService: All documents deleted")
+                
+                // 2. Delete all folders
+                foldersRef.getDocuments { snapshot, error in
+                    let folders = snapshot?.documents ?? []
+                    let batch = self?.db.batch()
+                    
+                    for folder in folders {
+                        batch?.deleteDocument(folder.reference)
+                    }
+                    
+                    batch?.commit { error in
+                         if let error = error {
+                             print("🔴 Error deleting folders: \(error.localizedDescription)")
+                         } else {
+                             print("🟢 DocumentsService: All folders deleted")
+                         }
+                         completion(true)
+                    }
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Crypto Service
@@ -2508,6 +2753,31 @@ class CardsService: ObservableObject {
             } else {
                 print("🟢 CardsService: Card deleted")
                 completion(true, nil)
+            }
+        }
+    }
+    
+    func deleteAllCards(userId: String, completion: @escaping (Bool) -> Void) {
+        print("🗑️ CardsService: Deleting all cards for \(userId)")
+        
+        db.collection("users").document(userId).collection("cards").getDocuments { [weak self] snapshot, error in
+            guard let documents = snapshot?.documents, !documents.isEmpty else {
+                completion(true)
+                return
+            }
+            
+            let batch = self?.db.batch()
+            for doc in documents {
+                batch?.deleteDocument(doc.reference)
+            }
+            
+            batch?.commit { error in
+                if let error = error {
+                    print("🔴 Error deleting all cards: \(error.localizedDescription)")
+                } else {
+                    print("🟢 CardsService: All cards deleted")
+                }
+                completion(true)
             }
         }
     }
