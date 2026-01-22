@@ -2326,121 +2326,123 @@ struct EditDocumentSheet: View {
                     .padding(.top, 12)
                     .padding(.bottom, 8)
                 
-                // Content Container
-                VStack(spacing: 24) {
-                    // Icon
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 35)
-                            .fill(LinearGradient(gradient: Gradient(colors: [
-                                document.type == "image" ? Color.cyan.opacity(0.15) : Color.blue.opacity(0.15),
-                                document.type == "image" ? Color.cyan.opacity(0.08) : Color.blue.opacity(0.08)
-                            ]), startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 90, height: 90)
-                        
-                        Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
-                            .font(.system(size: 38, weight: .semibold))
-                            .foregroundColor(document.type == "image" ? .cyan : .blue)
-                    }
-                    .scaleEffect(iconScale)
-                    .rotationEffect(.degrees(iconRotation))
-                    .padding(.top, 8)
+                // Premium Animated Header Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    document.type == "image" ? Color.cyan.opacity(0.15) : Color.blue.opacity(0.15),
+                                    document.type == "image" ? Color.cyan.opacity(0.08) : Color.blue.opacity(0.08)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 60, height: 60)
                     
-                    // Texts
-                    VStack(spacing: 8) {
-                        Text("Edit Name")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                        
-                        Text("Update your \(fileTypeText) name.")
+                    Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(document.type == "image" ? .cyan : .blue)
+                }
+                .scaleEffect(iconScale)
+                .rotationEffect(.degrees(iconRotation))
+                .padding(.top, 5)
+                
+                // Texts
+                VStack(spacing: 8) {
+                    Text("Edit Name")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    
+                    Text("Update your \(fileTypeText) name.")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal)
+                }
+                
+                // Input
+                TextField("\(isImageFile ? "Image" : "File") Name", text: $documentName)
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .padding()
+                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+                    .focused($isFocused)
+                    .padding(.horizontal, 24)
+                    .submitLabel(.done)
+                    .onChange(of: documentName) { newValue in
+                        var filtered = newValue.filter { char in
+                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
+                        }
+                        if filtered.count > 50 {
+                            filtered = String(filtered.prefix(50))
+                        }
+                        if documentName != filtered {
+                            documentName = filtered
+                        }
+                    }
+                
+                // Buttons
+                VStack(spacing: 16) {
+                    Button(action: {
+                        documentsService.updateDocumentName(userId: userId, documentId: document.id, newName: documentName.trimmingCharacters(in: .whitespacesAndNewlines)) { success, error in
+                            DispatchQueue.main.async {
+                                if success {
+                                    toastMessage = "\(document.type == "image" ? "Image" : "Document") renamed"
+                                    toastType = .success
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { isPresented = false }
+                                } else {
+                                    toastMessage = error ?? "Error"
+                                    toastType = .error
+                                }
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill((document.type == "image" ? Color.cyan : Color.blue).opacity(0.15))
+                                    .frame(width: 56, height: 56)
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 26, weight: .semibold))
+                                    .foregroundColor(document.type == "image" ? .cyan : .blue)
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Save Changes")
+                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                                Text("Update file name")
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .foregroundColor(.gray.opacity(0.8))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.gray.opacity(0.4))
+                        }
+                        .padding(18)
+                        .background(ZStack {
+                            RoundedRectangle(cornerRadius: 20).fill(LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                            RoundedRectangle(cornerRadius: 20).stroke(LinearGradient(gradient: Gradient(colors: [(document.type == "image" ? Color.cyan : Color.blue).opacity(0.3), (document.type == "image" ? Color.cyan : Color.blue).opacity(0.15)]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
+                        })
+                    }
+                    .padding(.horizontal, 24)
+                    .disabled(documentName.isEmpty)
+                    .opacity(documentName.isEmpty ? 0.6 : 1.0)
+                    
+                    Button(action: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { isPresented = false }
+                    }) {
+                        Text("Cancel")
                             .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal)
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                     }
-                    
-                    // Input
-                    TextField("\(isImageFile ? "Image" : "File") Name", text: $documentName)
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .padding()
-                        .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
-                        .focused($isFocused)
-                        .padding(.horizontal, 24)
-                        .submitLabel(.done)
-                        .onChange(of: documentName) { newValue in
-                            var filtered = newValue.filter { char in
-                                char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
-                            }
-                            if filtered.count > 50 {
-                                filtered = String(filtered.prefix(50))
-                            }
-                            if documentName != filtered {
-                                documentName = filtered
-                            }
-                        }
-                    
-                    // Buttons
-                    VStack(spacing: 16) {
-                        Button(action: {
-                            documentsService.updateDocumentName(userId: userId, documentId: document.id, newName: documentName.trimmingCharacters(in: .whitespacesAndNewlines)) { success, error in
-                                DispatchQueue.main.async {
-                                    if success {
-                                        toastMessage = "\(document.type == "image" ? "Image" : "Document") renamed"
-                                        toastType = .success
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { isPresented = false }
-                                    } else {
-                                        toastMessage = error ?? "Error"
-                                        toastType = .error
-                                    }
-                                }
-                            }
-                        }) {
-                            HStack(spacing: 16) {
-                                ZStack {
-                                    Circle()
-                                        .fill((document.type == "image" ? Color.cyan : Color.blue).opacity(0.15))
-                                        .frame(width: 56, height: 56)
-                                    Image(systemName: "pencil")
-                                        .font(.system(size: 26, weight: .semibold))
-                                        .foregroundColor(document.type == "image" ? .cyan : .blue)
-                                }
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Save Changes")
-                                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                                    Text("Update file name")
-                                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                                        .foregroundColor(.gray.opacity(0.8))
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.gray.opacity(0.4))
-                            }
-                            .padding(18)
-                            .background(ZStack {
-                                RoundedRectangle(cornerRadius: 20).fill(LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing))
-                                RoundedRectangle(cornerRadius: 20).stroke(LinearGradient(gradient: Gradient(colors: [(document.type == "image" ? Color.cyan : Color.blue).opacity(0.3), (document.type == "image" ? Color.cyan : Color.blue).opacity(0.15)]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
-                            })
-                        }
-                        .padding(.horizontal, 24)
-                        .disabled(documentName.isEmpty)
-                        .opacity(documentName.isEmpty ? 0.6 : 1.0)
-                        
-                        Button(action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { isPresented = false }
-                        }) {
-                            Text("Cancel")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                        }
-                    } // Buttons
-                } // Content VStack
-                .padding(.bottom, 8)
-            } // Outer VStack
+                } // Buttons
+            } // Content VStack
             .padding(.bottom, 20)
             .background(LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing).edgesIgnoringSafeArea(.bottom))
             .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))

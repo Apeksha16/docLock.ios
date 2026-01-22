@@ -17,8 +17,15 @@ enum NotificationType {
     
     var icon: String {
         switch self {
-        case .security: return "lock"
-        case .alert: return "bell"
+        case .security: return "shield.checkered"
+        case .alert: return "bell.badge.fill"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .security: return .blue
+        case .alert: return Color(red: 0.4, green: 0.4, blue: 1.0)
         }
     }
 }
@@ -34,149 +41,138 @@ struct NotificationView: View {
     @State private var showContentSelection = false
     @State private var selectedNotification: NotificationItem? = nil
     @State private var toastMessage: String? = nil
+    @State private var showToast = false
+    @State private var toastType: ToastType = .success
     
     var body: some View {
         ZStack {
-            // Background - Light Lavender
-            Color(red: 0.96, green: 0.93, blue: 0.98) // Light Lavender #F5EEFA approx
+            // Background
+            Color(red: 0.96, green: 0.97, blue: 0.99)
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
                 // Header
-                HStack {
-                    Button(action: {
-                        presentationMode.wrappedValue.dismiss()
-                    }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white)
-                                .frame(width: 56, height: 56)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color(red: 0.3, green: 0.2, blue: 0.9).opacity(0.3), lineWidth: 1)
-                                )
-                            
-                            Image(systemName: "arrow.left")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.black)
-                        }
-                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-                    }
-                    
-                    Spacer()
-                    
-                    Text("Notifications")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    
-                    Spacer()
-                    
-                    // Balance the layout
-                    Color.clear.frame(width: 44, height: 44)
-                }
-                .padding()
-                .padding(.bottom, 10)
+                headerView
                 
-                // Notification List
-                List {
-                    ForEach(notificationService.notifications) { notification in
-                        NotificationCell(
-                            notification: notification,
-                            onShare: (notification.requestType != nil && notification.senderId != nil) ? {
-                                selectedNotification = notification
-                                showContentSelection = true
-                            } : nil
-                        )
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    notificationService.delete(id: notification.id, userId: userId)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                .tint(.red)
-                            }
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button {
-                                    notificationService.markAsRead(id: notification.id, userId: userId)
-                                } label: {
-                                    Image(systemName: "checkmark.circle.fill")
-                                }
-                                .tint(Color(red: 0.2, green: 0.8, blue: 0.7)) // Green color
-                            }
-                    }
+                if notificationService.notifications.isEmpty {
+                    emptyStateView
+                } else {
+                    notificationList
                 }
-                .listStyle(.plain)
-                .scrollIndicators(.hidden)
             }
-            
-            // Content Selection Sheet - Temporarily removed
-            // if showContentSelection, let notification = selectedNotification, let requestType = notification.requestType, let senderId = notification.senderId {
-            //     ContentSelectionSheet(
-            //         cards: requestType == "card" ? cardsService.cards : [],
-            //         documents: requestType == "document" ? getAllDocuments() : [],
-            //         requestType: requestType,
-            //         onShare: { content in
-            //             handleShare(content: content, senderId: senderId, requestType: requestType)
-            //         },
-            //         isPresented: $showContentSelection
-            //     )
-            //     .onAppear {
-            //         // Fetch documents from root when showing document selection
-            //         if requestType == "document" {
-            //             documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
-            //         }
-            //     }
-            // }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
-        .toast(message: $toastMessage, type: .success)
+        .toast(message: $toastMessage, type: toastType)
         .onAppear {
             notificationService.retry(userId: userId)
-            // Fetch documents if needed
             documentsService.startListening(userId: userId, parentFolderId: nil)
         }
     }
     
-    private func getAllDocuments() -> [DocumentFile] {
-        // For now, return current folder documents
-        // In a full implementation, you might want to fetch all documents across all folders
-        return documentsService.currentFolderDocuments
+    // MARK: - Subviews
+    
+    private var headerView: some View {
+        HStack {
+            Button(action: {
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    .frame(width: 44, height: 44)
+                    .background(Color.white)
+                    .clipShape(Circle())
+                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            }
+            
+            Spacer()
+            
+            Text("Notifications")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+            
+            Spacer()
+            
+            // Removed trash icon as requested
+            Color.clear.frame(width: 44, height: 44)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 15)
     }
     
-    private func handleShare(content: Any, senderId: String, requestType: String) {
-        if requestType == "card", let card = content as? CardModel {
-            cardsService.shareCard(userId: userId, card: card, friendId: senderId, notificationService: notificationService) { success, error in
-                DispatchQueue.main.async {
-                    if success {
-                        toastMessage = "Card shared successfully"
-                        // Mark notification as read
-                        if let notification = selectedNotification {
-                            notificationService.markAsRead(id: notification.id, userId: userId)
+    private var notificationList: some View {
+        List {
+            ForEach(notificationService.notifications) { notification in
+                NotificationCell(
+                    notification: notification,
+                    onShare: (notification.requestType != nil && notification.senderId != nil) ? {
+                        selectedNotification = notification
+                        showContentSelection = true
+                    } : nil
+                )
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        withAnimation {
+                            notificationService.delete(id: notification.id, userId: userId)
                         }
-                    } else {
-                        toastMessage = error ?? "Failed to share card"
+                    } label: {
+                        Label("Delete", systemImage: "trash.fill")
+                    }
+                    .tint(.red)
+                }
+                .swipeActions(edge: .leading) {
+                    if !notification.isRead {
+                        Button {
+                            notificationService.markAsRead(id: notification.id, userId: userId)
+                        } label: {
+                            Label("Read", systemImage: "checkmark.circle.fill")
+                        }
+                        .tint(.blue)
                     }
                 }
             }
-        } else if requestType == "document", let document = content as? DocumentFile {
-            documentsService.shareDocument(userId: userId, document: document, friendId: senderId, notificationService: notificationService) { success, error in
-                DispatchQueue.main.async {
-                    if success {
-                        toastMessage = "Document shared successfully"
-                        // Mark notification as read
-                        if let notification = selectedNotification {
-                            notificationService.markAsRead(id: notification.id, userId: userId)
-                        }
-                    } else {
-                        toastMessage = error ?? "Failed to share document"
-                    }
-                }
+        }
+        .listStyle(.plain)
+        .refreshable {
+            notificationService.retry(userId: userId)
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            
+            ZStack {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 120, height: 120)
+                    .shadow(color: Color.black.opacity(0.05), radius: 15, x: 0, y: 10)
+                
+                Image(systemName: "bell.slash")
+                    .font(.system(size: 50))
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 1.0).opacity(0.3))
             }
+            
+            VStack(spacing: 8) {
+                Text("No Notifications")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                
+                Text("We'll notify you when something\nimportant happens.")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+            .padding(.horizontal, 40)
+            
+            Spacer()
+            Spacer()
         }
     }
 }
@@ -186,83 +182,119 @@ struct NotificationCell: View {
     let onShare: (() -> Void)?
     
     var body: some View {
-        HStack(alignment: .top, spacing: 15) {
+        HStack(alignment: .top, spacing: 16) {
             // Icon
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(red: 0.9, green: 0.9, blue: 0.98)) // Very light blue/purple
-                    .frame(width: 50, height: 50)
-                
-                Group {
-                    if let requestType = notification.requestType, requestType == "card" {
-                        Image(systemName: "creditcard.fill")
-                    } else if let requestType = notification.requestType, requestType == "document" {
-                        Image(systemName: "doc.text.fill")
-                    } else if notification.title.localizedCaseInsensitiveContains("Card") {
-                        Image(systemName: "creditcard.fill")
-                    } else if notification.title.localizedCaseInsensitiveContains("Request") {
-                        Image(systemName: "arrow.right.circle.fill")
-                    } else if notification.title.localizedCaseInsensitiveContains("Document") {
-                        Image(systemName: "doc.text.fill")
-                    } else if notification.title.localizedCaseInsensitiveContains("Security") {
-                        Image(systemName: "shield.fill")
-                    } else {
-                        Image(systemName: notification.type.icon)
-                    }
-                }
-                .font(.system(size: 22))
-                .foregroundColor(Color(red: 0.4, green: 0.3, blue: 1.0))
-            }
+            iconView
             
-            VStack(alignment: .leading, spacing: 5) {
-                HStack {
-                    Text(notification.title)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    
-                    Spacer()
-                    
-                    Text(notification.date)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(notification.title)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    .lineLimit(1)
                 
                 Text(notification.message)
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(.gray)
-                    .lineLimit(2)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                 
-                // Share button for request notifications
+                HStack {
+                    Text(notification.date)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(.gray.opacity(0.6))
+                    
+                    Spacer()
+                }
+                .padding(.top, 2)
+                
                 if notification.requestType != nil, notification.senderId != nil, let onShare = onShare {
-                    Button(action: onShare) {
-                        HStack {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.caption)
-                            Text("Share")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.blue)
-                        .cornerRadius(8)
-                    }
-                    .padding(.top, 8)
+                    shareButton(onShare: onShare)
                 }
             }
+            
+            // Unread Indicator
+            if !notification.isRead {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 8, height: 8)
+                    .padding(.top, 6)
+            }
         }
-        .padding(20)
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.gray.opacity(0.05), lineWidth: 1)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 4)
         )
-        // Visual indicator for unread state if needed, though not explicitly in design
-        .opacity(notification.isRead ? 0.6 : 1.0)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(notification.isRead ? Color.clear : Color.blue.opacity(0.1), lineWidth: 1)
+        )
+        .opacity(notification.isRead ? 0.85 : 1.0)
+    }
+    
+    private var iconView: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            iconColor.opacity(0.15),
+                            iconColor.opacity(0.05)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 52, height: 52)
+            
+            Image(systemName: iconName)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(iconColor)
+        }
+    }
+    
+    private func shareButton(onShare: @escaping () -> Void) -> some View {
+        Button(action: onShare) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up.right.square.fill")
+                    .font(.system(size: 14))
+                Text("Fulfill Request")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(12)
+            .shadow(color: Color.blue.opacity(0.2), radius: 5, x: 0, y: 3)
+        }
+        .padding(.top, 8)
+    }
+    
+    private var iconName: String {
+        if let requestType = notification.requestType {
+            return requestType == "card" ? "creditcard.fill" : "doc.text.fill"
+        }
+        
+        let title = notification.title.lowercased()
+        if title.contains("card") { return "creditcard.fill" }
+        if title.contains("request") { return "person.badge.shield.checkmark.fill" }
+        if title.contains("document") { return "doc.text.fill" }
+        if title.contains("security") { return "shield.fill" }
+        
+        return notification.type.icon
+    }
+    
+    private var iconColor: Color {
+        if notification.title.lowercased().contains("security") { return .blue }
+        return notification.type.color
     }
 }
+
