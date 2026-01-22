@@ -17,9 +17,16 @@ struct SecureQRView: View {
     
     var body: some View {
         ZStack {
-            // Background
-            Color(red: 0.98, green: 0.96, blue: 0.94) // Warm beige background
-                .edgesIgnoringSafeArea(.all)
+            // Background - Modern light gradient
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(red: 0.98, green: 0.98, blue: 0.99),
+                    Color(red: 0.96, green: 0.97, blue: 0.98)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .edgesIgnoringSafeArea(.all)
             
             VStack {
                 // Header
@@ -154,8 +161,8 @@ struct SecureQRView: View {
                     // QR List
                     List {
                         ForEach(secureQRService.secureQRs) { qr in
-                            QRCodeCard(qr: qr)
-                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            QRCodeCard(qr: qr, userName: authService.user?.name ?? "User", profileImageUrl: authService.user?.profileImageUrl)
+                                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                                 .listRowBackground(Color.clear)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     // Delete
@@ -433,43 +440,199 @@ struct QRDownloadSheet: View {
 
 // Button Style Support
 
-// MARK: - QR Code Card
+// MARK: - QR Code Card (New Modern Design)
 struct QRCodeCard: View {
     let qr: SecureQR
+    let userName: String
+    let profileImageUrl: String?
+    
+    @State private var qrImage: UIImage?
+    @State private var profileImage: UIImage?
+    @State private var isLoadingQR = true
+    @State private var isLoadingProfile = true
+    
+    // Theme colors - vibrant gradient
+    private let gradientColors: [Color] = [
+        Color(red: 1.0, green: 0.6, blue: 0.2),  // Vibrant orange
+        Color(red: 1.0, green: 0.5, blue: 0.1)   // Deep orange
+    ]
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(qr.label)
-                        .font(.headline)
-                        .foregroundColor(.black)
+        ZStack {
+            // Card Background with Gradient
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: gradientColors),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    // Subtle pattern overlay
+                    GeometryReader { geometry in
+                        ZStack {
+                            // Decorative circles
+                            Circle()
+                                .fill(Color.white.opacity(0.08))
+                                .frame(width: 120, height: 120)
+                                .position(x: geometry.size.width * 0.15, y: geometry.size.height * 0.2)
+                                .blur(radius: 20)
+                            
+                            Circle()
+                                .fill(Color.white.opacity(0.06))
+                                .frame(width: 100, height: 100)
+                                .position(x: geometry.size.width * 0.85, y: geometry.size.height * 0.7)
+                                .blur(radius: 25)
+                            
+                            // Abstract shapes
+                            RoundedRectangle(cornerRadius: 30)
+                                .fill(Color.white.opacity(0.05))
+                                .frame(width: 80, height: 80)
+                                .rotationEffect(.degrees(45))
+                                .position(x: geometry.size.width * 0.8, y: geometry.size.height * 0.25)
+                                .blur(radius: 15)
+                        }
+                    }
+                )
+            
+            // Content
+            HStack(spacing: 16) {
+                // Left Section: Profile & Info
+                VStack(alignment: .leading, spacing: 12) {
+                    // Profile Image
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.25))
+                            .frame(width: 56, height: 56)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                            )
+                        
+                        if let profileImage = profileImage {
+                            Image(uiImage: profileImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 52, height: 52)
+                                .clipShape(Circle())
+                        } else {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                    }
                     
-                    Text("\(qr.documentIds.count) document(s)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                    // Name
+                    Text(userName)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
                     
-                    Text(qr.createdAt, style: .date)
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                    // Document Count Badge
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.fill")
+                            .font(.system(size: 12))
+                        Text("\(qr.documentIds.count) \(qr.documentIds.count == 1 ? "File" : "Files")")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.25))
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                            )
+                    )
+                    
+                    // Date
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 11))
+                        Text(qr.createdAt, style: .date)
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.85))
                 }
                 
                 Spacer()
                 
-                // QR Code Image Placeholder
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.orange.opacity(0.1))
-                    .frame(width: 60, height: 60)
-                    .overlay(
-                        Image(systemName: "qrcode")
-                            .foregroundColor(.orange)
-                    )
+                // Right Section: QR Code
+                VStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.white)
+                            .frame(width: 110, height: 110)
+                            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                        
+                        if isLoadingQR {
+                            ProgressView()
+                                .tint(.orange)
+                        } else if let qrImage = qrImage {
+                            Image(uiImage: qrImage)
+                                .resizable()
+                                .interpolation(.none)
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                                .cornerRadius(12)
+                        } else {
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 40))
+                                .foregroundColor(.orange.opacity(0.6))
+                        }
+                    }
+                    
+                    // QR Label
+                    Text(qr.label)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.95))
+                        .lineLimit(1)
+                        .padding(.top, 6)
+                }
             }
+            .padding(20)
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+        .frame(height: 180)
+        .shadow(color: Color.orange.opacity(0.3), radius: 12, x: 0, y: 6)
+        .onAppear {
+            loadQRImage()
+            loadProfileImage()
+        }
+    }
+    
+    private func loadQRImage() {
+        guard let url = URL(string: qr.qrCodeUrl) else {
+            isLoadingQR = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            DispatchQueue.main.async {
+                if let data = data, let image = UIImage(data: data) {
+                    self.qrImage = image
+                }
+                self.isLoadingQR = false
+            }
+        }.resume()
+    }
+    
+    private func loadProfileImage() {
+        guard let urlString = profileImageUrl, let url = URL(string: urlString) else {
+            isLoadingProfile = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            DispatchQueue.main.async {
+                if let data = data, let image = UIImage(data: data) {
+                    self.profileImage = image
+                }
+                self.isLoadingProfile = false
+            }
+        }.resume()
     }
 }
 
