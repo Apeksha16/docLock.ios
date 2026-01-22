@@ -5,6 +5,7 @@ struct AddQRSheet: View {
     @ObservedObject var documentsService: DocumentsService
     @ObservedObject var secureQRService: SecureQRService
     let userId: String
+    var qrToEdit: SecureQR? = nil // Optional QR for edit mode
     
     @State private var qrLabel: String = ""
     @State private var selectedDocuments: Set<String> = []
@@ -19,6 +20,10 @@ struct AddQRSheet: View {
     
     // Theme Color
     let themeColor = Color.orange
+    
+    private var isEditMode: Bool {
+        qrToEdit != nil
+    }
     
     var body: some View {
         ZStack {
@@ -136,6 +141,12 @@ struct AddQRSheet: View {
             }
         }
         .onAppear {
+            // Pre-fill data if editing
+            if let qr = qrToEdit {
+                qrLabel = qr.label
+                selectedDocuments = Set(qr.documentIds)
+            }
+            
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 sheetOffset = 0
             }
@@ -145,14 +156,6 @@ struct AddQRSheet: View {
             }
             // Fetch documents
             documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil)
-            
-            // Auto-focus logic reduced to avoid jumping
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                // Optional: Decide if we want autofocus. User sometimes dislikes automatic keyboard popups.
-                // Keeping it off for now unless requested, to match behavior "keyboard open close will work just like update name".
-                // If update name forces focus, we can add it back.
-                // isTextFieldFocused = true 
-            }
         }
         .zIndex(200)
     }
@@ -176,17 +179,38 @@ struct AddQRSheet: View {
         errorMessage = nil
         isTextFieldFocused = false // Close keyboard
         
-        secureQRService.generateQR(
-            userId: userId,
-            label: qrLabel.trimmingCharacters(in: CharacterSet(charactersIn: " \n")),
-            documentIds: Array(selectedDocuments)
-        ) { success, error in
-            DispatchQueue.main.async {
-                self.isLoading = false
-                if success {
-                    self.dismissSheet()
-                } else {
-                    self.errorMessage = error ?? "Failed to generate QR code"
+        if let qr = qrToEdit {
+            // Update existing QR
+            secureQRService.updateQR(
+                userId: userId,
+                qrId: qr.id,
+                label: qrLabel.trimmingCharacters(in: CharacterSet(charactersIn: " \n")),
+                documentIds: Array(selectedDocuments),
+                oldDocumentIds: qr.documentIds
+            ) { success, error in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if success {
+                        self.dismissSheet()
+                    } else {
+                        self.errorMessage = error ?? "Failed to update QR code"
+                    }
+                }
+            }
+        } else {
+            // Create new QR
+            secureQRService.generateQR(
+                userId: userId,
+                label: qrLabel.trimmingCharacters(in: CharacterSet(charactersIn: " \n")),
+                documentIds: Array(selectedDocuments)
+            ) { success, error in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if success {
+                        self.dismissSheet()
+                    } else {
+                        self.errorMessage = error ?? "Failed to generate QR code"
+                    }
                 }
             }
         }
@@ -214,11 +238,11 @@ private extension AddQRSheet {
             .padding(.top, 8)
             
             VStack(spacing: 8) {
-                Text("Create Secure QR")
+                Text(isEditMode ? "Edit Secure QR" : "Create Secure QR")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                 
-                Text("Enter a label and select documents\nto generate a secure QR code.")
+                Text(isEditMode ? "Update the label and documents\nfor your secure QR code." : "Enter a label and select documents\nto generate a secure QR code.")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
@@ -246,6 +270,8 @@ private extension AddQRSheet {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                 )
+                .disabled(isEditMode)
+                .opacity(isEditMode ? 0.6 : 1.0)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
                 .focused($isTextFieldFocused)
@@ -315,7 +341,7 @@ private extension AddQRSheet {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
-                    Text("Generate QR")
+                    Text(isEditMode ? "Update QR" : "Generate QR")
                         .fontWeight(.bold)
                 }
             }

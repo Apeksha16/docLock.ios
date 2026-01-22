@@ -1,5 +1,7 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
+import UIKit
+import Photos
 
 struct SecureQRView: View {
     @Environment(\.presentationMode) var presentationMode
@@ -9,11 +11,9 @@ struct SecureQRView: View {
     let userId: String
     @State private var hasAppeared = false
     @State private var showAddQRSheet = false
-    @State private var showDownloadSheet = false
     @State private var showDeleteConfirmation = false
-    @State private var showEditSheet = false
     @State private var selectedQR: SecureQR?
-    @State private var selectedQRForDownload: SecureQR?
+    @State private var qrToEdit: SecureQR?
     
     var body: some View {
         ZStack {
@@ -164,33 +164,28 @@ struct SecureQRView: View {
                             QRCodeCard(qr: qr, userName: authService.user?.name ?? "User", profileImageUrl: authService.user?.profileImageUrl)
                                 .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
                                 .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden) // Remove border line
+                                .onTapGesture {
+                                    // Tap to download
+                                    downloadQRAsImage(qr)
+                                }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     // Delete
                                     Button(role: .destructive) {
                                         deleteQR(qr)
                                     } label: {
-                                        Label {
-                                            Text("Delete")
-                                                .foregroundColor(.black)
-                                        } icon: {
-                                            Image(systemName: "trash")
-                                                .foregroundColor(.black)
-                                        }
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.black)
                                     }
                                     .tint(.red)
                                 }
                                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                     // Download
                                     Button {
-                                        downloadQR(qr)
+                                        downloadQRAsImage(qr)
                                     } label: {
-                                        Label {
-                                            Text("Download")
-                                                .foregroundColor(.black)
-                                        } icon: {
-                                            Image(systemName: "arrow.down.circle")
-                                                .foregroundColor(.black)
-                                        }
+                                        Image(systemName: "arrow.down.circle")
+                                            .foregroundColor(.black)
                                     }
                                     .tint(.blue)
                                     
@@ -198,13 +193,8 @@ struct SecureQRView: View {
                                     Button {
                                         editQR(qr)
                                     } label: {
-                                        Label {
-                                            Text("Edit")
-                                                .foregroundColor(.black)
-                                        } icon: {
-                                            Image(systemName: "pencil")
-                                                .foregroundColor(.black)
-                                        }
+                                        Image(systemName: "pencil")
+                                            .foregroundColor(.black)
                                     }
                                     .tint(.orange)
                                 }
@@ -224,9 +214,14 @@ struct SecureQRView: View {
                 secureQRService.stopListening()
             }
             .blur(radius: showAddQRSheet ? 3 : 0)
+            .onChange(of: showAddQRSheet) { isShowing in
+                if !isShowing {
+                    qrToEdit = nil // Clear edit state when sheet closes
+                }
+            }
             
             // Floating Add Button (Center Aligned)
-            if !secureQRService.secureQRs.isEmpty && !showAddQRSheet && !showDownloadSheet && !showDeleteConfirmation && !showEditSheet {
+            if !secureQRService.secureQRs.isEmpty && !showAddQRSheet && !showDeleteConfirmation {
                 VStack {
                     Spacer()
                     HStack {
@@ -257,41 +252,26 @@ struct SecureQRView: View {
                 }
             }
             
-            // Add QR Sheet Overlay
+            // Add/Edit QR Sheet Overlay
             if showAddQRSheet {
                 AddQRSheet(
                     isPresented: $showAddQRSheet,
                     documentsService: documentsService,
                     secureQRService: secureQRService,
-                    userId: userId
+                    userId: userId,
+                    qrToEdit: qrToEdit
                 )
                 .zIndex(100)
             }
         }
         .navigationBarHidden(true)
         .swipeToDismiss()
-        .sheet(isPresented: $showDownloadSheet) {
-            if let qr = selectedQRForDownload {
-                QRDownloadSheet(isPresented: $showDownloadSheet, qr: qr)
-            }
-        }
         .sheet(isPresented: $showDeleteConfirmation) {
             if let qr = selectedQR {
                 QRDeleteConfirmationSheet(
                     isPresented: $showDeleteConfirmation,
                     qr: qr,
                     onConfirm: confirmDelete
-                )
-            }
-        }
-        .sheet(isPresented: $showEditSheet) {
-            if let qr = selectedQR {
-                EditQRSheet(
-                    isPresented: $showEditSheet,
-                    qr: qr,
-                    secureQRService: secureQRService,
-                    documentsService: documentsService,
-                    userId: userId
                 )
             }
         }
@@ -306,15 +286,118 @@ struct SecureQRView: View {
     }
     
     private func editQR(_ qr: SecureQR) {
-        print("DEBUG: Edit QR clicked for \(qr.label)")
-        selectedQR = qr
-        showEditSheet = true
+        qrToEdit = qr
+        showAddQRSheet = true
     }
     
-    private func downloadQR(_ qr: SecureQR) {
-        print("DEBUG: Download QR clicked for \(qr.label)")
-        selectedQRForDownload = qr
-        showDownloadSheet = true
+    private func downloadQRAsImage(_ qr: SecureQR) {
+        // Generate card image and save to photos
+        generateCardImage(qr: qr) { image in
+            guard let image = image else {
+                DispatchQueue.main.async {
+                    print("Failed to generate QR card image")
+                }
+                return
+            }
+            
+            // Save to photo library with proper permission handling
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+                if status == .authorized || status == .limited {
+                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                    DispatchQueue.main.async {
+                        print("QR card saved to photos")
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        print("Photo library access denied")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func generateCardImage(qr: SecureQR, completion: @escaping (UIImage?) -> Void) {
+        // Standard Credit/Debit card aspect ratio (ID-1): 85.60mm × 53.98mm (~1.585)
+        // Target high-res: 1010 × 638 pixels
+        // Point points: 337 × 213 (approx 1010/3, 638/3)
+        let pointWidth: CGFloat = 337
+        let pointHeight: CGFloat = 213
+        
+        // Load images first
+        loadQRImageForExport(qr: qr) { qrImage in
+            loadProfileImageForExport(url: self.authService.user?.profileImageUrl) { profileImage in
+                DispatchQueue.main.async {
+                    // Create card view at standard point size
+                    let cardView = QRCardForExport(
+                        qr: qr,
+                        userName: self.authService.user?.name ?? "User",
+                        profileImage: profileImage,
+                        qrImage: qrImage
+                    )
+                    .frame(width: pointWidth, height: pointHeight)
+                    
+                    // Render to image using ImageRenderer (iOS 16+)
+                    if #available(iOS 16.0, *) {
+                        let renderer = ImageRenderer(content: cardView)
+                        renderer.scale = 3.0 // 3x scale for high resolution (~300 DPI)
+                        renderer.isOpaque = false // Support transparency for rounded corners
+                        
+                        if let image = renderer.uiImage {
+                            completion(image)
+                        } else {
+                            completion(nil)
+                        }
+                    } else {
+                        // Fallback for iOS 15 and below - use snapshot
+                        completion(snapshotView(cardView, size: CGSize(width: pointWidth, height: pointHeight)))
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback snapshot method for iOS 15
+    private func snapshotView<Content: View>(_ view: Content, size: CGSize) -> UIImage? {
+        let hostingController = UIHostingController(rootView: view)
+        hostingController.view.frame = CGRect(origin: .zero, size: size)
+        hostingController.view.backgroundColor = .clear
+        
+        // Force layout
+        hostingController.view.setNeedsLayout()
+        hostingController.view.layoutIfNeeded()
+        
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            hostingController.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+        }
+    }
+    
+    private func loadQRImageForExport(qr: SecureQR, completion: @escaping (UIImage?) -> Void) {
+        guard let url = URL(string: qr.qrCodeUrl) else {
+            completion(nil)
+            return
+        }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            if let data = data, let image = UIImage(data: data) {
+                completion(image)
+            } else {
+                completion(nil)
+            }
+        }.resume()
+    }
+    
+    private func loadProfileImageForExport(url: String?, completion: @escaping (UIImage?) -> Void) {
+        guard let urlString = url, let url = URL(string: urlString) else {
+            completion(nil)
+            return
+        }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            if let data = data, let image = UIImage(data: data) {
+                completion(image)
+            } else {
+                completion(nil)
+            }
+        }.resume()
     }
     
     private func confirmDelete() {
@@ -440,7 +523,7 @@ struct QRDownloadSheet: View {
 
 // Button Style Support
 
-// MARK: - QR Code Card (New Modern Design)
+// MARK: - QR Code Card (Enhanced Animated Design)
 struct QRCodeCard: View {
     let qr: SecureQR
     let userName: String
@@ -450,11 +533,299 @@ struct QRCodeCard: View {
     @State private var profileImage: UIImage?
     @State private var isLoadingQR = true
     @State private var isLoadingProfile = true
+    @State private var cardAppeared = false
+    @State private var shimmerOffset: CGFloat = -200
+    @State private var pulseScale: CGFloat = 1.0
     
     // Theme colors - vibrant gradient
     private let gradientColors: [Color] = [
         Color(red: 1.0, green: 0.6, blue: 0.2),  // Vibrant orange
         Color(red: 1.0, green: 0.5, blue: 0.1)   // Deep orange
+    ]
+    
+    var body: some View {
+        ZStack {
+            // Card Background with Animated Gradient
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: gradientColors),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    // Animated shimmer effect
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.clear,
+                            Color.white.opacity(0.3),
+                            Color.clear
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: 100)
+                    .offset(x: shimmerOffset)
+                    .blur(radius: 20)
+                )
+                .overlay(
+                    // Design Pattern Background - Geometric shapes
+                    GeometryReader { geometry in
+                        ZStack {
+                            // Large background circles
+                            Circle()
+                                .fill(Color.white.opacity(0.08))
+                                .frame(width: 140, height: 140)
+                                .position(x: geometry.size.width * 0.15, y: geometry.size.height * 0.2)
+                                .blur(radius: 25)
+                            
+                            Circle()
+                                .fill(Color.white.opacity(0.06))
+                                .frame(width: 120, height: 120)
+                                .position(x: geometry.size.width * 0.85, y: geometry.size.height * 0.7)
+                                .blur(radius: 30)
+                            
+                            // Medium circles
+                            Circle()
+                                .fill(Color.white.opacity(0.05))
+                                .frame(width: 90, height: 90)
+                                .position(x: geometry.size.width * 0.75, y: geometry.size.height * 0.3)
+                                .blur(radius: 20)
+                            
+                            Circle()
+                                .fill(Color.white.opacity(0.04))
+                                .frame(width: 70, height: 70)
+                                .position(x: geometry.size.width * 0.25, y: geometry.size.height * 0.6)
+                                .blur(radius: 18)
+                            
+                            // Abstract geometric shapes
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color.white.opacity(0.05))
+                                .frame(width: 100, height: 100)
+                                .rotationEffect(.degrees(45))
+                                .position(x: geometry.size.width * 0.8, y: geometry.size.height * 0.25)
+                                .blur(radius: 20)
+                            
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.white.opacity(0.04))
+                                .frame(width: 80, height: 80)
+                                .rotationEffect(.degrees(-30))
+                                .position(x: geometry.size.width * 0.2, y: geometry.size.height * 0.75)
+                                .blur(radius: 15)
+                            
+                            // Small decorative dots pattern
+                            ForEach(0..<8) { index in
+                                Circle()
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(width: CGFloat(6 + (index % 3) * 3), height: CGFloat(6 + (index % 3) * 3))
+                                    .position(
+                                        x: geometry.size.width * (0.15 + CGFloat(index % 4) * 0.25),
+                                        y: geometry.size.height * (0.2 + CGFloat(index / 4) * 0.3)
+                                    )
+                                    .blur(radius: 3)
+                            }
+                            
+                            // Hexagonal pattern overlay (subtle)
+                            ForEach(0..<6) { index in
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.white.opacity(0.03))
+                                    .frame(width: 40, height: 40)
+                                    .rotationEffect(.degrees(Double(index) * 60))
+                                    .position(
+                                        x: geometry.size.width * (0.5 + 0.3 * cos(Double(index) * .pi / 3)),
+                                        y: geometry.size.height * (0.5 + 0.3 * sin(Double(index) * .pi / 3))
+                                    )
+                                    .blur(radius: 10)
+                            }
+                        }
+                    }
+                )
+            
+            // Content
+            HStack(spacing: 16) {
+                // Left Section: Profile & Info
+                VStack(alignment: .leading, spacing: 12) {
+                    // Profile Image with Animation
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.25))
+                            .frame(width: 56, height: 56)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                            )
+                            .scaleEffect(cardAppeared ? 1.0 : 0.5)
+                            .opacity(cardAppeared ? 1.0 : 0.0)
+                        
+                        if let profileImage = profileImage {
+                            Image(uiImage: profileImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 52, height: 52)
+                                .clipShape(Circle())
+                                .scaleEffect(cardAppeared ? 1.0 : 0.5)
+                        } else {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white.opacity(0.9))
+                                .scaleEffect(cardAppeared ? 1.0 : 0.5)
+                        }
+                    }
+                    
+                    // Name with Animation
+                    Text(userName)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .offset(x: cardAppeared ? 0 : -20)
+                        .opacity(cardAppeared ? 1.0 : 0.0)
+                    
+                    // Document Count Badge with Pulse Animation
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.fill")
+                            .font(.system(size: 12))
+                        Text("\(qr.documentIds.count) \(qr.documentIds.count == 1 ? "File" : "Files")")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.25))
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                            )
+                    )
+                    .scaleEffect(pulseScale)
+                    .offset(x: cardAppeared ? 0 : -20)
+                    .opacity(cardAppeared ? 1.0 : 0.0)
+                    
+                    // Date with Animation
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 11))
+                        Text(qr.createdAt, style: .date)
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.85))
+                    .offset(x: cardAppeared ? 0 : -20)
+                    .opacity(cardAppeared ? 1.0 : 0.0)
+                }
+                
+                Spacer()
+                
+                // Right Section: QR Code with Animation
+                VStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.white)
+                            .frame(width: 110, height: 110)
+                            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            .scaleEffect(cardAppeared ? 1.0 : 0.7)
+                            .rotationEffect(.degrees(cardAppeared ? 0 : -10))
+                        
+                        if isLoadingQR {
+                            ProgressView()
+                                .tint(.orange)
+                        } else if let qrImage = qrImage {
+                            Image(uiImage: qrImage)
+                                .resizable()
+                                .interpolation(.none)
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                                .cornerRadius(12)
+                                .scaleEffect(cardAppeared ? 1.0 : 0.7)
+                        } else {
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 40))
+                                .foregroundColor(.orange.opacity(0.6))
+                                .scaleEffect(cardAppeared ? 1.0 : 0.7)
+                        }
+                    }
+                    
+                    // QR Label with Animation
+                    Text(qr.label)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.95))
+                        .lineLimit(1)
+                        .padding(.top, 6)
+                        .offset(y: cardAppeared ? 0 : 10)
+                        .opacity(cardAppeared ? 1.0 : 0.0)
+                }
+            }
+            .padding(20)
+        }
+        .frame(height: 180)
+        .shadow(color: Color.orange.opacity(0.3), radius: 12, x: 0, y: 6)
+        .scaleEffect(cardAppeared ? 1.0 : 0.9)
+        .onAppear {
+            loadQRImage()
+            loadProfileImage()
+            
+            // Animate card appearance
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                cardAppeared = true
+            }
+            
+            // Start shimmer animation
+            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                shimmerOffset = 400
+            }
+            
+            // Pulse animation for badge
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                pulseScale = 1.05
+            }
+        }
+    }
+    
+    private func loadQRImage() {
+        guard let url = URL(string: qr.qrCodeUrl) else {
+            isLoadingQR = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            DispatchQueue.main.async {
+                if let data = data, let image = UIImage(data: data) {
+                    self.qrImage = image
+                }
+                self.isLoadingQR = false
+            }
+        }.resume()
+    }
+    
+    private func loadProfileImage() {
+        guard let urlString = profileImageUrl, let url = URL(string: urlString) else {
+            isLoadingProfile = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            DispatchQueue.main.async {
+                if let data = data, let image = UIImage(data: data) {
+                    self.profileImage = image
+                }
+                self.isLoadingProfile = false
+            }
+        }.resume()
+    }
+}
+
+// MARK: - QR Card for Export (Standard Points Dimensions)
+struct QRCardForExport: View {
+    let qr: SecureQR
+    let userName: String
+    let profileImage: UIImage?
+    let qrImage: UIImage?
+    
+    // Theme colors - same as display card
+    private let gradientColors: [Color] = [
+        Color(red: 1.0, green: 0.6, blue: 0.2),
+        Color(red: 1.0, green: 0.5, blue: 0.1)
     ]
     
     var body: some View {
@@ -469,29 +840,74 @@ struct QRCodeCard: View {
                     )
                 )
                 .overlay(
-                    // Subtle pattern overlay
+                    // Design Pattern Background - Same as display card
                     GeometryReader { geometry in
                         ZStack {
-                            // Decorative circles
+                            // Large background circles
                             Circle()
                                 .fill(Color.white.opacity(0.08))
-                                .frame(width: 120, height: 120)
+                                .frame(width: 140, height: 140)
                                 .position(x: geometry.size.width * 0.15, y: geometry.size.height * 0.2)
-                                .blur(radius: 20)
+                                .blur(radius: 25)
                             
                             Circle()
                                 .fill(Color.white.opacity(0.06))
-                                .frame(width: 100, height: 100)
+                                .frame(width: 120, height: 120)
                                 .position(x: geometry.size.width * 0.85, y: geometry.size.height * 0.7)
-                                .blur(radius: 25)
+                                .blur(radius: 30)
                             
-                            // Abstract shapes
-                            RoundedRectangle(cornerRadius: 30)
+                            // Medium circles
+                            Circle()
                                 .fill(Color.white.opacity(0.05))
-                                .frame(width: 80, height: 80)
+                                .frame(width: 90, height: 90)
+                                .position(x: geometry.size.width * 0.75, y: geometry.size.height * 0.3)
+                                .blur(radius: 20)
+                            
+                            Circle()
+                                .fill(Color.white.opacity(0.04))
+                                .frame(width: 70, height: 70)
+                                .position(x: geometry.size.width * 0.25, y: geometry.size.height * 0.6)
+                                .blur(radius: 18)
+                            
+                            // Abstract geometric shapes
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color.white.opacity(0.05))
+                                .frame(width: 100, height: 100)
                                 .rotationEffect(.degrees(45))
                                 .position(x: geometry.size.width * 0.8, y: geometry.size.height * 0.25)
+                                .blur(radius: 20)
+                            
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.white.opacity(0.04))
+                                .frame(width: 80, height: 80)
+                                .rotationEffect(.degrees(-30))
+                                .position(x: geometry.size.width * 0.2, y: geometry.size.height * 0.75)
                                 .blur(radius: 15)
+                            
+                            // Small decorative dots pattern
+                            ForEach(0..<8) { index in
+                                Circle()
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(width: CGFloat(6 + (index % 3) * 3), height: CGFloat(6 + (index % 3) * 3))
+                                    .position(
+                                        x: geometry.size.width * (0.15 + CGFloat(index % 4) * 0.25),
+                                        y: geometry.size.height * (0.2 + CGFloat(index / 4) * 0.3)
+                                    )
+                                    .blur(radius: 3)
+                            }
+                            
+                            // Hexagonal pattern overlay (subtle)
+                            ForEach(0..<6) { index in
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.white.opacity(0.03))
+                                    .frame(width: 40, height: 40)
+                                    .rotationEffect(.degrees(Double(index) * 60))
+                                    .position(
+                                        x: geometry.size.width * (0.5 + 0.3 * cos(Double(index) * .pi / 3)),
+                                        y: geometry.size.height * (0.5 + 0.3 * sin(Double(index) * .pi / 3))
+                                    )
+                                    .blur(radius: 10)
+                            }
                         }
                     }
                 )
@@ -568,10 +984,7 @@ struct QRCodeCard: View {
                             .frame(width: 110, height: 110)
                             .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                         
-                        if isLoadingQR {
-                            ProgressView()
-                                .tint(.orange)
-                        } else if let qrImage = qrImage {
+                        if let qrImage = qrImage {
                             Image(uiImage: qrImage)
                                 .resizable()
                                 .interpolation(.none)
@@ -595,44 +1008,6 @@ struct QRCodeCard: View {
             }
             .padding(20)
         }
-        .frame(height: 180)
-        .shadow(color: Color.orange.opacity(0.3), radius: 12, x: 0, y: 6)
-        .onAppear {
-            loadQRImage()
-            loadProfileImage()
-        }
-    }
-    
-    private func loadQRImage() {
-        guard let url = URL(string: qr.qrCodeUrl) else {
-            isLoadingQR = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            DispatchQueue.main.async {
-                if let data = data, let image = UIImage(data: data) {
-                    self.qrImage = image
-                }
-                self.isLoadingQR = false
-            }
-        }.resume()
-    }
-    
-    private func loadProfileImage() {
-        guard let urlString = profileImageUrl, let url = URL(string: urlString) else {
-            isLoadingProfile = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            DispatchQueue.main.async {
-                if let data = data, let image = UIImage(data: data) {
-                    self.profileImage = image
-                }
-                self.isLoadingProfile = false
-            }
-        }.resume()
     }
 }
 
