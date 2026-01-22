@@ -116,6 +116,9 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            // Attempt to restore session immediately
+            authService.restoreSession()
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 withAnimation {
                     showSplash = false

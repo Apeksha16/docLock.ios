@@ -5,6 +5,7 @@ struct SecureQRView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var documentsService: DocumentsService
     @ObservedObject var secureQRService: SecureQRService
+    @ObservedObject var authService: AuthService
     let userId: String
     @State private var hasAppeared = false
     @State private var showAddQRSheet = false
@@ -206,37 +207,7 @@ struct SecureQRView: View {
                     .scrollContentBackground(.hidden)
                 }
                 
-                // Floating Add Button (shown when list has items)
-                if !secureQRService.secureQRs.isEmpty && !showAddQRSheet && !showDownloadSheet && !showDeleteConfirmation && !showEditSheet {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    showAddQRSheet = true
-                                }
-                            }) {
-                                Image(systemName: "plus")
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white)
-                                    .frame(width: 60, height: 60)
-                                    .background(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color.orange, Color.orange.opacity(0.8)]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .clipShape(Circle())
-                                    .shadow(color: Color.orange.opacity(0.4), radius: 10, x: 0, y: 5)
-                            }
-                            .padding(.trailing, 24)
-                            .padding(.bottom, 24)
-                        }
-                    }
-                }
+
             }
             .onAppear {
                 hasAppeared = true
@@ -247,21 +218,46 @@ struct SecureQRView: View {
             }
             .blur(radius: showAddQRSheet ? 3 : 0)
             
+            // Floating Add Button (Center Aligned)
+            if !secureQRService.secureQRs.isEmpty && !showAddQRSheet && !showDownloadSheet && !showDeleteConfirmation && !showEditSheet {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                showAddQRSheet = true
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color.orange, Color.orange.opacity(0.8)]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(Circle())
+                                .shadow(color: Color.orange.opacity(0.4), radius: 10, x: 0, y: 5)
+                        }
+                        .padding(.bottom, 24)
+                        Spacer()
+                    }
+                }
+            }
+            
             // Add QR Sheet Overlay
             if showAddQRSheet {
-                Color.black.opacity(0.4)
-                    .edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        withAnimation { showAddQRSheet = false }
-                    }
-                
                 AddQRSheet(
                     isPresented: $showAddQRSheet,
                     documentsService: documentsService,
                     secureQRService: secureQRService,
                     userId: userId
                 )
-                .transition(.move(edge: .bottom))
                 .zIndex(100)
             }
         }
@@ -618,24 +614,22 @@ struct EditQRSheet: View {
                         }
                         .padding(.horizontal)
                         
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(documentsService.currentFolderDocuments) { document in
-                                    DocumentSelectionCard(
-                                        document: document,
-                                        isSelected: selectedDocuments.contains(document.id),
-                                        onTap: {
-                                            if selectedDocuments.contains(document.id) {
-                                                selectedDocuments.remove(document.id)
-                                            } else {
-                                                selectedDocuments.insert(document.id)
-                                            }
+                        LazyVStack(spacing: 12) {
+                            ForEach(documentsService.currentFolderDocuments) { document in
+                                DocumentRow(
+                                    document: document,
+                                    isSelected: selectedDocuments.contains(document.id),
+                                    onTap: {
+                                        if selectedDocuments.contains(document.id) {
+                                            selectedDocuments.remove(document.id)
+                                        } else {
+                                            selectedDocuments.insert(document.id)
                                         }
-                                    )
-                                }
+                                    }
+                                )
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.horizontal)
                     }
                 }
             }

@@ -83,25 +83,34 @@ struct DocumentsView: View {
         let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 3
         let currentDepth = currentFolderDepth
         
-        // Can create if current depth + 1 < maxDepth
-        // e.g., if maxDepth is 3: can create at depth 0 or 1, but not at depth 2 or higher
-        // At depth 2: 2 + 1 = 3, which equals maxDepth, so cannot create
-        // At depth 3: 3 + 1 = 4, which exceeds maxDepth, so cannot create
-        // At depth 4: 4 + 1 = 5, which exceeds maxDepth (if maxDepth is 3 or 4), so cannot create
-        let canCreate = currentDepth + 1 < maxDepth
+        // Count Home as Level 1
+        // Level 1: Home (Depth 0)
+        // Level 2: 1st Folder (Depth 1)
+        // Level 3: 2nd Folder (Depth 2)
+        let currentLevel = currentDepth + 1
         
-        // Debug logging
-        print("🔍 canCreateFolderAtCurrentLocation: currentDepth=\(currentDepth), maxDepth=\(maxDepth), newDepthWouldBe=\(currentDepth + 1), canCreate=\(canCreate)")
-        
-        return canCreate
+        // Hide if current level has reached max nesting allowed
+        // If maxDepth is 3, and we are at Level 3, we cannot create more.
+        return currentLevel < maxDepth
     }
     
-    // Computed property to inject "Shared" folder if needed
+    // Computed property to inject "Shared" folder at top if shared documents exist
+    // Only shows at root level (selectedFolderId == nil) and only when sharedDocsCount > 0
     var displayedFolders: [DocFolder] {
         var folders = documentsService.folders
+        // Show "Shared" folder at the top only when:
+        // 1. We're at root level (selectedFolderId == nil)
+        // 2. There are shared documents available (sharedDocsCount > 0)
         if selectedFolderId == nil && documentsService.sharedDocsCount > 0 {
-             let sharedFolder = DocFolder(id: "SHARED_ROOT", name: "Shared", itemCount: documentsService.sharedDocsCount, icon: "person.2.fill", parentFolderId: nil, depth: 0)
-             folders.insert(sharedFolder, at: 0)
+            let sharedFolder = DocFolder(
+                id: "SHARED_ROOT",
+                name: "Shared",
+                itemCount: documentsService.sharedDocsCount,
+                icon: "person.2.fill",
+                parentFolderId: nil,
+                depth: 0
+            )
+            folders.insert(sharedFolder, at: 0) // Insert at top (index 0)
         }
         return folders
     }
@@ -351,7 +360,8 @@ struct DocumentsView: View {
                     DocumentsEmptyState(
                         showCreateFolderSheet: $showCreateFolderSheet,
                         showUploadDocumentSheet: $showUploadDocumentSheet,
-                        showUploadImageSheet: $showUploadImageSheet
+                        showUploadImageSheet: $showUploadImageSheet,
+                        canCreateFolder: canCreateFolderAtCurrentLocation
                     )
                 } else {
                     // Show folders in list view with swipe actions
@@ -490,6 +500,34 @@ struct DocumentsView: View {
                 )
             }
             
+            // Edit Folder Sheet (no .sheet() modifier - CreateFolderSheet handles its own presentation)
+            if showEditFolderSheet, let folder = folderToEdit {
+                CreateFolderSheet(
+                    documentsService: documentsService,
+                    userId: userId,
+                    parentFolderId: currentLocationFolderId, // Not used for edit
+                    parentDepth: currentFolderDepth,   // Not used for edit
+                    isPresented: $showEditFolderSheet,
+                    toastMessage: $toastMessage,
+                    toastType: $toastType,
+                    folderToEdit: folder
+                )
+            }
+            
+            // Edit Document Sheet (no .sheet() modifier - CreateFolderSheet handles its own presentation)
+            if showEditDocumentSheet, let document = documentToEdit {
+                CreateFolderSheet(
+                    documentsService: documentsService,
+                    userId: userId,
+                    parentFolderId: currentLocationFolderId, // Not used for edit
+                    parentDepth: currentFolderDepth,   // Not used for edit
+                    isPresented: $showEditDocumentSheet,
+                    toastMessage: $toastMessage,
+                    toastType: $toastType,
+                    documentToEdit: document
+                )
+            }
+            
             // FAB Overlay
             if showFabMenu {
                 Color.white.opacity(0.8)
@@ -548,7 +586,7 @@ struct DocumentsView: View {
             let isNotRoot = selectedFolderId != nil
             let noSheetsOpen = !showCreateFolderSheet && !showUploadDocumentSheet && !showUploadImageSheet && !showEditFolderSheet && !showEditDocumentSheet && !showingFriendSelection && !showDeleteDocumentConfirmation && !showDeleteConfirmation && !showDocumentPreview
             
-            if isNotRoot && isNotEmpty && noSheetsOpen && selectedFolderId != "SHARED_ROOT" {
+            if isNotEmpty && noSheetsOpen && selectedFolderId != "SHARED_ROOT" {
                 VStack {
                     Spacer()
                     HStack {
@@ -637,33 +675,6 @@ struct DocumentsView: View {
             // Calculate storage size in background
             DispatchQueue.global(qos: .utility).async {
                 documentsService.updateStorageSize(userId: userId, fileSize: 0, isAdd: false)
-            }
-        }
-        .sheet(isPresented: $showEditFolderSheet) {
-            if let folder = folderToEdit {
-                CreateFolderSheet(
-                    documentsService: documentsService,
-                    userId: userId,
-                    parentFolderId: currentLocationFolderId, // Not used for edit
-                    parentDepth: currentFolderDepth,   // Not used for edit
-                    isPresented: $showEditFolderSheet,
-                    toastMessage: $toastMessage,
-                    toastType: $toastType,
-                    folderToEdit: folder
-                )
-            }
-        }
-        .sheet(isPresented: $showEditDocumentSheet) {
-            if let document = documentToEdit {
-                EditDocumentSheet(
-                    documentsService: documentsService,
-                    userId: userId,
-                    document: document,
-                    folderId: selectedFolderId,
-                    isPresented: $showEditDocumentSheet,
-                    toastMessage: $toastMessage,
-                    toastType: $toastType
-                )
             }
         }
         .overlay(
@@ -768,6 +779,8 @@ struct DocumentsView: View {
             pathFolderIds = [nil]
             documentsService.stopListeningToFolder()
             documentsService.startListening(userId: userId, parentFolderId: nil)
+            documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil) // CRITICAL: Fetch root documents
+            documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: nil) // CRITICAL: Fetch root folders
             withAnimation {
                 currentPath = ["HOME"]
             }
@@ -786,10 +799,13 @@ struct DocumentsView: View {
             // This shouldn't happen for non-HOME items, but handle it
             selectedFolderId = nil
             selectedFolderName = nil
+            selectedFolderDepth = 0
             folderHierarchy = []
             pathFolderIds = [nil]
             documentsService.stopListeningToFolder()
             documentsService.startListening(userId: userId, parentFolderId: nil)
+            documentsService.fetchDocumentsInFolder(userId: userId, folderId: nil) // CRITICAL: Fetch root documents
+            documentsService.fetchFoldersInFolder(userId: userId, parentFolderId: nil) // CRITICAL: Fetch root folders
             withAnimation {
                 currentPath = ["HOME"]
             }
@@ -837,6 +853,7 @@ struct DocumentsEmptyState: View {
     @Binding var showCreateFolderSheet: Bool
     @Binding var showUploadDocumentSheet: Bool
     @Binding var showUploadImageSheet: Bool
+    var canCreateFolder: Bool = true // Default to true for backward compatibility
     @State private var hasAppeared = false
     
     var body: some View {
@@ -957,9 +974,11 @@ struct DocumentsEmptyState: View {
                 }
                 
                 // Create Folder
-                EmptyStateActionButton(title: "Create Folder", icon: "folder.badge.plus", color: Color(red: 0.3, green: 0.35, blue: 0.4)) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        showCreateFolderSheet = true
+                if canCreateFolder {
+                    EmptyStateActionButton(title: "Create Folder", icon: "folder.badge.plus", color: Color(red: 0.3, green: 0.35, blue: 0.4)) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            showCreateFolderSheet = true
+                        }
                     }
                 }
             }
@@ -1055,13 +1074,17 @@ struct CreateFolderSheet: View {
     @Binding var toastMessage: String?
     @Binding var toastType: ToastType
     var folderToEdit: DocFolder? = nil
+    var documentToEdit: DocumentFile? = nil
     
-    @State private var folderName: String = ""
+    @State private var itemName: String = ""
     @State private var sheetOffset: CGFloat = 800
     @State private var iconScale: CGFloat = 0.5
     @State private var iconRotation: Double = -180
     @FocusState private var isFocused: Bool
     @State private var keyboardHeight: CGFloat = 0
+    
+    private var isEditing: Bool { folderToEdit != nil || documentToEdit != nil }
+    private var isDocument: Bool { documentToEdit != nil }
     
     var body: some View {
         VStack {
@@ -1104,7 +1127,11 @@ struct CreateFolderSheet: View {
             }
         }
         .onAppear {
-            if let folder = folderToEdit { folderName = folder.name }
+            if let folder = folderToEdit {
+                itemName = folder.name
+            } else if let document = documentToEdit {
+                itemName = document.name
+            }
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) { sheetOffset = 0 }
             withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
                 iconScale = 1.0
@@ -1130,14 +1157,14 @@ private extension CreateFolderSheet {
             RoundedRectangle(cornerRadius: 35)
                 .fill(
                     LinearGradient(
-                        gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                        gradient: Gradient(colors: iconColors),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .frame(width: 90, height: 90)
             
-            Image(systemName: folderToEdit != nil ? "pencil" : "folder.fill")
+            Image(systemName: iconName)
                 .font(.system(size: 38, weight: .semibold))
                 .foregroundColor(.white)
         }
@@ -1146,13 +1173,27 @@ private extension CreateFolderSheet {
         .padding(.top, 8)
     }
     
+    var iconName: String {
+        if let doc = documentToEdit {
+            return doc.type == "image" ? "photo.fill" : "doc.fill"
+        }
+        return isEditing ? "pencil" : "folder.fill"
+    }
+    
+    var iconColors: [Color] {
+        if let doc = documentToEdit {
+            return doc.type == "image" ? [Color.cyan, Color.cyan.opacity(0.8)] : [Color.blue, Color.blue.opacity(0.8)]
+        }
+        return [Color.blue, Color.blue.opacity(0.8)]
+    }
+    
     var headerTexts: some View {
         VStack(spacing: 8) {
-            Text(folderToEdit != nil ? "Edit Folder" : "New Folder")
+            Text(headerTitle)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
             
-            Text(folderToEdit != nil ? "Update your folder name." : "Create a new folder to organize\nyour documents.")
+            Text(headerSubtitle)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
@@ -1161,8 +1202,23 @@ private extension CreateFolderSheet {
         }
     }
     
+    var headerTitle: String {
+        if let _ = documentToEdit {
+            return "Edit Name"
+        }
+        return isEditing ? "Edit Folder" : "New Folder"
+    }
+    
+    var headerSubtitle: String {
+        if let doc = documentToEdit {
+            let type = doc.type == "image" ? "image" : "file"
+            return "Update your \(type) name."
+        }
+        return isEditing ? "Update your folder name." : "Create a new folder to organize\nyour documents."
+    }
+    
     var inputField: some View {
-        TextField("Folder Name", text: $folderName)
+        TextField(isDocument ? "File Name" : "Folder Name", text: $itemName)
             .font(.headline)
             .foregroundColor(.black)
             .padding()
@@ -1172,12 +1228,14 @@ private extension CreateFolderSheet {
             .focused($isFocused)
             .padding(.horizontal, 24)
             .submitLabel(.done)
-            .onChange(of: folderName) { newValue in
+            .onChange(of: itemName) { newValue in
                 var filtered = newValue.filter { char in
                     char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
                 }
+                // Use 50 for all for consistency, or strict 30 for docs if desired. 
+                // Previous code for folders used 50, docs used 30. Let's align to 50 for flexibility.
                 if filtered.count > 50 { filtered = String(filtered.prefix(50)) }
-                if folderName != filtered { folderName = filtered }
+                if itemName != filtered { itemName = filtered }
             }
     }
     
@@ -1185,7 +1243,7 @@ private extension CreateFolderSheet {
         VStack(spacing: 16) {
             Button(action: handleSave) {
                 ZStack {
-                    Text(folderToEdit != nil ? "Update Folder" : "Create Folder")
+                    Text(buttonTitle)
                         .fontWeight(.bold)
                 }
                 .frame(maxWidth: .infinity)
@@ -1195,8 +1253,8 @@ private extension CreateFolderSheet {
                 .cornerRadius(15)
             }
             .padding(.horizontal, 24)
-            .disabled(folderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name))
-            .opacity((folderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (folderToEdit != nil && folderName == folderToEdit?.name)) ? 0.6 : 1.0)
+            .disabled(isSaveDisabled)
+            .opacity(isSaveDisabled ? 0.6 : 1.0)
             
             Button(action: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -1210,12 +1268,40 @@ private extension CreateFolderSheet {
         }
     }
     
+    var buttonTitle: String {
+        if isDocument { return "Save Changes" }
+        return isEditing ? "Update Folder" : "Create Folder"
+    }
+    
+    var isSaveDisabled: Bool {
+        let trimmed = itemName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return true }
+        if let folder = folderToEdit, trimmed == folder.name { return true }
+        if let doc = documentToEdit, trimmed == doc.name { return true }
+        return false
+    }
+    
     func handleSave() {
-        if let folder = folderToEdit {
-            documentsService.updateFolder(userId: userId, folderId: folder.id, newName: folderName.trimmingCharacters(in: .whitespacesAndNewlines)) { success, error in
+        let trimmedName = itemName.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if let document = documentToEdit {
+             documentsService.updateDocumentName(userId: userId, documentId: document.id, newName: trimmedName) { success, error in
                 DispatchQueue.main.async {
                     if success {
-                        toastMessage = "Folder renamed to '\(folderName)'"
+                        toastMessage = "\(document.type == "image" ? "Image" : "Document") renamed"
+                        toastType = .success
+                        isPresented = false
+                    } else {
+                        toastMessage = error ?? "Error"
+                        toastType = .error
+                    }
+                }
+            }
+        } else if let folder = folderToEdit {
+            documentsService.updateFolder(userId: userId, folderId: folder.id, newName: trimmedName) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        toastMessage = "Folder renamed to '\(trimmedName)'"
                         toastType = .success
                         isPresented = false
                     } else {
@@ -1226,10 +1312,10 @@ private extension CreateFolderSheet {
             }
         } else {
             let maxDepth = documentsService.appConfigService?.maxFolderDepth ?? 5
-            documentsService.createFolder(userId: userId, folderName: folderName.trimmingCharacters(in: .whitespacesAndNewlines), parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
+            documentsService.createFolder(userId: userId, folderName: trimmedName, parentFolderId: parentFolderId, parentDepth: parentDepth, maxDepth: maxDepth) { success, error in
                 DispatchQueue.main.async {
                     if success {
-                        toastMessage = "Folder '\(folderName)' created"
+                        toastMessage = "Folder '\(trimmedName)' created"
                         toastType = .success
                         isPresented = false
                     } else {
@@ -1508,23 +1594,7 @@ struct UploadDocumentSheet: View {
         errorMessage = nil
         
         // Get file name from URL
-        let originalFileName = url.lastPathComponent
-        
-        // Truncate filename to 30 characters max (preserving extension)
-        let nameWithoutExt = url.deletingPathExtension().lastPathComponent
-        let ext = url.pathExtension
-        let maxNameLength = 30 - (ext.count + 1) // +1 for dot
-        
-        var fileName = originalFileName
-        if originalFileName.count > 30 {
-            if maxNameLength > 0 {
-                let truncatedName = String(nameWithoutExt.prefix(maxNameLength))
-                fileName = "\(truncatedName).\(ext)"
-            } else {
-                 // Fallback if extension is super long (unlikely)
-                 fileName = String(originalFileName.prefix(30))
-            }
-        }
+        let fileName = url.lastPathComponent
         
         // Validate file type - only PDFs allowed
         let fileExtension = (fileName as NSString).pathExtension.lowercased()
@@ -2052,8 +2122,6 @@ struct DocumentListItem: View {
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
                 
                 HStack(spacing: 6) {
                     if document.isShared {
@@ -2258,69 +2326,20 @@ struct EditDocumentSheet: View {
                     .padding(.top, 12)
                     .padding(.bottom, 8)
                 
-                // Premium Animated Header Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    document.type == "image" ? Color.cyan.opacity(0.15) : Color.blue.opacity(0.15),
-                                    document.type == "image" ? Color.cyan.opacity(0.08) : Color.blue.opacity(0.08)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-                    
-                    Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(document.type == "image" ? .cyan : .blue)
-                }
-                .scaleEffect(iconScale)
-                .rotationEffect(.degrees(iconRotation))
-                .padding(.top, 5)
-                
-                // Title & Subtitle
-                VStack(spacing: 8) {
-                    Text("Edit Name")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    
-                    Text("Update your \(fileTypeText) name.")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal)
-                }
-                
-                // Input Field
-                TextField("\(isImageFile ? "Image" : "File") Name", text: $documentName)
-                    .font(.headline)
-                    .padding()
-                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .focused($isFocused)
-                    .padding(.horizontal, 25)
-                    .submitLabel(.done)
-                    .onChange(of: documentName) { newValue in
-                        // Only allow alphanumeric, space, hyphen, and underscore
-                        var filtered = newValue.filter { char in
-                            char.isLetter || char.isNumber || char == " " || char == "-" || char == "_"
-                        }
-                        // Limit to 30 characters
-                        if filtered.count > 30 {
-                            filtered = String(filtered.prefix(30))
-                        }
-                        if documentName != filtered {
-                            documentName = filtered
-                        }
+                // Content Container
+                VStack(spacing: 24) {
+                    // Icon
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 35)
+                            .fill(LinearGradient(gradient: Gradient(colors: [
+                                document.type == "image" ? Color.cyan.opacity(0.15) : Color.blue.opacity(0.15),
+                                document.type == "image" ? Color.cyan.opacity(0.08) : Color.blue.opacity(0.08)
+                            ]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 90, height: 90)
+                        
+                        Image(systemName: document.type == "image" ? "photo.fill" : "doc.fill")
+                            .font(.system(size: 38, weight: .semibold))
+                            .foregroundColor(document.type == "image" ? .cyan : .blue)
                     }
                     .scaleEffect(iconScale)
                     .rotationEffect(.degrees(iconRotation))

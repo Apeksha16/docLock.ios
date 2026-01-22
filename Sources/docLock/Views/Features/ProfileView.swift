@@ -541,142 +541,205 @@ struct EditNameView: View {
     @State private var newName: String = ""
     @State private var isSaving = false
     @State private var sheetOffset: CGFloat = 800
+    @State private var iconScale: CGFloat = 0.5
+    @State private var iconRotation: Double = -180
+    @State private var keyboardHeight: CGFloat = 0
     @FocusState private var isFocused: Bool
     
+    // Theme Color
+    let themeColor = Color(red: 0.28, green: 0.65, blue: 0.66)
+    
     var body: some View {
-        ZStack {
-            // Dimmed background
-            Color.black.opacity(0.4)
-                .edgesIgnoringSafeArea(.all)
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
+        VStack {
+            Spacer()
             
-            // Modal Content (Centered)
-            VStack(spacing: 20) {
+            VStack(spacing: 0) {
                 // Drag Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 4)
-                    .padding(.top, 10)
+                    .frame(width: 50, height: 5)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
                 
-                // Header Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color(red: 0.28, green: 0.65, blue: 0.66).opacity(0.1))
-                        .frame(width: 60, height: 60)
+                VStack(spacing: 24) {
+                    // Header Icon
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 35)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [themeColor, themeColor.opacity(0.8)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 90, height: 90)
+                            .shadow(color: themeColor.opacity(0.3), radius: 10, x: 0, y: 5)
+                        
+                        Image(systemName: "pencil.line")
+                            .font(.system(size: 38, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .scaleEffect(iconScale)
+                    .rotationEffect(.degrees(iconRotation))
+                    .padding(.top, 8)
                     
-                    Image(systemName: "pencil.line")
-                        .font(.system(size: 28))
-                        .foregroundColor(Color(red: 0.28, green: 0.65, blue: 0.66))
-                }
-                .padding(.top, 5)
-                
-                // Title & Subtitle
-                VStack(spacing: 8) {
-                    Text("Update Name")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                    // Title & Subtitle
+                    VStack(spacing: 8) {
+                        Text("Update Name")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        
+                        Text("Time for a rebrand? Pick a name that\nmatches your vibe! ✨")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal)
+                    }
+                    
+                    // Input Field
+                    TextField("Enter your full name", text: $newName)
+                        .font(.headline)
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                        .padding()
+                        .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .focused($isFocused)
+                        .padding(.horizontal, 24)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            isFocused = false
+                        }
                     
-                    Text("Time for a rebrand? Pick a name that\nmatches your vibe! ✨")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal)
-                }
-                
-                // Input Field
-                TextField("Enter your full name", text: $newName)
-                    .font(.headline)
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .padding()
-                    .background(Color(red: 0.96, green: 0.96, blue: 0.98))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .focused($isFocused)
-                    .padding(.horizontal, 25)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        if !newName.isEmpty {
-                            // Trigger save
-                            isSaving = true
-                            authService.updateName(name: newName) { success, _ in
-                                isSaving = false
-                                if success {
-                                    withAnimation { isPresented = false }
+                    // Action Buttons
+                    VStack(spacing: 16) {
+                        Button(action: saveName) {
+                            ZStack {
+                                if isSaving {
+                                     ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text("Save Changes")
+                                        .fontWeight(.bold)
                                 }
                             }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [themeColor, themeColor.opacity(0.8)]), 
+                                    startPoint: .leading, 
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(15)
+                            .opacity(newName.isEmpty || isSaving ? 0.6 : 1.0)
                         }
-                    }
-                
-                // Action Buttons
-                VStack(spacing: 15) {
-                    Button(action: {
-                        isSaving = true
-                        authService.updateName(name: newName) { success, _ in
-                            isSaving = false
-                            if success {
-                                withAnimation { isPresented = false }
+                        .disabled(newName.isEmpty || isSaving)
+                        
+                        Button(action: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                isPresented = false
                             }
-                        }
-                    }) {
-                        HStack {
-                            if isSaving {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .padding(.trailing, 5)
-                            }
-                            Text(isSaving ? "Saving..." : "Save Changes")
+                        }) {
+                            Text("Wait, I changed my mind")
                                 .font(.headline)
                                 .fontWeight(.bold)
+                                .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(newName.isEmpty || isSaving ? Color.gray.opacity(0.5) : Color(red: 0.28, green: 0.65, blue: 0.66))
-                        .cornerRadius(15)
                     }
-                    .disabled(newName.isEmpty || isSaving)
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 20)
+                .padding(.bottom, keyboardHeight) // Pad content internally so background extends
+            }
+            .background(
+                ZStack {
+                    LinearGradient(gradient: Gradient(colors: [.white, Color(red: 0.99, green: 0.99, blue: 0.99)]), startPoint: .topLeading, endPoint: .bottomTrailing)
                     
-                    Button(action: {
-                        withAnimation { isPresented = false }
-                    }) {
-                        Text("Wait, I changed my mind")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
+                    // Blush Effects
+                    GeometryReader { proxy in
+                        // Left Blush
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    gradient: Gradient(colors: [
+                                        themeColor.opacity(0.15),
+                                        Color.clear
+                                    ]),
+                                    center: .center,
+                                    startRadius: 20,
+                                    endRadius: 200
+                                )
+                            )
+                            .frame(width: 400, height: 400)
+                            .position(x: 0, y: 50)
+                            .blur(radius: 60)
+                        
+                        // Right Blush
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    gradient: Gradient(colors: [
+                                        themeColor.opacity(0.12),
+                                        Color.clear
+                                    ]),
+                                    center: .center,
+                                    startRadius: 20,
+                                    endRadius: 180
+                                )
+                            )
+                            .frame(width: 350, height: 350)
+                            .position(x: proxy.size.width, y: 80)
+                            .blur(radius: 50)
                     }
                 }
-                .padding(.horizontal, 25)
-                .padding(.bottom, 20)
-            }
-            .padding(.bottom, isFocused ? 0 : 20) // Adjust padding when keyboard is active if needed, but main layout logic handles it
-            .background(Color.white)
-            .clipShape(RoundedCorner(radius: 30, corners: [.topLeft, .topRight]))
-            .shadow(color: Color.black.opacity(0.1), radius: 10, y: -5)
-            // Separate background layer to fill safe area
-            .background(
-                Color.white
-                    .edgesIgnoringSafeArea(.bottom)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
+            )
+            .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
+             .overlay(
+                RoundedCorner(radius: 20, corners: [.topLeft, .topRight])
+                    .stroke(Color.white.opacity(0.5), lineWidth: 1)
             )
             .offset(y: sheetOffset)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .onAppear {
-                newName = authService.user?.name ?? ""
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    sheetOffset = 0
-                }
+        }
+        .edgesIgnoringSafeArea(.all)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { output in
+            if let keyboardFrame = output.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+               withAnimation(.easeOut(duration: 0.25)) {
+                   self.keyboardHeight = keyboardFrame.height
+               }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.25)) {
+                self.keyboardHeight = 0
+            }
+        }
+        .onAppear {
+            newName = authService.user?.name ?? ""
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) { sheetOffset = 0 }
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
+                iconScale = 1.0
+                iconRotation = 0
+            }
+            DispatchQueue.main.async { isFocused = true }
+        }
         .zIndex(200)
+    }
+    
+    private func saveName() {
+        guard !newName.isEmpty else { return }
+        isSaving = true
+        authService.updateName(name: newName) { success, _ in
+            isSaving = false
+            if success {
+                withAnimation { isPresented = false }
+            }
+        }
     }
 }
 

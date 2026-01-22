@@ -134,9 +134,6 @@ struct DashboardView: View {
                         .transition(.opacity)
                     
                     AddFriendView(isPresented: $showAddFriend, authService: authService, friendsService: authService.friendsService)
-                        .transition(.move(edge: .bottom))
-                        .frame(maxHeight: .infinity, alignment: .bottom)
-                        .padding(.top, 50)
                 }
                 .zIndex(201)
             }

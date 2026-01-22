@@ -96,6 +96,34 @@ class AuthService: ObservableObject {
         }
     }
 
+
+    // MARK: - Restore Session
+    func restoreSession() {
+        if let currentUser = Auth.auth().currentUser {
+            print("🔄 Restore Session: Found user \(currentUser.uid)")
+            self.isLoading = true
+            
+            currentUser.getIDToken { [weak self] _, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("🔴 Session invalid: \(error.localizedDescription)")
+                    self.logout()
+                    self.isLoading = false
+                    return
+                }
+                
+                self.appConfigService.fetchConfig { success in
+                    self.isLoading = false
+                    if success {
+                        self.isAuthenticated = true
+                        self.startDataSync(userId: currentUser.uid)
+                    }
+                }
+            }
+        }
+    }
+
     func login(mobile: String, mpin: String) {
         print("AuthService: login called with mobile: \(mobile)")
         isLoading = true
