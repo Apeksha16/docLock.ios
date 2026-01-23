@@ -13,6 +13,8 @@ struct DashboardView: View {
     @State private var showRequestSheet = false
     @State private var selectedFriendForRequest: User?
     @State private var isDeletingAccount = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -238,9 +240,46 @@ struct DashboardView: View {
                     friend: friend,
                     currentUser: currentUser,
                     friendsService: authService.friendsService,
-                    isPresented: $showRequestSheet
+                    isPresented: $showRequestSheet,
+                    onSuccess: {
+                        toastMessage = "Request Sent Successfully"
+                        withAnimation {
+                            showToast = true
+                        }
+                    }
                 )
                 .zIndex(205)
+            }
+            
+            // Toast Overlay
+            if showToast {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.white)
+                        Text(toastMessage)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .background(
+                        Capsule()
+                            .fill(Color(hex: "00C853"))
+                            .shadow(color: Color.black.opacity(0.15), radius: 10, y: 5)
+                    )
+                    .padding(.bottom, 100)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(210)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        withAnimation {
+                            showToast = false
+                        }
+                    }
+                }
             }
         }
         .navigationBarHidden(true)

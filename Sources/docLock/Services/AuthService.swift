@@ -2278,17 +2278,18 @@ class DocumentsService: ObservableObject {
                                 }
                             }
                         }
+                        
+                        // Send Notifications
+                        // To Receiver
+                        notificationService.addNotification(userId: friendId, title: "Document Shared", message: "A document '\(document.name)' was shared with you.", type: "alert")
+                        
+                        // To Sender
+                        notificationService.addNotification(userId: userId, title: "Document Shared", message: "You successfully shared '\(document.name)' with your friend.", type: "alert")
+                        
                         completion(true, nil)
                     }
                 }
             }
-                    
-                    // Send Notifications
-                    // To Receiver
-                    notificationService.addNotification(userId: friendId, title: "Document Shared", message: "A document '\(document.name)' was shared with you.", type: "alert")
-                    
-                    // To Sender
-            notificationService.addNotification(userId: userId, title: "Document Shared", message: "You successfully shared '\(document.name)' with your friend.", type: "alert")
         }
     }
     
@@ -2932,17 +2933,18 @@ class CardsService: ObservableObject {
                             }
                         }
                     }
+                    
+                    // Send Notifications
+                    // To Receiver
+                    notificationService.addNotification(userId: friendId, title: "Card Shared", message: "A card verified by your friend was shared with you.", type: "alert")
+                    
+                    // To Sender
+                    notificationService.addNotification(userId: userId, title: "Card Shared", message: "You successfully shared \(card.cardName) with your friend.", type: "alert")
+                    
                     completion(true, nil)
                 }
             }
         }
-                
-                // Send Notifications
-                // To Receiver
-                notificationService.addNotification(userId: friendId, title: "Card Shared", message: "A card verified by your friend was shared with you.", type: "alert")
-                
-                // To Sender
-                notificationService.addNotification(userId: userId, title: "Card Shared", message: "You successfully shared \(card.cardName) with your friend.", type: "alert")
     }
     
     func updateCard(userId: String, cardId: String, card: CardModel, completion: @escaping (Bool, String?) -> Void) {
