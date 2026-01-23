@@ -7,11 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		333333333333333333333333 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444444444444444444444444 /* LoginView.swift */; };
+		333333333333333333333333 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444444444444444444444444 /* AuthView.swift */; };
 		555555555555555555555555 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 666666666666666666666666 /* AuthService.swift */; };
 		60E674392F1BCE1900EAC547 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674382F1BCE1900EAC547 /* FirebaseFirestore */; };
 		60E6743B2F1BCE1900EAC547 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 60E6743A2F1BCE1900EAC547 /* FirebaseStorage */; };
 		60E674462F1C286900EAC547 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674452F1C286900EAC547 /* FirebaseAuth */; };
+		60E674492F1C286900EAC54A /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 60E674482F1C286900EAC549 /* GoogleSignIn */; };
 		650F8C652F212D460084152B /* SecureQRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650F8C642F212D460084152B /* SecureQRService.swift */; };
 		650F8C672F212DDB0084152B /* SecureQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650F8C662F212DDB0084152B /* SecureQR.swift */; };
 		655C2FFA2F1E93F600627CD9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */; };
@@ -30,16 +31,14 @@
 		AQR1AQR1AQR1AQR1AQR1AQR1 /* AddQRSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */; };
 		BCC2A6089BBA43A8AAE01E40 /* docLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ABA508666E4CF898F1FC88 /* docLockApp.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* DocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */; };
-		SR1SR1SR1SR1SR1SR1SR1SR1 /* SearchResultsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = SR2SR2SR2SR2SR2SR2SR2SR2 /* SearchResultsOverlay.swift */; };
-		DS1DS1DS1DS1DS1DS1DS1DS1 /* DocumentsSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS2DS2DS2DS2DS2DS2DS2DS2 /* DocumentsSearchBar.swift */; };
 		C2C2C2C2C2C2C2C2C2C2C2C2 /* FeatureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */; };
 		C3C3C3C3C3C3C3C3C3C3C3C3 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */; };
 		C4C4C4C4C4C4C4C4C4C4C4C4 /* MPINView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */; };
 		C5C5C5C5C5C5C5C5C5C5C5C5 /* NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */; };
 		C6C6C6C6C6C6C6C6C6C6C6C6 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */; };
 		C7C7C7C7C7C7C7C7C7C7C7C7 /* SecureQRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */; };
-		C8C8C8C8C8C8C8C8C8C8C8C8 /* SignupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */; };
 		C9C9C9C9C9C9C9C9C9C9C9C9 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D9D9D9D9D9D9D9D9D9D9D9 /* SplashScreenView.swift */; };
+		DS1DS1DS1DS1DS1DS1DS1DS1 /* DocumentsSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS2DS2DS2DS2DS2DS2DS2DS2 /* DocumentsSearchBar.swift */; };
 		E1E1E1E1E1E1E1E1E1E1E1E1 /* StorageCircleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */; };
 		E2E2E2E2E2E2E2E2E2E2E2E2 /* SwipeToDismissModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */; };
 		E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */; };
@@ -47,8 +46,6 @@
 		E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */; };
 		E6E6E6E6E6E6E6E6E6E6E6E6 /* CardSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* CardSelectionSheet.swift */; };
 		E7E7E7E7E7E7E7E7E7E7E7E7 /* DocumentSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F7F7F7F7F7F7F7F7F7F7F7 /* DocumentSelectionSheet.swift */; };
-
-
 		EIC1EIC1EIC1EIC1EIC1EIC1 /* IconGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */; };
 		H1H1H1H1H1H1H1H1H1H1H1H1 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */; };
 		M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */; };
@@ -59,15 +56,17 @@
 		MBMBMBMBMBMBMBMBMBMB /* VerifyMobileRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = MCMCMCMCMCMCMCMCMCMC /* VerifyMobileRequest.swift */; };
 		MDMDMDMDMDMDMDMDMDMD /* VerifyMobileResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = MEMEMEMEMEMEMEMEMEME /* VerifyMobileResponse.swift */; };
 		MFMFMFMFMFMFMFMFMFMF /* ErrorResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = MGMGMGMGMGMGMGMGMGMG /* ErrorResponse.swift */; };
+		SR1SR1SR1SR1SR1SR1SR1SR1 /* SearchResultsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = SR2SR2SR2SR2SR2SR2SR2SR2 /* SearchResultsOverlay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		31ABA508666E4CF898F1FC88 /* docLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = docLockApp.swift; sourceTree = "<group>"; };
-		444444444444444444444444 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		444444444444444444444444 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		604D1E862F1B61B700089094 /* docLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = docLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		650F8C642F212D460084152B /* SecureQRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureQRService.swift; sourceTree = "<group>"; };
 		650F8C662F212DDB0084152B /* SecureQR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureQR.swift; sourceTree = "<group>"; };
 		655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		655C2FFB2F1E93F600627CDB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		666666666666666666666666 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		777777777777777777777777 /* Sources/docLock/Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/docLock/Components.swift; sourceTree = "<group>"; };
 		A1CBA33FE23E03C9538BACDF /* RequestActionSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RequestActionSheet.swift; sourceTree = "<group>"; };
@@ -83,19 +82,15 @@
 		BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddQRSheet.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsView.swift; sourceTree = "<group>"; };
-		SR2SR2SR2SR2SR2SR2SR2SR2 /* SearchResultsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResultsOverlay.swift; sourceTree = "<group>"; };
-		DS2DS2DS2DS2DS2DS2DS2DS2 /* DocumentsSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsSearchBar.swift; sourceTree = "<group>"; };
 		D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureCard.swift; sourceTree = "<group>"; };
 		D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
 		D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MPINView.swift; sourceTree = "<group>"; };
 		D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
 		D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureQRView.swift; sourceTree = "<group>"; };
-		D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
 		D9D9D9D9D9D9D9D9D9D9D9D9 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
+		DS2DS2DS2DS2DS2DS2DS2DS2 /* DocumentsSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsSearchBar.swift; sourceTree = "<group>"; };
 		F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCircleView.swift; sourceTree = "<group>"; };
-
-
 		F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeToDismissModifier.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriterText.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
@@ -112,6 +107,7 @@
 		MCMCMCMCMCMCMCMCMCMC /* VerifyMobileRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyMobileRequest.swift; sourceTree = "<group>"; };
 		MEMEMEMEMEMEMEMEMEME /* VerifyMobileResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyMobileResponse.swift; sourceTree = "<group>"; };
 		MGMGMGMGMGMGMGMGMGMG /* ErrorResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorResponse.swift; sourceTree = "<group>"; };
+		SR2SR2SR2SR2SR2SR2SR2SR2 /* SearchResultsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResultsOverlay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +118,7 @@
 				60E674392F1BCE1900EAC547 /* FirebaseFirestore in Frameworks */,
 				60E674462F1C286900EAC547 /* FirebaseAuth in Frameworks */,
 				60E6743B2F1BCE1900EAC547 /* FirebaseStorage in Frameworks */,
+				60E674492F1C286900EAC54A /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,6 +146,7 @@
 				777777777777777777777777 /* Sources/docLock/Components.swift */,
 				60E674442F1C286900EAC547 /* Frameworks */,
 				655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */,
+				655C2FFB2F1E93F600627CDB /* Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -217,8 +215,7 @@
 		VAVAVAVAVAVAVAVAVAVA /* Auth */ = {
 			isa = PBXGroup;
 			children = (
-				444444444444444444444444 /* LoginView.swift */,
-				D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */,
+				444444444444444444444444 /* AuthView.swift */,
 				D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */,
 			);
 			name = Auth;
@@ -239,7 +236,6 @@
 				F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */,
 				F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */,
 				F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */,
-
 				F6F6F6F6F6F6F6F6F6F6F6F6 /* CardSelectionSheet.swift */,
 				F7F7F7F7F7F7F7F7F7F7F7F7 /* DocumentSelectionSheet.swift */,
 				FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */,
@@ -299,6 +295,7 @@
 				60E674382F1BCE1900EAC547 /* FirebaseFirestore */,
 				60E6743A2F1BCE1900EAC547 /* FirebaseStorage */,
 				60E674452F1C286900EAC547 /* FirebaseAuth */,
+				60E674482F1C286900EAC549 /* GoogleSignIn */,
 			);
 			productName = docLock;
 			productReference = 604D1E862F1B61B700089094 /* docLock.app */;
@@ -331,6 +328,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				60E674372F1BCE1900EAC547 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				60E674472F1C286900EAC548 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			productRefGroup = 604D1E872F1B61B700089094 /* Products */;
 			projectDirPath = "";
@@ -359,7 +357,7 @@
 			files = (
 				BCC2A6089BBA43A8AAE01E40 /* docLockApp.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAA /* ContentView.swift in Sources */,
-				333333333333333333333333 /* LoginView.swift in Sources */,
+				333333333333333333333333 /* AuthView.swift in Sources */,
 				555555555555555555555555 /* AuthService.swift in Sources */,
 				777777777777777777777778 /* Sources/docLock/Components.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* AboutView.swift in Sources */,
@@ -382,14 +380,12 @@
 				C5C5C5C5C5C5C5C5C5C5C5C5 /* NotificationView.swift in Sources */,
 				C6C6C6C6C6C6C6C6C6C6C6C6 /* ProfileView.swift in Sources */,
 				C7C7C7C7C7C7C7C7C7C7C7C7 /* SecureQRView.swift in Sources */,
-				C8C8C8C8C8C8C8C8C8C8C8C8 /* SignupView.swift in Sources */,
 				C9C9C9C9C9C9C9C9C9C9C9C9 /* SplashScreenView.swift in Sources */,
 				E1E1E1E1E1E1E1E1E1E1E1E1 /* StorageCircleView.swift in Sources */,
 				E2E2E2E2E2E2E2E2E2E2E2E2 /* SwipeToDismissModifier.swift in Sources */,
 				E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */,
 				E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */,
 				E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */,
-
 				E6E6E6E6E6E6E6E6E6E6E6E6 /* CardSelectionSheet.swift in Sources */,
 				E7E7E7E7E7E7E7E7E7E7E7E7 /* DocumentSelectionSheet.swift in Sources */,
 				EIC1EIC1EIC1EIC1EIC1EIC1 /* IconGeneratorView.swift in Sources */,
@@ -527,8 +523,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PZM9G8P6X3;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/docLock/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "DocLock needs access to save your QR code cards to your photo library.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -557,8 +553,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PZM9G8P6X3;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/docLock/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "DocLock needs access to save your QR code cards to your photo library.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -610,6 +606,14 @@
 				minimumVersion = 12.8.0;
 			};
 		};
+		60E674472F1C286900EAC548 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -627,6 +631,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 60E674372F1BCE1900EAC547 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
+		};
+		60E674482F1C286900EAC549 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60E674472F1C286900EAC548 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

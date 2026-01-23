@@ -4,7 +4,6 @@ struct ContentView: View {
     @StateObject private var authService = AuthService()
     @State private var showSplash = true
     @State private var showMPIN = false
-    @State private var showSignup = false
     @State private var mobileNumber = "" // Store mobile number for MPIN view
     @State private var fullName = "" // Store full name for signup flow
     @State private var isLoginFlow = true // Track if MPIN is for login or signup
@@ -29,78 +28,39 @@ struct ContentView: View {
                     ), authService: authService)
                 }
                 if !authService.isAuthenticated {
-                    ZStack {
-                        // Background - Dark Navy Blue
-                        Color(red: 0.05, green: 0.07, blue: 0.2)
-                            .edgesIgnoringSafeArea(.all)
-
-                        // Auth Flow Sheet
-                        ZStack {
-                            // Dimmed background overlay
-                            Color.black.opacity(0.4)
-                                .edgesIgnoringSafeArea(.all)
-                                .onTapGesture {
-                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                                }
-                                .transition(.opacity)
-
-                            BottomSheetView {
-                                if showMPIN {
-                                    MPINView(
-                                        mobileNumber: mobileNumber,
-                                        authService: authService,
-                                        isLoginFlow: isLoginFlow,
-                                        fullName: fullName,
-                                        onBack: {
-                                            withAnimation(.spring()) {
-                                                showMPIN = false
-                                            }
-                                        }
-                                    )
-                                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
-                                } else if showSignup {
-                                    SignupView(
-                                        authService: authService,
-                                        prefilledMobile: mobileNumber,
-                                        onBack: {
-                                            withAnimation(.spring()) {
-                                                showSignup = false
-                                            }
-                                        },
-                                        onOTPRequested: { name, mobile in
-                                            fullName = name
-                                            mobileNumber = mobile
-                                            isLoginFlow = false
-                                            withAnimation(.spring()) {
-                                                showMPIN = true
-                                            }
-                                        }
-                                    )
-                                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
-                                } else {
-                                    LoginView(
-                                        authService: authService,
-                                        onSignup: { mobile in
-                                            mobileNumber = mobile
-                                            withAnimation(.spring()) {
-                                                showSignup = true
-                                            }
-                                        },
-                                        onOTPRequested: { mobile in
-                                            mobileNumber = mobile
-                                            isLoginFlow = true
-                                            withAnimation(.spring()) {
-                                                showMPIN = true
-                                            }
-                                        }
-                                    )
-                                    .transition(.move(edge: .leading))
+                    if showMPIN {
+                        MPINView(
+                            mobileNumber: mobileNumber,
+                            authService: authService,
+                            isLoginFlow: isLoginFlow,
+                            fullName: fullName,
+                            onBack: {
+                                withAnimation(.spring()) {
+                                    showMPIN = false
                                 }
                             }
-                            .transition(.move(edge: .bottom))
-                            .frame(maxHeight: .infinity, alignment: .bottom)
-                            .padding(.top, 50)
-                        }
+                        )
+                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+                    } else {
+                        AuthView(
+                            authService: authService,
+                            onLoginSuccess: { mobile in
+                                mobileNumber = mobile
+                                isLoginFlow = true
+                                withAnimation(.spring()) {
+                                    showMPIN = true
+                                }
+                            },
+                            onSignupSuccess: { name, mobile in
+                                fullName = name
+                                mobileNumber = mobile
+                                isLoginFlow = false
+                                withAnimation(.spring()) {
+                                    showMPIN = true
+                                }
+                            }
+                        )
+                        .transition(.opacity)
                     }
                 }
             }
@@ -133,7 +93,6 @@ struct ContentView: View {
                 showMPIN = false // Reset to Login screen on logout
                 mobileNumber = "" // Clear mobile number on logout
                 fullName = "" // Clear full name on logout
-                showSignup = false
                 isLoginFlow = true
             }
         }

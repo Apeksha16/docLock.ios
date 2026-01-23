@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseCore
+import GoogleSignIn
 
 @main
 struct docLockApp: App {
@@ -20,6 +21,10 @@ struct docLockApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    // Handle Google Sign-In URL callback
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
     }
 }

@@ -73,7 +73,7 @@ struct DashboardView: View {
                     onPrimaryAction: {
                         withAnimation {
                             showLogoutModal = false
-                            isAuthenticated = false // Log out
+                            authService.logout() // Ensure Firebase sign-out and state cleanup
                         }
                     },
                     onCancel: { withAnimation { showLogoutModal = false } }

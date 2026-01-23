@@ -1,11 +1,14 @@
 import Foundation
 import SwiftUI
 import UIKit
+import FirebaseCore
 import FirebaseFirestore
 import FirebaseAuth
 import FirebaseStorage
 import CryptoKit
 import Security
+import AuthenticationServices
+import GoogleSignIn
 
 class AuthService: ObservableObject {
     @Published var isLoading = false
@@ -715,6 +718,351 @@ class AuthService: ObservableObject {
                 }
             }
         }.resume()
+    }
+    
+    // MARK: - Google Sign-In
+    func signInWithGoogle(presentingViewController: UIViewController) {
+        print("🔵 Google Sign-In initiated")
+        isLoading = true
+        errorMessage = nil
+        successMessage = nil
+        
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            self.errorMessage = "Firebase configuration error: Missing client ID"
+            self.isLoading = false
+            return
+        }
+        
+        // Configure Google Sign-In
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+        
+        // Start the sign-in flow
+        GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { [weak self] result, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if let error = error {
+                    let nsError = error as NSError
+                    // Check for user cancellation (Code -5 is typical for GIDSignIn cancellation, but generic check is safer for "cancelled" intent)
+                    if nsError.code == -5 || nsError.localizedDescription.contains("canceled") || nsError.localizedDescription.contains("cancelled") {
+                        self.errorMessage = "Please proceed with the signin process to enter in the docLock world."
+                    } else {
+                        print("🔴 Google Sign-In Error: \(error.localizedDescription)")
+                        self.errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
+                    }
+                    self.isLoading = false
+                    return
+                }
+                
+                guard let user = result?.user,
+                      let idToken = user.idToken?.tokenString else {
+                    self.errorMessage = "Failed to get Google ID token"
+                    self.isLoading = false
+                    return
+                }
+                
+                let accessToken = user.accessToken.tokenString
+                let email = user.profile?.email ?? ""
+                let name = user.profile?.name ?? "User"
+                let profileImageUrl = user.profile?.imageURL(withDimension: 200)?.absoluteString
+                
+                print("✅ Google Sign-In successful")
+                print("   Email: \(email)")
+                print("   Name: \(name)")
+                
+                // Create Firebase credential
+                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+                
+                // Sign in to Firebase Auth
+                Auth.auth().signIn(with: credential) { [weak self] authResult, error in
+                    guard let self = self else { return }
+                    
+                    if let error = error {
+                        print("🔴 Firebase Auth Error: \(error.localizedDescription)")
+                        self.errorMessage = "Firebase authentication failed: \(error.localizedDescription)"
+                        self.isLoading = false
+                        return
+                    }
+                    
+                    guard let firebaseUser = authResult?.user else {
+                        self.errorMessage = "Failed to get Firebase user"
+                        self.isLoading = false
+                        return
+                    }
+                    
+                    print("✅ Firebase Auth signed in: \(firebaseUser.uid)")
+                    
+                    // Check if user exists in Firestore
+                    self.checkAndCreateGoogleUser(
+                        firebaseUID: firebaseUser.uid,
+                        email: email,
+                        name: name,
+                        profileImageUrl: profileImageUrl,
+                        idToken: idToken
+                    )
+                }
+            }
+        }
+    }
+    
+    // MARK: - Check and Create Google User
+    private func checkAndCreateGoogleUser(firebaseUID: String, email: String, name: String, profileImageUrl: String?, idToken: String) {
+        let db = Firestore.firestore()
+        
+        // Check if user exists in Firestore by Firebase UID
+        db.collection("users").document(firebaseUID).getDocument { [weak self] snapshot, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("🔴 Error checking user: \(error.localizedDescription)")
+                self.errorMessage = "Failed to check user: \(error.localizedDescription)"
+                self.isLoading = false
+                return
+            }
+            
+            if let snapshot = snapshot, snapshot.exists {
+                // User exists - Login
+                print("✅ User exists, logging in...")
+                self.handleGoogleLogin(firebaseUID: firebaseUID, email: email, idToken: idToken)
+            } else {
+                // User doesn't exist - Create account
+                print("✅ New user, creating account...")
+                self.handleGoogleSignup(firebaseUID: firebaseUID, email: email, name: name, profileImageUrl: profileImageUrl, idToken: idToken)
+            }
+        }
+    }
+    
+    // MARK: - Handle Google Login (Existing User)
+    private func handleGoogleLogin(firebaseUID: String, email: String, idToken: String) {
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
+        
+        // Create request body for Google login
+        let requestBody: [String: Any] = [
+            "email": email,
+            "firebaseUID": firebaseUID,
+            "idToken": idToken,
+            "deviceId": deviceId
+        ]
+        
+        guard let url = URL(string: "\(baseURL)/google-login") else {
+            // If endpoint doesn't exist, try regular login endpoint or handle directly
+            self.handleGoogleAuthDirectly(firebaseUID: firebaseUID, email: email)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30.0
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        } catch {
+            self.errorMessage = "Failed to encode request"
+            self.isLoading = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("⚠️ Google login API error, using direct Firebase auth: \(error.localizedDescription)")
+                    self.handleGoogleAuthDirectly(firebaseUID: firebaseUID, email: email)
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse,
+                      (200...299).contains(httpResponse.statusCode) else {
+                    print("⚠️ Google login API failed, using direct Firebase auth")
+                    self.handleGoogleAuthDirectly(firebaseUID: firebaseUID, email: email)
+                    return
+                }
+                
+                // If backend returns a custom token, use it
+                if let data = data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let token = json["token"] as? String {
+                    Auth.auth().signIn(withCustomToken: token) { authResult, error in
+                        self.finalizeGoogleAuth(firebaseUID: firebaseUID, email: email)
+                    }
+                } else {
+                    self.finalizeGoogleAuth(firebaseUID: firebaseUID, email: email)
+                }
+            }
+        }.resume()
+    }
+    
+    // MARK: - Handle Google Signup (New User)
+    private func handleGoogleSignup(firebaseUID: String, email: String, name: String, profileImageUrl: String?, idToken: String) {
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
+        
+        // Create request body for Google signup
+        let requestBody: [String: Any] = [
+            "email": email,
+            "name": name,
+            "firebaseUID": firebaseUID,
+            "idToken": idToken,
+            "profileImageUrl": profileImageUrl ?? "",
+            "deviceId": deviceId
+        ]
+        
+        guard let url = URL(string: "\(baseURL)/google-signup") else {
+            // If endpoint doesn't exist, create user directly in Firestore
+            self.createGoogleUserInFirestore(firebaseUID: firebaseUID, email: email, name: name, profileImageUrl: profileImageUrl)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30.0
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        } catch {
+            self.errorMessage = "Failed to encode request"
+            self.isLoading = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("⚠️ Google signup API error, creating user directly: \(error.localizedDescription)")
+                    self.createGoogleUserInFirestore(firebaseUID: firebaseUID, email: email, name: name, profileImageUrl: profileImageUrl)
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse,
+                      (200...299).contains(httpResponse.statusCode) else {
+                    print("⚠️ Google signup API failed, creating user directly")
+                    self.createGoogleUserInFirestore(firebaseUID: firebaseUID, email: email, name: name, profileImageUrl: profileImageUrl)
+                    return
+                }
+                
+                // Parse response and get user data
+                if let data = data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let userData = json["user"] as? [String: Any] {
+                    // Create User object from response
+                    let newUser = User(
+                        uid: firebaseUID,
+                        mobile: userData["mobile"] as? String,
+                        name: userData["name"] as? String ?? name,
+                        profileImageUrl: userData["profileImageUrl"] as? String ?? profileImageUrl,
+                        storageUsed: nil,
+                        addedAt: nil,
+                        sharedCardsCount: nil,
+                        sharedDocsCount: nil
+                    )
+                    self.user = newUser
+                }
+                
+                self.finalizeGoogleAuth(firebaseUID: firebaseUID, email: email)
+            }
+        }.resume()
+    }
+    
+    // MARK: - Create Google User in Firestore (Fallback)
+    private func createGoogleUserInFirestore(firebaseUID: String, email: String, name: String, profileImageUrl: String?) {
+        let db = Firestore.firestore()
+        let userData: [String: Any] = [
+            "email": email,
+            "name": name,
+            "profileImageUrl": profileImageUrl ?? "",
+            "createdAt": Timestamp(),
+            "authProvider": "google"
+        ]
+        
+        db.collection("users").document(firebaseUID).setData(userData) { [weak self] error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("🔴 Error creating user in Firestore: \(error.localizedDescription)")
+                self.errorMessage = "Failed to create user: \(error.localizedDescription)"
+                self.isLoading = false
+                return
+            }
+            
+            print("✅ User created in Firestore")
+            
+            // Create User object
+            let newUser = User(
+                uid: firebaseUID,
+                mobile: nil,
+                name: name,
+                profileImageUrl: profileImageUrl,
+                storageUsed: nil,
+                addedAt: nil,
+                sharedCardsCount: nil,
+                sharedDocsCount: nil
+            )
+            self.user = newUser
+            
+            self.finalizeGoogleAuth(firebaseUID: firebaseUID, email: email)
+        }
+    }
+    
+    // MARK: - Handle Google Auth Directly (Fallback)
+    private func handleGoogleAuthDirectly(firebaseUID: String, email: String) {
+        // User is already signed in to Firebase Auth, just fetch profile
+        let db = Firestore.firestore()
+        db.collection("users").document(firebaseUID).getDocument { [weak self] snapshot, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("🔴 Error fetching user: \(error.localizedDescription)")
+                self.errorMessage = "Failed to fetch user: \(error.localizedDescription)"
+                self.isLoading = false
+                return
+            }
+            
+            if let data = snapshot?.data() {
+                let name = data["name"] as? String ?? "User"
+                let profileImageUrl = data["profileImageUrl"] as? String
+                
+                let existingUser = User(
+                    uid: firebaseUID,
+                    mobile: data["mobile"] as? String,
+                    name: name,
+                    profileImageUrl: profileImageUrl,
+                    storageUsed: data["storageUsed"] as? Int64,
+                    addedAt: nil,
+                    sharedCardsCount: (data["sharedCardsCount"] as? NSNumber)?.intValue,
+                    sharedDocsCount: (data["sharedDocsCount"] as? NSNumber)?.intValue
+                )
+                self.user = existingUser
+            }
+            
+            self.finalizeGoogleAuth(firebaseUID: firebaseUID, email: email)
+        }
+    }
+    
+    // MARK: - Finalize Google Auth
+    private func finalizeGoogleAuth(firebaseUID: String, email: String) {
+        // Fetch App Config
+        self.appConfigService.fetchConfig { [weak self] success in
+            guard let self = self else { return }
+            self.isLoading = false
+            
+            guard success else {
+                self.errorMessage = "Failed to load application configuration."
+                return
+            }
+            
+            self.isAuthenticated = true
+            self.successMessage = "Signed in with Google successfully"
+            
+            // Trigger Data Sync
+            self.startDataSync(userId: firebaseUID)
+            
+            print("✅ Google authentication completed successfully")
+        }
     }
     
     // MARK: - Update MPIN
