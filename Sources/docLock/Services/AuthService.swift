@@ -1683,16 +1683,23 @@ class DocumentsService: ObservableObject {
                     if let createdAt = createdAt, 
                        let isShared = data["isShared"] as? Bool, isShared {
                         let timeInterval = Date().timeIntervalSince(createdAt)
-                        // 5 minutes = 300 seconds
-                        if timeInterval > 300 {
+                        // 2 minutes = 120 seconds (for testing)
+                        if timeInterval > 120 {
                             print("⏰ DocumentsService: Shared document \(doc.documentID) expired (\(Int(timeInterval))s ago). Deleting.")
                             // Delete from Firestore
                             doc.reference.delete()
                             
-                            // Decrement sharedDocsCount
+                            // Decrement receiver's count
                             self?.db.collection("users").document(userId).updateData([
                                 "sharedDocsCount": FieldValue.increment(Int64(-1))
                             ])
+                            
+                            // Also decrement sender's count if possible
+                            if let senderId = data["sharedBy"] as? String {
+                                self?.db.collection("users").document(senderId).updateData([
+                                    "sharedDocsCount": FieldValue.increment(Int64(-1))
+                                ])
+                            }
                             
                             // Skip including this document
                             return nil
@@ -2245,37 +2252,43 @@ class DocumentsService: ObservableObject {
                 "folderId": NSNull() // Shared documents go to root, but filtered by query
             ]
             
-            self.db.collection("users").document(friendId).collection("documents").addDocument(data: data) { error in
-                if let error = error {
-                    print("🔴 DocumentsService Share Error: \(error.localizedDescription)")
-                    completion(false, error.localizedDescription)
-                } else {
-                    print("🟢 DocumentsService: Document shared")
-                    
-                    // Update shared counts
-                    let batch = self.db.batch()
-                    let receiverRef = self.db.collection("users").document(friendId)
-                    
-                    batch.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
-                    
-                    batch.commit { error in
-                        if let error = error {
-                            print("🔴 DocumentsService Batch Error: \(error.localizedDescription)")
-                        } else {
-                            print("🟢 DocumentsService: Counts updated successfully")
+            let sharedId = "shared_\(userId)_\(document.id)"
+            let sharedDocRef = self.db.collection("users").document(friendId).collection("documents").document(sharedId)
+            
+            // Check if it already exists to avoid double-counting
+            sharedDocRef.getDocument { docSnapshot, _ in
+                let alreadyExists = docSnapshot?.exists ?? false
+                
+                sharedDocRef.setData(data, merge: true) { error in
+                    if let error = error {
+                        print("🔴 DocumentsService Share Error: \(error.localizedDescription)")
+                        completion(false, error.localizedDescription)
+                    } else {
+                        print("🟢 DocumentsService: Document shared (Deterministic ID: \(sharedId))")
+                        
+                        // Update shared counts only if it's a new share
+                        if !alreadyExists {
+                            let batch = self.db.batch()
+                            let receiverRef = self.db.collection("users").document(friendId)
+                            batch.updateData(["sharedDocsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
+                            
+                            batch.commit { error in
+                                if let error = error {
+                                    print("🔴 DocumentsService Batch Error: \(error.localizedDescription)")
+                                }
+                            }
                         }
+                        completion(true, nil)
                     }
+                }
+            }
                     
                     // Send Notifications
                     // To Receiver
                     notificationService.addNotification(userId: friendId, title: "Document Shared", message: "A document '\(document.name)' was shared with you.", type: "alert")
                     
                     // To Sender
-                    notificationService.addNotification(userId: userId, title: "Document Shared", message: "You successfully shared '\(document.name)' with your friend.", type: "alert")
-                    
-                    completion(true, nil)
-                }
-            }
+            notificationService.addNotification(userId: userId, title: "Document Shared", message: "You successfully shared '\(document.name)' with your friend.", type: "alert")
         }
     }
     
@@ -2780,14 +2793,22 @@ class CardsService: ObservableObject {
                         let createdAt = timestamp.dateValue()
                         let timeInterval = Date().timeIntervalSince(createdAt)
                         
-                        // 5 minutes = 300 seconds
-                        if timeInterval > 300 {
+                        // 2 minutes = 120 seconds (for testing)
+                        if timeInterval > 120 {
                             print("⏰ CardsService: Shared card \(doc.documentID) expired (\(Int(timeInterval))s ago). Deleting.")
                             doc.reference.delete()
                             
+                            // Decrement receiver's count
                             self?.db.collection("users").document(userId).updateData([
                                 "sharedCardsCount": FieldValue.increment(Int64(-1))
                             ])
+                            
+                            // Also decrement sender's count if possible
+                            if let senderId = data["sharedBy"] as? String {
+                                self?.db.collection("users").document(senderId).updateData([
+                                    "sharedCardsCount": FieldValue.increment(Int64(-1))
+                                ])
+                            }
                             return nil
                         }
                     }
@@ -2878,32 +2899,43 @@ class CardsService: ObservableObject {
             "sharedBy": userId
         ]
         
-        db.collection("users").document(friendId).collection("cards").addDocument(data: data) { [weak self] error in
-            if let error = error {
-                print("🔴 CardsService Share Error: \(error.localizedDescription)")
-                completion(false, error.localizedDescription)
-            } else {
-                print("🟢 CardsService: Card shared")
-                
-                // Update shared counts
-                let batch = self?.db.batch()
-                let senderRef = self?.db.collection("users").document(userId)
-                let receiverRef = self?.db.collection("users").document(friendId)
-                
-                if let senderRef = senderRef {
-                    batch?.updateData(["sharedCardsCount": FieldValue.increment(Int64(1))], forDocument: senderRef)
-                }
-                if let receiverRef = receiverRef {
-                    batch?.updateData(["sharedCardsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
-                }
-                
-                batch?.commit { error in
-                    if let error = error {
-                        print("🔴 CardsService Batch Error: \(error.localizedDescription)")
-                    } else {
-                        print("🟢 CardsService: Counts updated successfully")
+        let sharedId = "shared_\(userId)_\(card.id)"
+        let sharedCardRef = db.collection("users").document(friendId).collection("cards").document(sharedId)
+        
+        // Check if it already exists to avoid double-counting
+        sharedCardRef.getDocument { [weak self] docSnapshot, _ in
+            let alreadyExists = docSnapshot?.exists ?? false
+            
+            sharedCardRef.setData(data, merge: true) { error in
+                if let error = error {
+                    print("🔴 CardsService Share Error: \(error.localizedDescription)")
+                    completion(false, error.localizedDescription)
+                } else {
+                    print("🟢 CardsService: Card shared (Deterministic ID: \(sharedId))")
+                    
+                    // Update shared counts only if it's a new share
+                    if !alreadyExists {
+                        let batch = self?.db.batch()
+                        let senderRef = self?.db.collection("users").document(userId)
+                        let receiverRef = self?.db.collection("users").document(friendId)
+                        
+                        if let senderRef = senderRef {
+                            batch?.updateData(["sharedCardsCount": FieldValue.increment(Int64(1))], forDocument: senderRef)
+                        }
+                        if let receiverRef = receiverRef {
+                            batch?.updateData(["sharedCardsCount": FieldValue.increment(Int64(1))], forDocument: receiverRef)
+                        }
+                        
+                        batch?.commit { error in
+                            if let error = error {
+                                print("🔴 CardsService Batch Error: \(error.localizedDescription)")
+                            }
+                        }
                     }
+                    completion(true, nil)
                 }
+            }
+        }
                 
                 // Send Notifications
                 // To Receiver
@@ -2911,10 +2943,6 @@ class CardsService: ObservableObject {
                 
                 // To Sender
                 notificationService.addNotification(userId: userId, title: "Card Shared", message: "You successfully shared \(card.cardName) with your friend.", type: "alert")
-                
-                completion(true, nil)
-            }
-        }
     }
     
     func updateCard(userId: String, cardId: String, card: CardModel, completion: @escaping (Bool, String?) -> Void) {
@@ -3026,7 +3054,7 @@ class AppConfigService: ObservableObject {
                 
                 let storageBytes = data["maxStorageLimit"] as? Int ?? 209715200
                 self?.maxStorageLimit = storageBytes / (1024 * 1024) // Convert to MB
-                self?.maxCreditCardsLimit = data["maxCreditCardsLimit"] as? Int ?? 5
+                self?.maxCreditCardsLimit = data["maxCreditCardsLimit"] as? Int ?? 10
                 self?.maxFolderDepth = data["maxFolderNestingAllowed"] as? Int ?? 3
                 
                 print("🟢 AppConfigService: Loaded config (Storage: \(self?.maxStorageLimit ?? 0)MB, Cards: \(self?.maxCreditCardsLimit ?? 0))")

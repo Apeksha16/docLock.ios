@@ -16,6 +16,8 @@ struct DocumentsSearchBar: View {
             TextField("Search your documents...", text: $searchText)
                 .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                 .tint(.blue)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
             
             if !searchText.isEmpty {
                 Button(action: {

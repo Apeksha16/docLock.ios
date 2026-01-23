@@ -775,7 +775,8 @@ struct DocumentsView: View {
         .onChange(of: searchText) { newValue in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 if self.searchText == newValue {
-                     documentsService.searchDocuments(userId: userId, query: newValue)
+                    print("🔍 DocumentsView: Triggering search for '\(newValue)' with userId: \(userId)")
+                    documentsService.searchDocuments(userId: userId, query: newValue)
                 }
             }
         }

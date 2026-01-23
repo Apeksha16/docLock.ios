@@ -14,6 +14,8 @@ struct FriendsView: View {
     @State private var headerOffset: CGFloat = -50
     @State private var statsOpacity: Double = 0
     @State private var addButtonScale: CGFloat = 0.8
+    @State private var showToast = false
+    @State private var toastMessage = ""
 
     var body: some View {
         ZStack {
@@ -352,15 +354,50 @@ struct FriendsView: View {
                 }
             }
             .blur(radius: (showAddFriend || showDeleteConfirmation || showRequestSheet) ? 5 : 0)
-            
             // Secure Request Sheet
             if showRequestSheet, let selectedFriend = selectedFriendForRequest, let currentUser = authService.user {
                 RequestActionSheet(
                     friend: selectedFriend,
                     currentUser: currentUser,
                     friendsService: friendsService,
-                    isPresented: $showRequestSheet
+                    isPresented: $showRequestSheet,
+                    onSuccess: {
+                        toastMessage = "Request Sent Successfully"
+                        withAnimation {
+                            showToast = true
+                        }
+                    }
                 )
+            }
+            
+            // Toast Overlay
+            if showToast {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.white)
+                        Text(toastMessage)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .background(
+                        Capsule()
+                            .fill(Color(hex: "00C853"))
+                            .shadow(color: Color.black.opacity(0.15), radius: 10, y: 5)
+                    )
+                    .padding(.bottom, 100)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        withAnimation {
+                            showToast = false
+                        }
+                    }
+                }
             }
         }
         .onAppear {
