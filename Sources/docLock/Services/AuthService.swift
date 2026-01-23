@@ -54,6 +54,10 @@ class AuthService: ObservableObject {
         
         // Try to parse as plain string
         if let stringResponse = String(data: data, encoding: .utf8), !stringResponse.isEmpty {
+            // Check if it's HTML (likely a 404 or 500 page from the server)
+            if stringResponse.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") {
+                return "Server error (500). Please try again later."
+            }
             return stringResponse
         }
         
