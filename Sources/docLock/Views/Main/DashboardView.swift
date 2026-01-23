@@ -289,7 +289,7 @@ struct HomeView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                             
                             
-                            if !notificationService.notifications.isEmpty {
+                            if notificationService.notifications.contains(where: { !$0.isRead }) {
                                 Circle()
                                     .fill(Color.red)
                                     .frame(width: 10, height: 10)
@@ -317,7 +317,9 @@ struct HomeView: View {
                         let storageUsedMB = Double(authService.user?.storageUsed ?? 0) / (1024 * 1024)
                         let storagePercent = appConfigService.maxStorageLimit > 0 ? (storageUsedMB / Double(appConfigService.maxStorageLimit)) : 0
                         
-                        let cardsPercent = appConfigService.maxCreditCardsLimit > 0 ? (Double(cardsService.cards.count) / Double(appConfigService.maxCreditCardsLimit)) : 0
+                        // Filter out shared cards
+                        let myCardsCount = cardsService.cards.filter { !$0.isShared }.count
+                        let cardsPercent = appConfigService.maxCreditCardsLimit > 0 ? (Double(myCardsCount) / Double(appConfigService.maxCreditCardsLimit)) : 0
                         
                         // QRs - Assuming limit of 20 for visual purposes since "Synced" isn't a hard limit
                         // Or if we want to show just activity level. 
@@ -361,7 +363,7 @@ struct HomeView: View {
                                         .tracking(1.5)
                                     
                                     HStack(alignment: .lastTextBaseline, spacing: 4) {
-                                        Text("\(cardsService.cards.count)")
+                                        Text("\(myCardsCount)")
                                             .font(.system(size: 32, weight: .bold, design: .rounded))
                                             .foregroundColor(.pink)
                                         

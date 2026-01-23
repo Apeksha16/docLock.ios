@@ -16,6 +16,7 @@
 		650F8C672F212DDB0084152B /* SecureQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650F8C662F212DDB0084152B /* SecureQR.swift */; };
 		655C2FFA2F1E93F600627CD9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */; };
 		777777777777777777777778 /* Sources/docLock/Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777777777777777777777777 /* Sources/docLock/Components.swift */; };
+		8469A751057A6218D3D76FB5 /* RequestActionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CBA33FE23E03C9538BACDF /* RequestActionSheet.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */; };
 		A2A2A2A2A2A2A2A2A2A2A2A2 /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */; };
 		A3A3A3A3A3A3A3A3A3A3A3A3 /* BottomSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B3B3B3B3B3B3B3B3B3B3B3 /* BottomSheetView.swift */; };
@@ -29,6 +30,8 @@
 		AQR1AQR1AQR1AQR1AQR1AQR1 /* AddQRSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */; };
 		BCC2A6089BBA43A8AAE01E40 /* docLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ABA508666E4CF898F1FC88 /* docLockApp.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* DocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */; };
+		SR1SR1SR1SR1SR1SR1SR1SR1 /* SearchResultsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = SR2SR2SR2SR2SR2SR2SR2SR2 /* SearchResultsOverlay.swift */; };
+		DS1DS1DS1DS1DS1DS1DS1DS1 /* DocumentsSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS2DS2DS2DS2DS2DS2DS2DS2 /* DocumentsSearchBar.swift */; };
 		C2C2C2C2C2C2C2C2C2C2C2C2 /* FeatureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */; };
 		C3C3C3C3C3C3C3C3C3C3C3C3 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */; };
 		C4C4C4C4C4C4C4C4C4C4C4C4 /* MPINView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */; };
@@ -42,6 +45,10 @@
 		E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */; };
 		E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */; };
 		E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */; };
+		E6E6E6E6E6E6E6E6E6E6E6E6 /* CardSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* CardSelectionSheet.swift */; };
+		E7E7E7E7E7E7E7E7E7E7E7E7 /* DocumentSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F7F7F7F7F7F7F7F7F7F7F7 /* DocumentSelectionSheet.swift */; };
+
+
 		EIC1EIC1EIC1EIC1EIC1EIC1 /* IconGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */; };
 		H1H1H1H1H1H1H1H1H1H1H1H1 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */; };
 		M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */; };
@@ -63,6 +70,7 @@
 		655C2FF92F1E93F600627CD9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		666666666666666666666666 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		777777777777777777777777 /* Sources/docLock/Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/docLock/Components.swift; sourceTree = "<group>"; };
+		A1CBA33FE23E03C9538BACDF /* RequestActionSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RequestActionSheet.swift; sourceTree = "<group>"; };
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendView.swift; sourceTree = "<group>"; };
 		B3B3B3B3B3B3B3B3B3B3B3B3 /* BottomSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomSheetView.swift; sourceTree = "<group>"; };
@@ -75,6 +83,8 @@
 		BBBBBBBBBBBBBBBBBBBBBBBB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddQRSheet.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsView.swift; sourceTree = "<group>"; };
+		SR2SR2SR2SR2SR2SR2SR2SR2 /* SearchResultsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResultsOverlay.swift; sourceTree = "<group>"; };
+		DS2DS2DS2DS2DS2DS2DS2DS2 /* DocumentsSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsSearchBar.swift; sourceTree = "<group>"; };
 		D2D2D2D2D2D2D2D2D2D2D2D2 /* FeatureCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureCard.swift; sourceTree = "<group>"; };
 		D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
 		D4D4D4D4D4D4D4D4D4D4D4D4 /* MPINView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MPINView.swift; sourceTree = "<group>"; };
@@ -84,10 +94,14 @@
 		D8D8D8D8D8D8D8D8D8D8D8D8 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
 		D9D9D9D9D9D9D9D9D9D9D9D9 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		F1F1F1F1F1F1F1F1F1F1F1F1 /* StorageCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCircleView.swift; sourceTree = "<group>"; };
+
+
 		F2F2F2F2F2F2F2F2F2F2F2F2 /* SwipeToDismissModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeToDismissModifier.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypewriterText.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendSelectionSheet.swift; sourceTree = "<group>"; };
+		F6F6F6F6F6F6F6F6F6F6F6F6 /* CardSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardSelectionSheet.swift; sourceTree = "<group>"; };
+		F7F7F7F7F7F7F7F7F7F7F7F7 /* DocumentSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentSelectionSheet.swift; sourceTree = "<group>"; };
 		FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconGeneratorView.swift; sourceTree = "<group>"; };
 		H2H2H2H2H2H2H2H2H2H2H2H2 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		M2M2M2M2M2M2M2M2M2M2M2M2 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
@@ -225,6 +239,9 @@
 				F3F3F3F3F3F3F3F3F3F3F3F3 /* TypewriterText.swift */,
 				F4F4F4F4F4F4F4F4F4F4F4F4 /* ToastView.swift */,
 				F5F5F5F5F5F5F5F5F5F5F5F5 /* FriendSelectionSheet.swift */,
+
+				F6F6F6F6F6F6F6F6F6F6F6F6 /* CardSelectionSheet.swift */,
+				F7F7F7F7F7F7F7F7F7F7F7F7 /* DocumentSelectionSheet.swift */,
 				FIC1FIC1FIC1FIC1FIC1FIC1 /* IconGeneratorView.swift */,
 			);
 			name = Components;
@@ -238,11 +255,14 @@
 				B2B2B2B2B2B2B2B2B2B2B2B2 /* AddFriendView.swift */,
 				B4B4B4B4B4B4B4B4B4B4B4B4 /* CardsView.swift */,
 				D1D1D1D1D1D1D1D1D1D1D1D1 /* DocumentsView.swift */,
+				SR2SR2SR2SR2SR2SR2SR2SR2 /* SearchResultsOverlay.swift */,
+				DS2DS2DS2DS2DS2DS2DS2DS2 /* DocumentsSearchBar.swift */,
 				D3D3D3D3D3D3D3D3D3D3D3D3 /* FriendsView.swift */,
 				D5D5D5D5D5D5D5D5D5D5D5D5 /* NotificationView.swift */,
 				D6D6D6D6D6D6D6D6D6D6D6D6 /* ProfileView.swift */,
 				D7D7D7D7D7D7D7D7D7D7D7D7 /* SecureQRView.swift */,
 				BQR1BQR1BQR1BQR1BQR1BQR1 /* AddQRSheet.swift */,
+				A1CBA33FE23E03C9538BACDF /* RequestActionSheet.swift */,
 			);
 			name = Features;
 			path = Sources/docLock/Views/Features;
@@ -354,6 +374,8 @@
 				A8A8A8A8A8A8A8A8A8A8A8A8 /* CustomTextField.swift in Sources */,
 				A9A9A9A9A9A9A9A9A9A9A9A9 /* DashboardView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1C1 /* DocumentsView.swift in Sources */,
+				SR1SR1SR1SR1SR1SR1SR1SR1 /* SearchResultsOverlay.swift in Sources */,
+				DS1DS1DS1DS1DS1DS1DS1DS1 /* DocumentsSearchBar.swift in Sources */,
 				C2C2C2C2C2C2C2C2C2C2C2C2 /* FeatureCard.swift in Sources */,
 				C3C3C3C3C3C3C3C3C3C3C3C3 /* FriendsView.swift in Sources */,
 				C4C4C4C4C4C4C4C4C4C4C4C4 /* MPINView.swift in Sources */,
@@ -367,6 +389,9 @@
 				E3E3E3E3E3E3E3E3E3E3E3E3 /* TypewriterText.swift in Sources */,
 				E4E4E4E4E4E4E4E4E4E4E4E4 /* ToastView.swift in Sources */,
 				E5E5E5E5E5E5E5E5E5E5E5E5 /* FriendSelectionSheet.swift in Sources */,
+
+				E6E6E6E6E6E6E6E6E6E6E6E6 /* CardSelectionSheet.swift in Sources */,
+				E7E7E7E7E7E7E7E7E7E7E7E7 /* DocumentSelectionSheet.swift in Sources */,
 				EIC1EIC1EIC1EIC1EIC1EIC1 /* IconGeneratorView.swift in Sources */,
 				H1H1H1H1H1H1H1H1H1H1H1H1 /* Color+Hex.swift in Sources */,
 				M1M1M1M1M1M1M1M1M1M1M1M1 /* User.swift in Sources */,
@@ -378,6 +403,7 @@
 				MDMDMDMDMDMDMDMDMDMD /* VerifyMobileResponse.swift in Sources */,
 				MFMFMFMFMFMFMFMFMFMF /* ErrorResponse.swift in Sources */,
 				650F8C672F212DDB0084152B /* SecureQR.swift in Sources */,
+				8469A751057A6218D3D76FB5 /* RequestActionSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -499,7 +525,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5JBKVVSQ4Z;
+				DEVELOPMENT_TEAM = PZM9G8P6X3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
@@ -513,7 +539,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.doclockapp.ios.apeksha;
+				PRODUCT_BUNDLE_IDENTIFIER = com.techvriksha.doclock.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -529,7 +555,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5JBKVVSQ4Z;
+				DEVELOPMENT_TEAM = PZM9G8P6X3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = DocLock;
@@ -543,7 +569,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.doclockapp.ios.apeksha;
+				PRODUCT_BUNDLE_IDENTIFIER = com.techvriksha.doclock.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

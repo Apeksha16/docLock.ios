@@ -65,32 +65,42 @@ class AuthService: ObservableObject {
         let db = Firestore.firestore()
         print("🔄 updateFriendRecords: Updating friend records for user \(userId) with data: \(data)")
         
-        // Query all 'friends' collections where this user is stored
-        db.collectionGroup("friends").whereField("uid", isEqualTo: userId).getDocuments { (snapshot, error) in
+        // Strategy: Iterate over current user's friends list and update the corresponding record in THEIR friends list
+        // This avoids needing a collectionGroup index which might be missing.
+        db.collection("users").document(userId).collection("friends").getDocuments { (snapshot, error) in
             if let error = error {
-                print("⚠️ Error finding friend records to update: \(error.localizedDescription)")
+                print("⚠️ Error finding friends to notify: \(error.localizedDescription)")
                 return
             }
             
             guard let documents = snapshot?.documents, !documents.isEmpty else {
-                print("ℹ️ No friend records found to update for user \(userId)")
+                print("ℹ️ No friends found to update for user \(userId)")
                 return
             }
             
-            print("📝 Found \(documents.count) friend records to update")
+            print("📝 Found \(documents.count) friends to notify")
+            
+            // Batch updates (max 500 operations per batch)
+            // If user has > 500 friends, this would need chunking. Assuming < 500 for now.
             let batch = db.batch()
-            // Note: Firestore batch limit is 500.
+            var updateCount = 0
+            
             for doc in documents {
-                batch.updateData(data, forDocument: doc.reference)
-                print("  - Updating friend record at: \(doc.reference.path)")
+                let friendId = doc.documentID
+                // The record OF me IN my friend's list
+                let friendRecordRef = db.collection("users").document(friendId).collection("friends").document(userId)
+                
+                batch.updateData(data, forDocument: friendRecordRef)
+                updateCount += 1
             }
             
-            batch.commit { error in
-                if let error = error {
-                    print("🔴 Error propagating profile updates to friends: \(error.localizedDescription)")
-                } else {
-                    print("🟢 Successfully propagated profile updates to \(documents.count) friends")
-                    // The real-time listeners should automatically pick up these changes
+            if updateCount > 0 {
+                batch.commit { error in
+                    if let error = error {
+                        print("🔴 Error propagating profile updates to friends: \(error.localizedDescription)")
+                    } else {
+                        print("🟢 Successfully propagated profile updates to \(updateCount) friends")
+                    }
                 }
             }
         }
@@ -1073,8 +1083,9 @@ class NotificationService: ObservableObject {
                     let isRead = data["isRead"] as? Bool ?? false
                     let requestType = data["requestType"] as? String
                     let senderId = data["senderId"] as? String
+                    let isFulfilled = data["isFulfilled"] as? Bool ?? false
                     
-                    return NotificationItem(id: doc.documentID, type: type, title: title, message: message, date: date, isRead: isRead, requestType: requestType, senderId: senderId)
+                    return NotificationItem(id: doc.documentID, type: type, title: title, message: message, date: date, isRead: isRead, requestType: requestType, senderId: senderId, isFulfilled: isFulfilled)
                 }
                 self?.error = nil // Clear error on success
                 print("🟢 NotificationService: Synced \(self?.notifications.count ?? 0) items")
@@ -1116,6 +1127,15 @@ class NotificationService: ObservableObject {
         }
     }
     
+    func markAsFulfilled(id: String, userId: String) {
+        print("✅ NotificationService: Marking notification \(id) as fulfilled")
+        db.collection("users").document(userId).collection("notifications").document(id).updateData(["isFulfilled": true]) { error in
+            if let error = error {
+                print("🔴 Error marking notification as fulfilled: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     // MARK: - Sending Notifications
     static func send(to userId: String, title: String, message: String, type: String, senderId: String? = nil, senderName: String? = nil, requestType: String? = nil, completion: ((Error?) -> Void)? = nil) {
         let db = Firestore.firestore()
@@ -1127,6 +1147,7 @@ class NotificationService: ObservableObject {
             "type": type,
             "date": timestamp,
             "isRead": false,
+            "isFulfilled": false,
             "createdAt": FieldValue.serverTimestamp()
         ]
         
@@ -1180,7 +1201,6 @@ class FriendsService: ObservableObject {
         print("👥 FriendsService: Starting listener for user \(userId)")
         
         listener = db.collection("users").document(userId).collection("friends")
-            .order(by: "addedAt", descending: true)
             .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, error in
                 DispatchQueue.main.async {
                     if let error = error {
@@ -1195,6 +1215,8 @@ class FriendsService: ObservableObject {
                     self?.friends = documents.compactMap { doc -> User? in
                         return self?.mapDataToUser(uid: doc.documentID, data: doc.data())
                     }
+                    // Sort in-memory by addedAt descending (most recent first)
+                    .sorted { ($0.addedAt ?? Date.distantPast) > ($1.addedAt ?? Date.distantPast) }
                     
                     self?.error = nil
                     print("🟢 FriendsService: Synced \(documents.count) friends")
@@ -1483,6 +1505,11 @@ class DocumentsService: ObservableObject {
     @Published var folders: [DocFolder] = []
     @Published var currentFolderDocuments: [DocumentFile] = []
     @Published var currentFolderFolders: [DocFolder] = []
+    
+    // Search
+    @Published var searchResults: [DocumentFile] = []
+    @Published var isSearching = false
+    
     @Published var isFetchingDocuments = false
     @Published var isFetchingFolders = false
     
@@ -1554,6 +1581,9 @@ class DocumentsService: ObservableObject {
                 self?.error = nil
                 print("🟢 DocumentsService: Synced \(self?.folders.count ?? 0) folders")
             }
+        
+        // Ensure shared docs count is accurate
+        recalculateSharedDocsCount(userId: userId)
     }
     
     func stopListening() {
@@ -1568,6 +1598,19 @@ class DocumentsService: ObservableObject {
             print("🔄 DocumentsService: Retrying...")
             startListening(userId: userId)
         }
+    }
+
+    
+    // Recalculate count to fix any skew
+    func recalculateSharedDocsCount(userId: String) {
+        db.collection("users").document(userId).collection("documents")
+            .whereField("isShared", isEqualTo: true)
+            .getDocuments { [weak self] snapshot, error in
+                if let count = snapshot?.count {
+                    print("🔄 DocumentsService: Recalculating shared count: \(count)")
+                    self?.db.collection("users").document(userId).updateData(["sharedDocsCount": count])
+                }
+            }
     }
     
     // MARK: - Fetch Documents in Folder
@@ -1636,7 +1679,34 @@ class DocumentsService: ObservableObject {
                     let timestamp = data["createdAt"] as? Timestamp
                     let createdAt = timestamp?.dateValue()
                     
+                    // Expiration Logic for Shared Documents
+                    if let createdAt = createdAt, 
+                       let isShared = data["isShared"] as? Bool, isShared {
+                        let timeInterval = Date().timeIntervalSince(createdAt)
+                        // 5 minutes = 300 seconds
+                        if timeInterval > 300 {
+                            print("⏰ DocumentsService: Shared document \(doc.documentID) expired (\(Int(timeInterval))s ago). Deleting.")
+                            // Delete from Firestore
+                            doc.reference.delete()
+                            
+                            // Decrement sharedDocsCount
+                            self?.db.collection("users").document(userId).updateData([
+                                "sharedDocsCount": FieldValue.increment(Int64(-1))
+                            ])
+                            
+                            // Skip including this document
+                            return nil
+                        }
+                    }
+                    
                     let isShared = data["isShared"] as? Bool ?? false
+                    
+                    // Filter: If we are in Root (folderId == nil) and doc is shared, hide it.
+                    // It will show in "Shared" folder instead.
+                    if folderId == nil && isShared {
+                        return nil
+                    }
+
                     let sharedBy = data["sharedBy"] as? String
                     let sharedByName = data["sharedByName"] as? String
                     
@@ -1660,6 +1730,69 @@ class DocumentsService: ObservableObject {
             }
     }
     
+    // MARK: - Search Documents (Global)
+    func searchDocuments(userId: String, query: String) {
+        guard !query.isEmpty else {
+            self.searchResults = []
+            return
+        }
+        
+        self.isSearching = true
+        print("🔍 DocumentsService: Searching globally for '\(query)'")
+        
+        // Fetch ALL documents for the user (excluding shared if possible via query, or filter locally)
+        db.collection("users").document(userId).collection("documents")
+            .whereField("isShared", isEqualTo: false) // Exclude shared docs from search
+            .getDocuments { [weak self] snapshot, error in
+                self?.isSearching = false
+                
+                if let error = error {
+                    print("🔴 Search Error: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    self?.searchResults = []
+                    return
+                }
+                
+                // Filter locally
+                let results = documents.compactMap { doc -> DocumentFile? in
+                    let data = doc.data()
+                    let name = data["name"] as? String ?? "Unnamed"
+                    
+                    // Case-insensitive contain search
+                    if !name.localizedCaseInsensitiveContains(query) {
+                        return nil
+                    }
+                    
+                    let type = data["type"] as? String ?? "document"
+                    let url = data["url"] as? String ?? ""
+                    let size = data["size"] as? Int ?? 0
+                    let timestamp = data["createdAt"] as? Timestamp
+                    let createdAt = timestamp?.dateValue()
+                    let isShared = data["isShared"] as? Bool ?? false
+                    
+                    return DocumentFile(
+                        id: doc.documentID,
+                        name: name,
+                        type: type,
+                        url: url,
+                        size: size,
+                        createdAt: createdAt,
+                        isShared: isShared,
+                        sharedBy: nil,
+                        sharedByName: nil
+                    )
+                }
+                
+                DispatchQueue.main.async {
+                    self?.searchResults = results
+                    print("🟢 Search Results: Found \(results.count) matches")
+                }
+            }
+    }
+
     // MARK: - Fetch Folders in Folder
     func fetchFoldersInFolder(userId: String, parentFolderId: String?) {
         folderFoldersListener?.remove()
@@ -2331,7 +2464,16 @@ class DocumentsService: ObservableObject {
             
             // Calculate total size in bytes
             var totalSizeBytes: Int64 = 0
+            var validDocumentsCount = 0
+            
             for doc in documents {
+                // Skip shared documents for storage and count limits
+                if let isShared = doc.data()["isShared"] as? Bool, isShared {
+                    continue
+                }
+                
+                validDocumentsCount += 1
+                
                 if let size = doc.data()["size"] as? Int64 {
                     totalSizeBytes += size
                 } else if let size = doc.data()["size"] as? Int {
@@ -2343,10 +2485,23 @@ class DocumentsService: ObservableObject {
             let totalSizeMB = Double(totalSizeBytes) / (1024.0 * 1024.0)
             
             // Update on main thread
+            // Update on main thread
             DispatchQueue.main.async {
                 self.usedStorageMB = totalSizeMB
-                self.totalDocuments = documents.count
-                print("🟢 DocumentsService: Updated storage size to \(String(format: "%.2f", totalSizeMB)) MB (\(documents.count) files)")
+                self.totalDocuments = validDocumentsCount
+                print("🟢 DocumentsService: Updated storage size to \(String(format: "%.2f", totalSizeMB)) MB (\(validDocumentsCount) files)")
+                
+                // Update Firestore User Profile so other services (AuthService/Dashboard) pick it up
+                self.db.collection("users").document(userId).updateData([
+                    "storageUsed": totalSizeBytes,
+                    "documentCount": validDocumentsCount
+                ]) { error in
+                    if let error = error {
+                        print("🔴 DocumentsService: Error updating user profile storage: \(error.localizedDescription)")
+                    } else {
+                        print("🟢 DocumentsService: Synced storage usage to User Profile")
+                    }
+                }
             }
         }
     }
@@ -2619,6 +2774,24 @@ class CardsService: ObservableObject {
                     
                     let holder = data["cardHolder"] as? String ?? ""
                     
+                    // Expiration Check for Shared Cards
+                    if let isShared = data["isShared"] as? Bool, isShared,
+                       let timestamp = data["createdAt"] as? Timestamp {
+                        let createdAt = timestamp.dateValue()
+                        let timeInterval = Date().timeIntervalSince(createdAt)
+                        
+                        // 5 minutes = 300 seconds
+                        if timeInterval > 300 {
+                            print("⏰ CardsService: Shared card \(doc.documentID) expired (\(Int(timeInterval))s ago). Deleting.")
+                            doc.reference.delete()
+                            
+                            self?.db.collection("users").document(userId).updateData([
+                                "sharedCardsCount": FieldValue.increment(Int64(-1))
+                            ])
+                            return nil
+                        }
+                    }
+                    
                     // Decrypt sensitive data
                     let rawNumber = data["cardNumber"] as? String ?? ""
                     let rawCVV = data["cvv"] as? String ?? ""
@@ -2863,7 +3036,10 @@ class AppConfigService: ObservableObject {
     }
     
     func canCreateFolder(currentDepth: Int) -> Bool {
-        return currentDepth < maxFolderDepth
+        // Check if creating a NEW folder (depth + 1) would exceed limit
+        // If max is 3 (levels 0, 1, 2), and current is 2. Next is 3.
+        // 3 < 3 is False. So blocked.
+        return (currentDepth + 1) < maxFolderDepth
     }
 }
 

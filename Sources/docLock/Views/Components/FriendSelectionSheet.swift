@@ -10,6 +10,8 @@ struct FriendSelectionSheet: View {
     @State private var selectedFriendId: String? = nil
     
     @State private var sheetOffset: CGFloat = 600
+    @FocusState private var isFocused: Bool
+    @State private var keyboardHeight: CGFloat = 0
     
     var filteredFriends: [User] {
         if searchText.isEmpty {
@@ -42,7 +44,7 @@ struct FriendSelectionSheet: View {
                  Capsule()
                      .fill(Color.gray.opacity(0.3))
                      .frame(width: 40, height: 4)
-                     .padding(.top, 10)
+                     .padding(.top, 16)
                      .padding(.bottom, 20)
                 
                 // Header
@@ -54,6 +56,11 @@ struct FriendSelectionSheet: View {
                 
                 if friends.count > 6 {
                     TextField("Search friends...", text: $searchText)
+                        .focused($isFocused)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            isFocused = false
+                        }
                         .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
                         .colorScheme(.light)
                         .padding(12)
@@ -81,7 +88,11 @@ struct FriendSelectionSheet: View {
                         LazyVStack(spacing: 12) {
                             ForEach(filteredFriends) { friend in
                                 Button(action: {
-                                    selectedFriendId = friend.id
+                                    if selectedFriendId == friend.id {
+                                        selectedFriendId = nil
+                                    } else {
+                                        selectedFriendId = friend.id
+                                    }
                                 }) {
                                     HStack(spacing: 15) {
                                         // Avatar
@@ -152,7 +163,16 @@ struct FriendSelectionSheet: View {
                 }
                 .disabled(selectedFriendId == nil)
                 .padding(.horizontal)
-                .padding(.bottom, 40) // Bottom safe area padding
+                .padding(.bottom, 40 + keyboardHeight) // Bottom safe area + keyboard
+                }
+                .animation(.easeOut(duration: 0.25), value: keyboardHeight)
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+                    if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                        self.keyboardHeight = keyboardFrame.height - (UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                   self.keyboardHeight = 0
                 }
                 .background(
                     ZStack {

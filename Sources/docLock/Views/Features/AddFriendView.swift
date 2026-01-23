@@ -356,47 +356,57 @@ private extension AddFriendView {
     // MARK: - Actions
     
     func searchUser() {
+        // Dismiss keypad first
+        isFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        
         guard !searchText.isEmpty else { return }
         
         // 1. Check Self-Add (Local Check)
-        if let currentUser = authService.user, 
+        if let currentUser = authService.user,
            (searchText == currentUser.mobile || searchText == currentUser.uid) {
             alertMessage = "You can't add yourself!"
             showAlert = true
             return
         }
         
-        isLoading = true
-        errorMessage = nil
-        isFocused = false // Dismiss keyboard for loading
-        
-        friendsService.searchUser(query: searchText) { user, error in
+        // Proceed with loading after slight delay to allow keyboard animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.isLoading = true
+            self.errorMessage = nil
+            
+            self.friendsService.searchUser(query: self.searchText) { user, error in
             isLoading = false
             if let user = user {
                 // 2. Check Self-Add
-                if user.uid == authService.user?.uid {
-                    alertMessage = "You can't add yourself!"
-                    showAlert = true
+                if user.uid == self.authService.user?.uid {
+                    self.alertMessage = "You can't add yourself!"
+                    self.showAlert = true
+                    // Reset loading
+                    self.isLoading = false
                     return
                 }
                 
                 // 3. Check Duplicate
-                if friendsService.friends.contains(where: { $0.uid == user.uid }) {
-                    alertMessage = "This person is already in your circle."
-                    showAlert = true
+                if self.friendsService.friends.contains(where: { $0.uid == user.uid }) {
+                    self.alertMessage = "This person is already in your circle."
+                    self.showAlert = true
+                    // Reset loading
+                    self.isLoading = false
                     return
                 }
                 
                 self.searchedUser = user
                 withAnimation {
-                    showConfirmation = true
+                    self.showConfirmation = true
                 }
             } else {
-                errorMessage = error ?? "User not found"
-                isLoading = false
-                isFocused = true // Refocus on error
+                self.errorMessage = error ?? "User not found"
+                self.isLoading = false
+                // self.isFocused = true // Don't refocus on error to keep UI clean
             }
         }
+        } // End Dispatch
     }
     
     func addFriend() {

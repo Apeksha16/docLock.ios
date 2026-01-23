@@ -746,14 +746,14 @@ struct QRCodeCard: View {
                         }
                     }
                     
-                    // QR Label with Animation
-                    Text(qr.label)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.95))
-                        .lineLimit(1)
-                        .padding(.top, 6)
-                        .offset(y: cardAppeared ? 0 : 10)
-                        .opacity(cardAppeared ? 1.0 : 0.0)
+                    // Label removed as per request
+//                    Text(qr.label)
+//                        .font(.system(size: 13, weight: .semibold))
+//                        .foregroundColor(.white.opacity(0.95))
+//                        .lineLimit(1)
+//                        .padding(.top, 6)
+//                        .offset(y: cardAppeared ? 0 : 10)
+//                        .opacity(cardAppeared ? 1.0 : 0.0)
                 }
             }
             .padding(20)
@@ -998,12 +998,12 @@ struct QRCardForExport: View {
                         }
                     }
                     
-                    // QR Label
-                    Text(qr.label)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.95))
-                        .lineLimit(1)
-                        .padding(.top, 6)
+                    // Label removed as per request
+//                    Text(qr.label)
+//                        .font(.system(size: 13, weight: .semibold))
+//                        .foregroundColor(.white.opacity(0.95))
+//                        .lineLimit(1)
+//                        .padding(.top, 6)
                 }
             }
             .padding(20)

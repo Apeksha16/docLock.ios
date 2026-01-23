@@ -14,8 +14,10 @@ struct CustomTabBar: View {
                 color: Color(red: 0.3, green: 0.2, blue: 0.9),
                 namespace: animation
             ) {
-                withAnimation(.spring()) {
-                    selectedTab = "Home"
+                if selectedTab != "Home" {
+                    withAnimation(.spring()) {
+                        selectedTab = "Home"
+                    }
                 }
             }
             
@@ -27,8 +29,10 @@ struct CustomTabBar: View {
                 color: Color(hex: "BF092F"),
                 namespace: animation
             ) {
-                withAnimation(.spring()) {
-                    selectedTab = "Friends"
+                if selectedTab != "Friends" {
+                    withAnimation(.spring()) {
+                        selectedTab = "Friends"
+                    }
                 }
             }
             
@@ -40,8 +44,10 @@ struct CustomTabBar: View {
                 color: Color(red: 0.28, green: 0.65, blue: 0.66),
                 namespace: animation
             ) {
-                withAnimation(.spring()) {
-                    selectedTab = "Profile"
+                if selectedTab != "Profile" {
+                    withAnimation(.spring()) {
+                        selectedTab = "Profile"
+                    }
                 }
             }
         }

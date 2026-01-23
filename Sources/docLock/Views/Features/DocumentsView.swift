@@ -123,6 +123,11 @@ struct DocumentsView: View {
     // Track folder hierarchy for navigation
     @State private var folderHierarchy: [String] = [] // Array of folder IDs from root to current
     
+    // Computed properties for filtering
+    var filteredDocuments: [DocumentFile] {
+        return documentsService.currentFolderDocuments
+    }
+
     var body: some View {
         ZStack {
             Color(red: 0.96, green: 0.97, blue: 0.99) // Very light blue/gray background
@@ -160,25 +165,14 @@ struct DocumentsView: View {
                 .padding()
                 
                 // Search Bar (Only show if items exist)
+                // Premium Animated Search Bar
                 if !documentsService.folders.isEmpty || !documentsService.currentFolderDocuments.isEmpty {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        TextField("Search docs...", text: $searchText)
-                            .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                            .colorScheme(.light)
-                            .onChange(of: searchText) { newValue in
-                                let filtered = newValue.filter { "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-".contains($0) }
-                                if filtered != newValue {
-                                    searchText = filtered
-                                }
-                            }
-                    }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(15)
-                    .padding(.horizontal)
-                    .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+                    DocumentsSearchBar(
+                        searchText: $searchText,
+                        documentsService: documentsService,
+                        documentToPreview: $documentToPreview,
+                        showDocumentPreview: $showDocumentPreview
+                    )
                 }
                 
                 // Breadcrumbs (Show if we have items or are in a folder)
@@ -252,6 +246,7 @@ struct DocumentsView: View {
                         userId: userId,
                         folderId: folderId,
                         folderName: selectedFolderName ?? "Folder",
+                        currentDepth: currentFolderDepth,
                         appConfigService: documentsService.appConfigService!,
                         onFolderTap: { folder in
                             // Stop current folder listeners before navigating
@@ -394,29 +389,32 @@ struct DocumentsView: View {
                             .listRowBackground(Color.clear)
                             .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                // Delete action
-                                Button(role: .destructive) {
-                                    deleteFolder(folderId: folder.id, folderName: folder.name)
-                                } label: {
-                                    Image(systemName: "trash")
+                                if folder.id != "SHARED_ROOT" {
+                                    // Delete action
+                                    Button(role: .destructive) {
+                                        deleteFolder(folderId: folder.id, folderName: folder.name)
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .tint(.red)
+                                    // .disabled(folder.id == "SHARED_ROOT") // Redundant now
+                                    
+                                    // Edit action
+                                    Button {
+                                        editFolder(folder: folder)
+                                    } label: {
+                                        Image(systemName: "pencil")
+                                    }
+                                    .tint(.blue)
+                                    // .disabled(folder.id == "SHARED_ROOT")
                                 }
-                                .tint(.red)
-                                .disabled(folder.id == "SHARED_ROOT") // Cannot delete Shared folder
-                                
-                                // Edit action
-                                Button {
-                                    editFolder(folder: folder)
-                                } label: {
-                                    Image(systemName: "pencil")
-                                }
-                                .tint(.blue)
-                                .disabled(folder.id == "SHARED_ROOT") // Cannot edit Shared folder
                             }
                         }
                         
                         // Documents section (Root)
-                        if !documentsService.currentFolderDocuments.isEmpty {
-                            ForEach(documentsService.currentFolderDocuments) { document in
+                        // Documents section (Root)
+                        if !filteredDocuments.isEmpty {
+                            ForEach(filteredDocuments) { document in
                                 DocumentListItem(document: document)
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
@@ -426,34 +424,50 @@ struct DocumentsView: View {
                                         showDocumentPreview = true
                                     }
                                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        // Delete action
-                                        Button(role: .destructive) {
-                                            documentToDelete = document
-                                            showDeleteDocumentConfirmation = true
-                                        } label: {
-                                            Image(systemName: "trash")
+                                        if !document.isShared {
+                                            // Delete action
+                                            Button(role: .destructive) {
+                                                documentToDelete = document
+                                                showDeleteDocumentConfirmation = true
+                                            } label: {
+                                                Image(systemName: "trash")
+                                            }
+                                            .tint(.red)
+                                            
+                                            // Edit name action
+                                            Button {
+                                                documentToEdit = document
+                                                showEditDocumentSheet = true
+                                            } label: {
+                                                Image(systemName: "pencil")
+                                            }
+                                            .tint(.blue)
+                                            
+                                            // Share action
+                                            Button {
+                                                documentToShare = document
+                                                showingFriendSelection = true
+                                            } label: {
+                                                Image(systemName: "square.and.arrow.up")
+                                            }
+                                            .tint(.orange)
                                         }
-                                        .tint(.red)
-                                        
-                                        // Edit name action
-                                        Button {
-                                            documentToEdit = document
-                                            showEditDocumentSheet = true
-                                        } label: {
-                                            Image(systemName: "pencil")
-                                        }
-                                        .tint(.blue)
-                                        
-                                        // Share action
-                                        Button {
-                                            documentToShare = document
-                                            showingFriendSelection = true
-                                        } label: {
-                                            Image(systemName: "square.and.arrow.up")
-                                        }
-                                        .tint(.orange)
                                     }
                             }
+                        } else if !searchText.isEmpty {
+                            // No Results State
+                            VStack(spacing: 12) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray.opacity(0.3))
+                                Text("No documents found")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.gray.opacity(0.8))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                         }
                     }
                     .listStyle(.plain)
@@ -619,29 +633,7 @@ struct DocumentsView: View {
         .toast(message: $toastMessage, type: toastType)
         .overlay(
             Group {
-                // Friend Selection Sheet
-                if showingFriendSelection {
-                    FriendSelectionSheet(
-                        friends: friendsService.friends,
-                        onShare: { friend in
-                            if let document = documentToShare {
-                                documentsService.shareDocument(userId: userId, document: document, friendId: friend.id, notificationService: notificationService) { success, error in
-                                    DispatchQueue.main.async {
-                                        if success {
-                                            toastMessage = "Shared '\(document.name)' with \(friend.name)"
-                                            toastType = .success
-                                        } else {
-                                            toastMessage = error ?? "Failed to share document"
-                                            toastType = .error
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        isPresented: $showingFriendSelection,
-                        sharingTitle: documentToShare?.type == "image" ? "Image" : "Document"
-                    )
-                }
+
                 
                 // Document Preview
                 if showDocumentPreview, let document = documentToPreview {
@@ -656,17 +648,18 @@ struct DocumentsView: View {
                         onDelete: {
                             documentToDelete = document
                             showDeleteDocumentConfirmation = true
-                            showDocumentPreview = false
                         },
                         onShare: {
                             documentToShare = document
                             showingFriendSelection = true
-                            showDocumentPreview = false
                         },
                         toastMessage: $toastMessage,
                         toastType: $toastType
                     )
                 }
+                
+                // Friend Selection Sheet
+
             }
         )
         .onAppear {
@@ -752,8 +745,40 @@ struct DocumentsView: View {
                     )
                     .zIndex(300)
                 }
+                
+                // Friend Selection Sheet (Added here to be on top of Preview Overlay)
+                if showingFriendSelection {
+                    FriendSelectionSheet(
+                        friends: friendsService.friends,
+                        onShare: { friend in
+                            if let document = documentToShare {
+                                documentsService.shareDocument(userId: userId, document: document, friendId: friend.id, notificationService: notificationService) { success, error in
+                                    DispatchQueue.main.async {
+                                        if success {
+                                            toastMessage = "Shared '\(document.name)' with \(friend.name)"
+                                            toastType = .success
+                                        } else {
+                                            toastMessage = error ?? "Failed to share document"
+                                            toastType = .error
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        isPresented: $showingFriendSelection,
+                        sharingTitle: documentToShare?.type == "image" ? "Image" : "Document"
+                    )
+                    .zIndex(2000)
+                }
             }
         )
+        .onChange(of: searchText) { newValue in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                if self.searchText == newValue {
+                     documentsService.searchDocuments(userId: userId, query: newValue)
+                }
+            }
+        }
     }
     
     // MARK: - Helper Functions
@@ -770,6 +795,11 @@ struct DocumentsView: View {
     }
     
     func navigateToBreadcrumb(index: Int) {
+        // If clicking on current location, do nothing
+        if index == currentPath.count - 1 {
+            return
+        }
+        
         // If clicking on HOME (index 0), go to root
         if index == 0 {
             selectedFolderId = nil
@@ -1959,6 +1989,8 @@ struct FolderContentsView: View {
     let userId: String
     let folderId: String
     let folderName: String
+
+    let currentDepth: Int
     let appConfigService: AppConfigService
     let onFolderTap: (DocFolder) -> Void
     let onBack: () -> Void
@@ -2016,7 +2048,7 @@ struct FolderContentsView: View {
                             }
                             
                             // Create Folder (only if allowed depth)
-                            if appConfigService.canCreateFolder(currentDepth: 0) { // Should pass actual depth if available
+                            if appConfigService.canCreateFolder(currentDepth: currentDepth) {
                                 EmptyStateActionButton(title: "Create Folder", icon: "folder.badge.plus", color: Color(red: 0.3, green: 0.35, blue: 0.4)) {
                                     onCreateFolder()
                                 }
@@ -2072,21 +2104,31 @@ struct FolderContentsView: View {
                                     onPreviewDocument(document)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    // Delete action
-                                    Button(role: .destructive) {
-                                        onDeleteDocument(document)
-                                    } label: {
-                                        Image(systemName: "trash")
+                                    if !document.isShared {
+                                        // Delete action
+                                        Button(role: .destructive) {
+                                            onDeleteDocument(document)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                        }
+                                        .tint(.red)
+                                        
+                                        // Edit name action
+                                        Button {
+                                            onEditDocument(document)
+                                        } label: {
+                                            Image(systemName: "pencil")
+                                        }
+                                        .tint(.blue)
+                                        
+                                        // Share action
+                                        Button {
+                                            onShareDocument(document)
+                                        } label: {
+                                            Image(systemName: "square.and.arrow.up")
+                                        }
+                                        .tint(.orange)
                                     }
-                                    .tint(.red)
-                                    
-                                    // Edit name action
-                                    Button {
-                                        onEditDocument(document)
-                                    } label: {
-                                        Image(systemName: "pencil")
-                                    }
-                                    .tint(.blue)
                                 }
                         }
                     }
@@ -2170,38 +2212,8 @@ struct DocumentListItem: View {
     }
     
     func formatUploadDate(_ date: Date) -> String {
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // If date is today, show time
-        if calendar.isDateInToday(date) {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        }
-        
-        // If date is yesterday
-        if calendar.isDateInYesterday(date) {
-            return "Yesterday"
-        }
-        
-        // If date is within the last week, show day name
-        if let days = calendar.dateComponents([.day], from: date, to: now).day, days < 7 {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE" // Day name
-            return formatter.string(from: date)
-        }
-        
-        // If date is within the same year, show month and day
-        if calendar.component(.year, from: date) == calendar.component(.year, from: now) {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d" // Jan 15
-            return formatter.string(from: date)
-        }
-        
-        // Otherwise, show full date
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, yyyy" // Jan 15, 2024
+        formatter.dateFormat = "MMM d, yyyy • h:mm a"
         return formatter.string(from: date)
     }
 }
@@ -2466,6 +2478,24 @@ struct EditDocumentSheet: View {
     }
 }
 
+// MARK: - PDFKit Wrapper
+struct PDFKitRepresentedView: UIViewRepresentable {
+    let document: PDFDocument
+
+    func makeUIView(context: Context) -> PDFView {
+        let pdfView = PDFView()
+        pdfView.autoScales = true
+        pdfView.displayMode = .singlePageContinuous
+        pdfView.displayDirection = .vertical
+        pdfView.document = document
+        return pdfView
+    }
+
+    func updateUIView(_ uiView: PDFView, context: Context) {
+        // no-op
+    }
+}
+
 // MARK: - Document Preview View
 struct DocumentPreviewView: View {
     let document: DocumentFile
@@ -2484,7 +2514,8 @@ struct DocumentPreviewView: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
-    @State private var pdfPages: [UIImage] = []
+
+    @State private var pdfDocument: PDFDocument?
     @State private var isLoading: Bool = true
     @State private var loadError: String?
     
@@ -2554,55 +2585,55 @@ struct DocumentPreviewView: View {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 case .success(let image):
-                                    image
+                                     image
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
                                         .scaleEffect(scale)
                                         .offset(offset)
                                         .gesture(
-                                            SimultaneousGesture(
-                                                MagnificationGesture()
-                                                    .onChanged { value in
-                                                        scale = lastScale * value
-                                                    }
-                                                    .onEnded { _ in
-                                                        lastScale = scale
-                                                        if scale < 1.0 {
-                                                            withAnimation {
-                                                                scale = 1.0
-                                                                lastScale = 1.0
-                                                                offset = .zero
-                                                                lastOffset = .zero
-                                                            }
-                                                        } else if scale > 5.0 {
-                                                            withAnimation {
-                                                                scale = 5.0
-                                                                lastScale = 5.0
-                                                            }
+                                            MagnificationGesture()
+                                                .onChanged { value in
+                                                    scale = lastScale * value
+                                                }
+                                                .onEnded { _ in
+                                                    lastScale = scale
+                                                    if scale < 1.0 {
+                                                        withAnimation {
+                                                            scale = 1.0
+                                                            lastScale = 1.0
+                                                            offset = .zero
+                                                            lastOffset = .zero
                                                         }
-                                                    },
-                                                DragGesture()
-                                                    .onChanged { value in
-                                                        // Only allow dragging if zoomed in
-                                                        if scale > 1.0 {
-                                                            offset = CGSize(
-                                                                width: lastOffset.width + value.translation.width,
-                                                                height: lastOffset.height + value.translation.height
-                                                            )
+                                                    } else if scale > 5.0 {
+                                                        withAnimation {
+                                                            scale = 5.0
+                                                            lastScale = 5.0
                                                         }
                                                     }
-                                                    .onEnded { _ in
-                                                        // Auto-center if not zoomed, otherwise keep position
-                                                        if scale <= 1.0 {
-                                                            withAnimation {
-                                                                offset = .zero
-                                                                lastOffset = .zero
-                                                            }
-                                                        } else {
-                                                            lastOffset = offset
-                                                        }
+                                                }
+                                        )
+                                        .simultaneousGesture(
+                                            DragGesture()
+                                                .onChanged { value in
+                                                    // Only allow dragging if zoomed in
+                                                    if scale > 1.0 {
+                                                        offset = CGSize(
+                                                            width: lastOffset.width + value.translation.width,
+                                                            height: lastOffset.height + value.translation.height
+                                                        )
                                                     }
-                                            )
+                                                }
+                                                .onEnded { _ in
+                                                    // Auto-center if not zoomed, otherwise keep position
+                                                    if scale <= 1.0 {
+                                                        withAnimation {
+                                                            offset = .zero
+                                                            lastOffset = .zero
+                                                        }
+                                                    } else {
+                                                        lastOffset = offset
+                                                    }
+                                                }
                                         )
                                         .onTapGesture(count: 2) {
                                             withAnimation {
@@ -2631,57 +2662,16 @@ struct DocumentPreviewView: View {
                                 }
                             }
                         } else {
-                            // PDF Preview with Continuous Scrolling and Zoom
-                            if !pdfPages.isEmpty {
-                                ScrollView(.vertical, showsIndicators: true) {
-                                    VStack(spacing: 12) {
-                                        ForEach(0..<pdfPages.count, id: \.self) { index in
-                                            Image(uiImage: pdfPages[index])
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .scaleEffect(scale)
-                                                .simultaneousGesture(
-                                                    MagnificationGesture()
-                                                        .onChanged { value in
-                                                            scale = lastScale * value
-                                                        }
-                                                        .onEnded { _ in
-                                                            lastScale = scale
-                                                            if scale < 1.0 {
-                                                                withAnimation {
-                                                                    scale = 1.0
-                                                                    lastScale = 1.0
-                                                                }
-                                                            } else if scale > 5.0 {
-                                                                withAnimation {
-                                                                    scale = 5.0
-                                                                    lastScale = 5.0
-                                                                }
-                                                            }
-                                                        }
-                                                )
-                                                .onTapGesture(count: 2) {
-                                                    withAnimation {
-                                                        if scale > 1.0 {
-                                                            scale = 1.0
-                                                            lastScale = 1.0
-                                                        } else {
-                                                            scale = 2.0
-                                                            lastScale = 2.0
-                                                        }
-                                                    }
-                                                }
-                                                .padding(.horizontal, 8)
-                                        }
-                                    }
-                                    .padding(.vertical, 8)
-                                }
+                            // PDF Preview with Native PDFKit
+                            if let pdfDoc = pdfDocument {
+                                PDFKitRepresentedView(document: pdfDoc)
+                                    .edgesIgnoringSafeArea(.horizontal)
                             } else {
                                 VStack(spacing: 16) {
                                     Image(systemName: "doc")
                                         .font(.system(size: 48))
                                         .foregroundColor(.white.opacity(0.7))
-                                    Text("No pages to display")
+                                    Text("No content to display")
                                         .font(.headline)
                                         .foregroundColor(.white.opacity(0.7))
                                 }
@@ -2762,38 +2752,15 @@ struct DocumentPreviewView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let data = try Data(contentsOf: url)
-                guard let dataProvider = CGDataProvider(data: data as CFData),
-                      let pdfDocument = CGPDFDocument(dataProvider) else {
+                if let pdf = PDFDocument(data: data) {
+                    DispatchQueue.main.async {
+                        pdfDocument = pdf
+                        isLoading = false
+                    }
+                } else {
                     DispatchQueue.main.async {
                         loadError = "Failed to parse PDF"
                         isLoading = false
-                    }
-                    return
-                }
-                
-                var pages: [UIImage] = []
-                let pageCount = pdfDocument.numberOfPages
-                
-                for pageNum in 1...pageCount {
-                    guard let page = pdfDocument.page(at: pageNum) else { continue }
-                    
-                    let pageRect = page.getBoxRect(.mediaBox)
-                    let renderer = UIGraphicsImageRenderer(size: pageRect.size)
-                    
-                    let image = renderer.image { ctx in
-                        ctx.cgContext.translateBy(x: 0, y: pageRect.size.height)
-                        ctx.cgContext.scaleBy(x: 1.0, y: -1.0)
-                        ctx.cgContext.drawPDFPage(page)
-                    }
-                    
-                    pages.append(image)
-                }
-                
-                DispatchQueue.main.async {
-                    pdfPages = pages
-                    isLoading = false
-                    if pages.isEmpty {
-                        loadError = "PDF has no pages"
                     }
                 }
             } catch {

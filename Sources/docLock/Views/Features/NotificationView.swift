@@ -9,6 +9,7 @@ struct NotificationItem: Identifiable {
     var isRead: Bool = false
     var requestType: String? = nil
     var senderId: String? = nil
+    var isFulfilled: Bool = false
 }
 
 enum NotificationType {
@@ -64,9 +65,61 @@ struct NotificationView: View {
         .navigationBarHidden(true)
         .swipeToDismiss()
         .toast(message: $toastMessage, type: toastType)
+        .overlay(
+            Group {
+                if showContentSelection, let notification = selectedNotification {
+                    if notification.requestType == "card" {
+                        CardSelectionSheet(
+                            cards: cardsService.cards,
+                            onShare: { card in
+                                if let senderId = notification.senderId {
+                                    cardsService.shareCard(userId: userId, card: card, friendId: senderId, notificationService: notificationService) { success, error in
+                                        DispatchQueue.main.async {
+                                            if success {
+                                                toastMessage = "Card shared successfully"
+                                                toastType = .success
+                                                notificationService.markAsFulfilled(id: notification.id, userId: userId)
+                                            } else {
+                                                toastMessage = error ?? "Failed to share card"
+                                                toastType = .error
+                                            }
+                                            showContentSelection = false
+                                        }
+                                    }
+                                }
+                            },
+                            isPresented: $showContentSelection
+                        )
+                    } else if notification.requestType == "document" {
+                        DocumentSelectionSheet(
+                            documents: documentsService.currentFolderDocuments,
+                            onShare: { document in
+                                if let senderId = notification.senderId {
+                                    documentsService.shareDocument(userId: userId, document: document, friendId: senderId, notificationService: notificationService) { success, error in
+                                        DispatchQueue.main.async {
+                                            if success {
+                                                toastMessage = "Document shared successfully"
+                                                toastType = .success
+                                                notificationService.markAsFulfilled(id: notification.id, userId: userId)
+                                            } else {
+                                                toastMessage = error ?? "Failed to share document"
+                                                toastType = .error
+                                            }
+                                            showContentSelection = false
+                                        }
+                                    }
+                                }
+                            },
+                            isPresented: $showContentSelection
+                        )
+                    }
+                }
+            }
+        )
         .onAppear {
             notificationService.retry(userId: userId)
             documentsService.startListening(userId: userId, parentFolderId: nil)
+            cardsService.retry(userId: userId)
         }
     }
     
@@ -77,13 +130,20 @@ struct NotificationView: View {
             Button(action: {
                 presentationMode.wrappedValue.dismiss()
             }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.2))
-                    .frame(width: 44, height: 44)
-                    .background(Color.white)
-                    .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.white)
+                        .frame(width: 56, height: 56)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(red: 0.3, green: 0.2, blue: 0.9).opacity(0.3), lineWidth: 1)
+                        )
+                    
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.black)
+                }
+                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             }
             
             Spacer()
@@ -207,7 +267,7 @@ struct NotificationCell: View {
                 }
                 .padding(.top, 2)
                 
-                if notification.requestType != nil, notification.senderId != nil, let onShare = onShare {
+                if notification.requestType != nil, notification.senderId != nil, !notification.isFulfilled, let onShare = onShare {
                     shareButton(onShare: onShare)
                 }
             }
