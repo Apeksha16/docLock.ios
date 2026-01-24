@@ -33,8 +33,9 @@ struct AuthView: View {
                             
                             Image("LoginLogo")
                                 .resizable()
-                                .aspectRatio(contentMode: .fit)
+                                .aspectRatio(contentMode: .fill)
                                 .frame(width: 180, height: 180)
+                                .clipShape(Circle())
                         }
                         .scaleEffect(isAnimating ? 1 : 0.8)
                         .opacity(isAnimating ? 1 : 0)
