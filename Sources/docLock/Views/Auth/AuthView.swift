@@ -28,18 +28,13 @@ struct AuthView: View {
                         ZStack {
                             Circle()
                                 .fill(Color.white)
-                                .frame(width: 120, height: 120)
+                                .frame(width: 180, height: 180)
                                 .shadow(color: Color.black.opacity(0.05), radius: 15, x: 0, y: 5)
                             
-                            Image(systemName: "lock.shield.fill")
-                                .font(.system(size: 50))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.39, green: 0.40, blue: 0.95), Color(red: 0.25, green: 0.20, blue: 0.85)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                            Image("LoginLogo")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 180, height: 180)
                         }
                         .scaleEffect(isAnimating ? 1 : 0.8)
                         .opacity(isAnimating ? 1 : 0)

@@ -19,17 +19,10 @@ struct SplashScreenView: View {
                 
                 VStack(spacing: 20) {
                     // Logo
-                    Image(systemName: "lock.shield.fill")
+                    Image("SplashScreen")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                        .foregroundStyle(
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color(red: 0.8, green: 0.2, blue: 0.8), Color(red: 0.2, green: 0.6, blue: 1.0)]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .frame(width: 120, height: 120)
                         .shadow(color: Color.blue.opacity(0.3), radius: 10, x: 0, y: 5)
                         .padding(.top, 40)
                     
