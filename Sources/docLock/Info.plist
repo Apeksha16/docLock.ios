@@ -26,6 +26,8 @@
 	<string>public.app-category.utilities</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>DocLock needs access to save your QR code cards to your photo library.</string>
+	<key>App Uses Non-Exempt Encryption</key>
+	<false/>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>CFBundleURLTypes</key>
